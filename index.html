@@ -59,7 +59,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
     Save
   </button>
   </sc-if>
-  <button type="button" class="tb" onClick="{{tb.download}}" title="{{tb.dlTitle}}" style="min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 8px">
+  <button type="button" class="tb" onClick="{{tb.download}}" disabled="{{tb.dlDisabled}}" title="{{tb.dlTitle}}" style="opacity: {{tb.dlOpacity}}; min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 8px">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path></svg>
     Download
   </button>
@@ -70,39 +70,6 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
   </button>
 </div>
-
-<sc-if value="{{tb.openOpen}}" hint-placeholder-val="{{ false }}">
-<section aria-label="Open a map" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
-  <h2 style="margin: 0; font-size: 16px; font-weight: 600">Open a map</h2>
-  <div style="display: flex; flex-wrap: wrap; gap: 16px">
-    <sc-if value="{{tb.hasRecent}}" hint-placeholder-val="{{ false }}">
-      <nav aria-label="Recent files" style="flex: 0 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
-        <span style="font-size: 12px; font-weight: 600; color: var(--ink2); padding: 0 8px 4px">Recent</span>
-        <sc-for list="{{tb.recent}}" as="rc" hint-placeholder-count="3">
-          <button type="button" class="tb" onClick="{{rc.open}}" title="{{rc.where}}" style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border: 0; border-radius: 6px; font: inherit; color: var(--ink); cursor: pointer; text-align: left; min-width: 0">
-            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{rc.name}}</span>
-            <span style="font-size: 11px; color: var(--ink2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{rc.where}}</span>
-          </button>
-        </sc-for>
-      </nav>
-    </sc-if>
-    <div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
-      <div onDragOver="{{tb.onDragOver}}" onDragLeave="{{tb.onDragLeave}}" onDrop="{{tb.onDrop}}" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; min-height: 96px; padding: 16px; border: 2px dashed {{tb.dropBd}}; border-radius: 10px; background: {{tb.dropBg}}; text-align: center">
-        <span style="font-size: 14px; color: var(--ink2)">Drop a .md file here, or</span>
-        <label class="tb" style="position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600">Choose file…<input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" onChange="{{tb.onPickFile}}" onClick="{{tb.onPickClick}}" style="position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; overflow: hidden"></label>
-      </div>
-      <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
-        <label for="open-url" style="font-size: 13px; font-weight: 600">URL</label>
-        <input id="open-url" type="url" value="{{tb.openUrl}}" onChange="{{tb.onOpenUrl}}" onKeyDown="{{tb.onOpenUrlKey}}" placeholder="https://…/map.md" spellcheck="false" autocomplete="off" style="flex: 1 1 260px; min-width: 0; min-height: 40px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px">
-        <button type="button" onClick="{{tb.openFromUrl}}" disabled="{{tb.openUrlDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">{{tb.openUrlLabel}}</button>
-        <button type="button" onClick="{{tb.toggleOpen}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Cancel</button>
-      </div>
-    </div>
-  </div>
-  <sc-if value="{{tb.hasOpenError}}" hint-placeholder-val="{{ false }}"><p role="alert" style="margin: 0; font-size: 13px; color: var(--con)">{{tb.openError}}</p></sc-if>
-  <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink2)">The file replaces the current map; the last 10 are listed under Recent. A file opened from this computer can be saved back to it. A URL must allow cross-origin requests (GitHub Pages and raw.githubusercontent.com do); opening one puts it in the address bar as <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace">?src=</code>, so the link opens this map.</p>
-</section>
-</sc-if>
 
 <sc-if value="{{nm.open}}" hint-placeholder-val="{{ false }}">
 <section aria-label="New map" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-width: 760px">
@@ -127,6 +94,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 </section>
 </sc-if>
 
+<sc-if value="{{hasMap}}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 20px">
 <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
   <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
     <span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); font-weight: 600">Argument map · markdown-backed</span>
@@ -147,7 +116,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M5.5 15V9l3 3 3-3v6M16.5 9v6M14 12.5l2.5 2.5 2.5-2.5"></path></svg>
       </sc-if>
       <sc-if value="{{t.isDiff}}" hint-placeholder-val="{{ false }}">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v13M3.5 12.5L7 16l3.5-3.5M17 21V8M13.5 11.5L17 8l3.5 3.5"></path></svg>
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h13M12.5 3.5L16 7l-3.5 3.5M21 17H8M11.5 13.5L8 17l3.5 3.5"></path></svg>
       </sc-if>
     </button>
   </sc-for>
@@ -193,8 +162,58 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   </sc-if>
 </div>
 
+</div>
+</sc-if>
+
 <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
 <main style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+  <sc-if value="{{tb.isEmpty}}" hint-placeholder-val="{{ false }}">
+    <section aria-label="No map open" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 32px 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+      <h2 style="margin: 0; font-size: 18px; font-weight: 600">No map open</h2>
+      <p style="margin: 0; font-size: 14px; color: var(--ink2)">Open a markdown map, or start a new one.</p>
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px">
+        <button type="button" onClick="{{tb.toggleOpen}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Open…</button>
+        <button type="button" onClick="{{tb.startNew}}" style="min-height: 40px; padding: 0 16px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">New map</button>
+      </div>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{tb.openOpen}}" hint-placeholder-val="{{ false }}">
+  <section aria-label="{{tb.openTitle}}" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+      <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{tb.openTitle}}</h2>
+      </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 16px">
+      <sc-if value="{{tb.hasRecent}}" hint-placeholder-val="{{ false }}">
+        <nav aria-label="Recent files" style="flex: 0 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 12px; font-weight: 600; color: var(--ink2); padding: 0 8px 4px">Recent</span>
+          <sc-for list="{{tb.recent}}" as="rc" hint-placeholder-count="3">
+            <button type="button" class="tb" onClick="{{rc.open}}" title="{{rc.where}}" style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 8px; border: 0; border-radius: 6px; font: inherit; color: var(--ink); cursor: pointer; text-align: left; min-width: 0">
+              <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{rc.name}}</span>
+              <span style="font-size: 11px; color: var(--ink2); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{rc.where}}</span>
+            </button>
+          </sc-for>
+        </nav>
+      </sc-if>
+      <div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+        <div onDragOver="{{tb.onDragOver}}" onDragLeave="{{tb.onDragLeave}}" onDrop="{{tb.onDrop}}" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; min-height: 96px; padding: 16px; border: 2px dashed {{tb.dropBd}}; border-radius: 10px; background: {{tb.dropBg}}; text-align: center">
+          <span style="font-size: 14px; color: var(--ink2)">Drop a .md file here, or</span>
+          <label class="tb" style="position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600">Choose file…<input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" onChange="{{tb.onPickFile}}" onClick="{{tb.onPickClick}}" style="position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; overflow: hidden"></label>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <label for="open-url" style="font-size: 13px; font-weight: 600">URL</label>
+          <input id="open-url" type="url" value="{{tb.openUrl}}" onChange="{{tb.onOpenUrl}}" onKeyDown="{{tb.onOpenUrlKey}}" placeholder="https://…/map.md" spellcheck="false" autocomplete="off" style="flex: 1 1 260px; min-width: 0; min-height: 40px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px">
+          <button type="button" onClick="{{tb.openFromUrl}}" disabled="{{tb.openUrlDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">{{tb.openUrlLabel}}</button>
+          <sc-if value="{{tb.canCancel}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{tb.toggleOpen}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Cancel</button></sc-if>
+        </div>
+      </div>
+    </div>
+    <sc-if value="{{tb.hasOpenError}}" hint-placeholder-val="{{ false }}"><p role="alert" style="margin: 0; font-size: 13px; color: var(--con)">{{tb.openError}}</p></sc-if>
+    <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink2)">{{tb.openNote}} The last 10 files opened are listed under Recent. A URL must allow cross-origin requests (GitHub Pages and raw.githubusercontent.com do).</p>
+  </section>
+  </sc-if>
+
 
   <sc-if value="{{hasNotice}}" hint-placeholder-val="{{ false }}">
     <div role="status" style="display: flex; align-items: center; gap: 12px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 8px 8px 8px 14px; font-size: 14px">
@@ -218,7 +237,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </div>
       <div style="position: relative; height: {{ice.height}}px">
         <sc-for list="{{ice.boxes}}" as="b" hint-placeholder-count="8">
-          <button type="button" aria-label="{{b.aria}}" title="{{b.aria}}" onClick="{{b.pick}}" style="position: absolute; left: {{b.left}}%; width: {{b.width}}%; top: {{b.top}}px; height: 24px; box-sizing: border-box; border: 2px solid var(--card); border-radius: 6px; padding: 0; cursor: pointer; background: {{b.bg}}; box-shadow: {{b.shadow}}; opacity: {{b.op}}"></button>
+          <button type="button" aria-label="{{b.aria}}" title="{{b.aria}}" onClick="{{b.pick}}" style="position: absolute; left: {{b.left}}%; width: {{b.width}}%; top: {{b.top}}px; height: 24px; box-sizing: border-box; border: {{b.border}}; border-radius: 6px; padding: 0; cursor: pointer; background: {{b.bg}}; box-shadow: {{b.shadow}}; opacity: {{b.op}}"></button>
         </sc-for>
       </div>
     </section>
@@ -600,7 +619,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <span style="display: flex; align-items: center; gap: 8px; font-size: 14px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: var(--accent)"></span><strong>A</strong> {{diff.titleA}} <span style="color: var(--ink2)">(current map)</span></span>
         <span style="display: flex; align-items: center; gap: 8px; font-size: 14px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box; border: 2.5px solid var(--side-b); background: var(--card)"></span><strong>B</strong> {{diff.titleB}}</span>
         <span style="flex: 1"></span>
-        <label class="tb" style="position: relative; min-height: 40px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; font-size: 13px; cursor: pointer; display: flex; align-items: center">Open file as B<input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" onChange="{{diff.openB}}" style="position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; overflow: hidden"></label>
+        <button type="button" onClick="{{diff.openB}}" style="min-height: 40px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Open B…</button>
         <button type="button" onClick="{{diff.copyIntoB}}" style="min-height: 40px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Snapshot current map as B</button>
         <button type="button" aria-pressed="{{diff.showSrcBPressed}}" onClick="{{diff.toggleSrcB}}" style="min-height: 40px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">{{diff.srcBToggleLabel}}</button>
       </div>
@@ -1233,21 +1252,23 @@ async function researchEvidence(key, model, arg, parent) {
     .filter((r) => Component.refProblem(r) === null);
 }
 
+/** Stands in for the map until one is opened or parses; the views that would show it are hidden meanwhile. */
+const BLANK = Object.freeze({
+  title: 'Untitled', display: { theme: 'paper', accent: 'blue', confidence: false, evidence: false, goodFaith: false },
+  root: { slug: 'untitled', text: '', side: null, weight: null, by: null, basis: null, confidence: null, refs: [], children: [] },
+});
+
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    /* The loader at the bottom of the page fetched ?src (or ?ours) as A and ?theirs as B; without them, the samples. */
-    const A = window.AM_A ?? { name: 'votes-at-16.md', text: Component.sampleA(), url: null };
-    const B = window.AM_B ?? { name: 'votes-at-16-obi.md', text: Component.sampleB(), url: null };
-    const sample = Component.parse(Component.sampleA());
-    const b0 = Component.parse(Component.sampleB());
-    if (sample.errors.length || b0.errors.length) {
-      throw new Error('bug: sample sources must parse: ' + JSON.stringify([sample.errors, b0.errors]));
-    }
-    const a = Component.parse(A.text);
-    const b = Component.parse(B.text);
-    /* A file with errors opens in the source view; the views show the sample until it parses. */
-    const map = a.errors.length ? sample.map : a.map;
+    /* The loader at the bottom of the page fetched ?src (or ?ours) as A and ?theirs as B. Without A the page opens on the
+       Open panel; without B the diff view asks for one. */
+    const A = window.AM_A ?? { name: 'untitled.md', text: '', url: null };
+    const B = window.AM_B ?? { name: '', text: '', url: null };
+    const a = A.text === '' ? { map: BLANK, errors: [] } : Component.parse(A.text);
+    const b = B.text === '' ? { map: null, errors: [] } : Component.parse(B.text);
+    /* A file with errors opens in the source view; the other views wait until it parses. */
+    const map = a.errors.length ? BLANK : a.map;
     const qFocus = QUERY.get('focus');
     const qView = QUERY.get('view');
     const qTheme = QUERY.get('theme');
@@ -1258,7 +1279,7 @@ class Component extends DCLogic {
     this.autosaveTimer = null;
     this.lastSrc = A.text;
     this.state = {
-      fileStatus: '', newOpen: false, newTitle: '', newText: '', newKind: 'args',
+      fileStatus: '', openTarget: 'A', newOpen: false, newTitle: '', newText: '', newKind: 'args',
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
       themeQ: THEMES.some((t) => t.id === qTheme) ? qTheme : null,
@@ -2010,7 +2031,7 @@ class Component extends DCLogic {
         src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, selected: [], evOpen: false, evEdit: null,
         pinned: s.pinned !== null && Component.findPath(r.map.root, s.pinned) !== null ? s.pinned : null,
         focus: keep ? s.focus : r.map.root.slug,
-        notice: keep ? s.notice : `“${s.focus}” is no longer in the source, so the view moved to the thesis.`,
+        notice: keep || s.map === BLANK ? s.notice : `“${s.focus}” is no longer in the source, so the view moved to the thesis.`,
       };
     });
   }
@@ -2117,7 +2138,7 @@ class Component extends DCLogic {
     const s = this.state;
     replaceQuery({
       view: s.view === 'map' ? null : s.view,
-      focus: s.focus === s.map.root.slug ? null : s.focus,
+      focus: s.focus === s.map.root.slug || s.map === BLANK ? null : s.focus,
       theme: s.themeQ === null || s.themeQ === s.map.display.theme ? null : s.themeQ,
     });
   }
@@ -2157,15 +2178,15 @@ class Component extends DCLogic {
     );
   }
 
-  /** Opened files (promises of { name, text, url?, handle? }) become map A; the Open panel closes when one arrives. */
-  openFiles(promises) {
+  /** An opened file (a promise of { name, text, url?, handle? }) becomes map A, or B for the diff; the Open panel closes when it arrives. */
+  openFiles(promises, target) {
     this.setState({ openBusy: true, openError: '' });
     Promise.all(promises).then(
       (files) => {
         const f = files[files.length - 1];
         if (f === undefined) { this.setState({ openBusy: false }); return; }
-        this.handle = f.handle ?? null;
-        this.loadA(f.text, f.name, f.url ?? null);
+        if (target === 'B') this.loadB(f.text, f.name, f.url ?? null);
+        else { this.handle = f.handle ?? null; this.loadA(f.text, f.name, f.url ?? null); }
         this.setState((s) => ({ openBusy: false, openOpen: false, openUrl: '', dropActive: false, recent: withRecent(s.recent, f) }));
       },
       (e) => this.setState({ openBusy: false, openError: `Could not open: ${e.message}` }),
@@ -2175,21 +2196,12 @@ class Component extends DCLogic {
   openFromUrl() {
     let url;
     try { url = new URL(this.state.openUrl.trim(), location.href); } catch (e) { this.setState({ openError: `“${this.state.openUrl.trim()}” is not a URL` }); return; }
-    this.openFiles([fetchFile(url)]);
+    this.openFiles([fetchFile(url)], this.openTarget());
   }
 
-  openFile(e, target) {
-    const input = e.target;
-    const file = input.files && input.files.length ? input.files[0] : null;
-    if (file === null) return; // picker closed without choosing a file
-    file.text().then(
-      (text) => {
-        input.value = '';
-        if (target === 'B') this.loadB(text, file.name);
-        else throw new Error(`bug: unknown open target "${target}"`);
-      },
-      (err) => { input.value = ''; this.setState({ notice: `Couldn’t read ${file.name}: ${err.message}` }); },
-    );
+  /** What the Open panel opens into: A from the toolbar, else B for a diff that has none. */
+  openTarget() {
+    return this.state.openOpen ? this.state.openTarget : 'B';
   }
 
   /** `url` is where it came from, if anywhere: it becomes ?src so the address bar links to this map. */
@@ -2204,9 +2216,9 @@ class Component extends DCLogic {
     this.setState({ ...file, src: text, map: r.map, srcErrors: [], focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, selected: [], pinned: null, notice: null, fileStatus: `Opened ${name}` });
   }
 
-  loadB(text, name) {
+  loadB(text, name, url = null) {
     const r = Component.parse(text);
-    replaceQuery({ theirs: null });
+    replaceQuery({ theirs: url });
     this.setState(r.errors.length
       ? { srcB: text, mapB: null, errorsB: r.errors, showSrcB: true, fileNameB: name, fileStatus: `Opened ${name} as B · it has errors` }
       : { srcB: text, mapB: r.map, errorsB: [], fileNameB: name, fileStatus: `Opened ${name} as B` });
@@ -2348,6 +2360,9 @@ class Component extends DCLogic {
     const minW = this.props.minCardWidth ?? 34;
     const thr = this.props.diffThreshold ?? 10;
     const map = s.map;
+    /* No map: nothing opened yet (noMap), or a file whose markdown doesn't parse yet (only the source view shows). */
+    const hasMap = map !== BLANK;
+    const noMap = !hasMap && s.src === '';
     const locked = s.srcErrors.length > 0;
     const editable = !locked;
     const scores = Component.scoreAll(map.root);
@@ -2424,8 +2439,12 @@ class Component extends DCLogic {
       const st = sideOf(n);
       const isFocus = n.slug === focus.slug;
       const onPath = pathSlugs.has(n.slug);
+      /* The Evidence and Good faith overlays mark blocks as they do cards: dotted edge, diagonal lines. */
+      const isArgN = n.side === 'pro' || n.side === 'con';
+      const bg = isFocus ? st.fg : onPath ? st.solid : st.tint;
       return {
-        bg: isFocus ? st.fg : onPath ? st.solid : st.tint,
+        bg: disp.goodFaith && isArgN && n.basis === null ? `repeating-linear-gradient(135deg, color-mix(in srgb, var(--ink) 22%, transparent) 0 2px, transparent 2px 7px), ${bg}` : bg,
+        border: disp.evidence && isArgN && n.refs.length === 0 ? '2px dotted var(--ink2)' : '2px solid var(--card)',
         shadow: isFocus ? `0 0 0 2px ${P.ink}` : `inset 0 0 0 1.5px ${st.solid}`,
         aria: `${st.label}${n.weight === null ? '' : ', weight ' + n.weight}: ${n.text}`,
         op: filterActive && !matchSet.has(n.slug) ? 0.22 : 1,
@@ -2527,8 +2546,7 @@ class Component extends DCLogic {
       };
     });
 
-    // pie (sunburst of the focused claim, 3 rings)
-    const RINGS = [[72, 138], [141, 196], [199, 250]];
+    // pie (sunburst of the focused claim): one ring per level below the centre, all levels, sharing radii 72–250
     // Pinned: the pie stays centred on the pinned claim and clicks only select. Unpinned: the pie follows the focus.
     const isPinned = s.pinned !== null;
     const pinPath = isPinned ? Component.findPath(map.root, s.pinned) : null;
@@ -2538,7 +2556,10 @@ class Component extends DCLogic {
     const pieUp = isPinned ? (focus.slug === pieRoot.slug ? null : pieRoot) : pieParent;
     const pieLean = leanOf(scores.get(pieRoot.slug));
     const piePrem = pieRoot.children.filter((c) => c.side === 'premise').length;
-    const parts = Component.partition(pieRoot, 3, scores).filter((p) => p.depth >= 1);
+    const parts = Component.partition(pieRoot, Infinity, scores).filter((p) => p.depth >= 1);
+    const nRings = Math.max(1, ...parts.map((p) => p.depth));
+    const ringW = (250 - 72) / nRings;
+    const RINGS = Array.from({ length: nRings }, (_, k) => [72 + k * ringW + (k === 0 ? 0 : 1.5), 72 + (k + 1) * ringW - (k === nRings - 1 ? 0 : 1.5)]);
     const hoverPath = s.hover === null ? null : Component.findPath(pieRoot, s.hover);
     const hoverNode = hoverPath ? hoverPath[hoverPath.length - 1] : null;
     const pie = {
@@ -2549,7 +2570,7 @@ class Component extends DCLogic {
         const isFoc = n.slug === focus.slug;
         return {
           d: Component.arc(260, 260, r0, r1, p.x0 * 2 * Math.PI, p.x1 * 2 * Math.PI),
-          fill: (n.side === 'pro' ? P.proFill : n.side === 'con' ? P.conFill : P.premFill)[p.depth - 1],
+          fill: (n.side === 'pro' ? P.proFill : n.side === 'con' ? P.conFill : P.premFill)[Math.min(p.depth, 3) - 1],
           stroke: hov || isFoc ? P.ink : 'var(--card)', sw: isFoc ? 3.5 : hov ? 2.5 : 1.5,
           op: filterActive && !matchSet.has(n.slug) ? 0.2 : 1,
           pick: () => this.setFocus(n.slug),
@@ -2598,13 +2619,13 @@ class Component extends DCLogic {
 
     // diff
     const diff = {
-      titleA: map.title, titleB: s.mapB ? s.mapB.title : '(doesn’t parse)',
+      titleA: map.title, titleB: s.mapB ? s.mapB.title : s.srcB === '' ? 'not chosen yet' : '(doesn’t parse)',
       copyIntoB: () => this.setState({ srcB: Component.serialize(map), mapB: map, errorsB: [] }),
       showSrcB: s.showSrcB, showSrcBPressed: String(s.showSrcB),
       srcBToggleLabel: s.showSrcB ? 'Hide B source' : 'Edit B source',
       toggleSrcB: () => this.setState({ showSrcB: !s.showSrcB }),
-      srcB: s.srcB, onSrcB: (e) => this.onSrcB(e.target.value), openB: (e) => this.openFile(e, 'B'),
-      bOk: s.mapB !== null, bBad: s.mapB === null,
+      srcB: s.srcB, onSrcB: (e) => this.onSrcB(e.target.value), openB: () => this.setState({ openOpen: true, openTarget: 'B', openError: '', newOpen: false }),
+      bOk: s.mapB !== null, bBad: s.mapB === null && s.errorsB.length > 0, needB: s.srcB === '',
       errorsB: s.errorsB.map((e) => ({ text: `Line ${e.line} · ${e.msg}` })),
       leans: [], chips: [], ices: [], rows: [],
       isSankey: s.diffTab === 'sankey', isTable: s.diffTab === 'table', isStructure: s.diffTab === 'structure',
@@ -2847,8 +2868,9 @@ class Component extends DCLogic {
       });
     }
 
-    const premiseDisabled = locked || rootHasArgs;
+    const premiseDisabled = locked || rootHasArgs || !hasMap;
     const unsaved = s.src !== s.savedSrc;
+    const target = this.openTarget();
     const tb = {
       toggleNew: () => this.setState({ newOpen: !s.newOpen, openOpen: false }), newExpanded: String(s.newOpen),
       addPremise: () => this.setState({ view: 'map', focus: map.root.slug, adding: 'premise', draftText: '', draftWeight: 100, draftSlugCustom: null, confirmDelete: false, hover: null, selected: [] }),
@@ -2856,14 +2878,22 @@ class Component extends DCLogic {
       premiseTitle: locked ? 'Fix the markdown errors first'
         : rootHasArgs ? 'This root already has pros and cons. Premises go under a root that has none (start a new map, or remove them).'
         : 'Add a premise under the root',
-      download: () => this.download(), dlTitle: `Download ${s.fileName}` + (typeof window.showSaveFilePicker === 'function' ? ' (choose where)' : ''),
+      download: () => this.download(), dlDisabled: noMap, dlOpacity: noMap ? 0.45 : 1, dlTitle: `Download ${s.fileName}` + (typeof window.showSaveFilePicker === 'function' ? ' (choose where)' : ''),
       file: s.fileName + (unsaved ? ' *' : ''), fileTitle: s.fileUrl ?? (this.handle !== null ? 'File on this computer' : 'Not saved to a file yet'),
       canSave: this.handle !== null, saveDisabled: !unsaved, saveOpacity: unsaved ? 1 : 0.45, save: () => this.save(),
       saveTitle: this.handle === null ? '' : unsaved ? `Save ${this.handle.name}` : `${this.handle.name} is saved`,
       status: s.fileStatus,
       /* Open: drop, pick or fetch a .md file; openFiles reads the latest state, since these finish later. */
-      toggleOpen: () => this.setState({ openOpen: !s.openOpen, openError: '', dropActive: false, newOpen: false }), openExpanded: String(s.openOpen),
-      openOpen: s.openOpen,
+      toggleOpen: () => this.setState({ openOpen: !s.openOpen, openTarget: 'A', openError: '', dropActive: false, newOpen: false }), openExpanded: String(s.openOpen && s.openTarget === 'A'),
+      /* The panel also stands in for a diff with no B. */
+      openOpen: s.openOpen || (s.view === 'diff' && hasMap && s.srcB === ''),
+      openTitle: target === 'B' ? 'Choose map B to compare with' : 'Open a map',
+      openNote: target === 'B' ? 'B is compared with the current map, argument by argument (matched by slug). Opening a URL puts it in the address bar as ?theirs=.'
+        : 'The file replaces the current map. A file opened from this computer can be saved back to it. Opening a URL puts it in the address bar as ?src=, so the link opens this map.',
+      canCancel: s.openOpen,
+      /* An empty page says so, and offers the two ways to get a map. */
+      isEmpty: noMap && !s.openOpen && !s.newOpen,
+      startNew: () => this.setState({ newOpen: true, openOpen: false }),
       dropBd: s.dropActive ? 'var(--accent)' : 'var(--control)', dropBg: s.dropActive ? 'var(--accent-tint)' : 'transparent',
       onDragOver: (e) => { e.preventDefault(); if (!s.dropActive) this.setState({ dropActive: true }); },
       onDragLeave: () => this.setState({ dropActive: false }),
@@ -2871,21 +2901,21 @@ class Component extends DCLogic {
       onDrop: (e) => {
         e.preventDefault();
         const items = Array.from(e.dataTransfer.items).filter((it) => it.kind === 'file');
-        this.openFiles(readFiles(e.dataTransfer.files, items.map((it) => (typeof it.getAsFileSystemHandle === 'function' ? it.getAsFileSystemHandle().catch(() => null) : null))));
+        this.openFiles(readFiles(e.dataTransfer.files, items.map((it) => (typeof it.getAsFileSystemHandle === 'function' ? it.getAsFileSystemHandle().catch(() => null) : null))), target);
       },
-      onPickFile: (e) => { const fs = readFiles(e.target.files); e.target.value = ''; this.openFiles(fs); },
+      onPickFile: (e) => { const fs = readFiles(e.target.files); e.target.value = ''; this.openFiles(fs, target); },
       /* Where the browser can, open through its file picker instead, so Save can write back to the file. */
       onPickClick: (e) => {
         if (typeof window.showOpenFilePicker !== 'function') return;
         e.preventDefault();
         window.showOpenFilePicker({ types: MD_TYPES }).then(
-          (hs) => this.openFiles(hs.map((h) => h.getFile().then((f) => f.text()).then((text) => ({ name: h.name, text, handle: h })))),
+          (hs) => this.openFiles(hs.map((h) => h.getFile().then((f) => f.text()).then((text) => ({ name: h.name, text, handle: h }))), target),
           (err) => { if (err.name !== 'AbortError') this.setState({ openError: `Could not open: ${err.message}` }); },
         );
       },
       hasRecent: s.recent.length > 0,
       recent: s.recent.map((r) => ({
-        name: r.name, open: () => this.openFiles([readRecent(r)]),
+        name: r.name, open: () => this.openFiles([readRecent(r)], target),
         where: r.url ? r.url.replace(/^https?:\/\//, '') : r.handle ? 'File on this computer' : 'Copy saved when opened',
       })),
       openUrl: s.openUrl, hasOpenError: s.openError !== '', openError: s.openError,
@@ -3062,7 +3092,7 @@ class Component extends DCLogic {
 
     return {
       title: map.title, tabs, tb, nm, sel, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
-      isMap: s.view === 'map', isPie: s.view === 'pie', isDiff: s.view === 'diff', isSource: s.view === 'source',
+      hasMap, isMap: hasMap && s.view === 'map', isPie: hasMap && s.view === 'pie', isDiff: hasMap && s.view === 'diff', isSource: !noMap && s.view === 'source',
       hasNotice: s.notice !== null, notice: s.notice === null ? '' : s.notice, clearNotice: () => this.setState({ notice: null }),
       locked,
       lockedText: `The markdown has ${s.srcErrors.length} error${s.srcErrors.length === 1 ? '' : 's'}. The views show the last version that parsed, and visual editing is paused until the source is fixed.`,
@@ -3082,61 +3112,12 @@ class Component extends DCLogic {
       json: s.view === 'source' && s.sourceTab === 'json' ? JSON.stringify(map, null, 2) : '',
     };
   }
-
-  // ---------------------------------------------------------------- sample data
-  static sampleA() {
-    return `---
-title: Votes at 16
----
-
-# 16-year-olds should be allowed to vote in general elections. {slug: votes-at-16, by: Ms. Smith}
-
-- [+] Sixteen-year-olds can work and pay tax, so they should have a say in how it is spent. {slug: pay-tax, weight: 60, by: Sam}
-  - [-] Most 16-year-olds don't earn enough to pay income tax. {slug: little-income-tax, weight: 45, by: Alex}
-  - [+] They still pay VAT on everything they buy. {slug: pay-vat, weight: 35, by: Obi}
-- [+] Decisions made now affect young people for longer than anyone else. {slug: longest-affected, weight: 75, by: Billie}
-- [+] Voting early helps build a lifelong habit of voting. {slug: voting-habit, weight: 50, by: Li}
-  - [ref] [Scottish Elections (Reduction of Voting Age) Act 2015](https://www.legislation.gov.uk/asp/2015/7/contents) — Scotland already lets 16-year-olds vote in Scottish Parliament and local elections.
-- [-] Teenagers don't have enough experience to vote responsibly. {slug: inexperience, weight: 70, by: Li}
-  - [+] Most 16-year-olds don't have jobs or haven't done any paid work. {slug: no-jobs, weight: 40, by: Obi}
-  - [+] Teenagers' lives are mostly controlled by their parents so a lot of us don't really get to experience independence. {slug: parental-control, weight: 55, by: Li}
-  - [-] A lot of adults have pretty limited life experiences too. {slug: adults-limited-too, weight: 65, by: Alex}
-  - [-] Many teenagers have had life experiences that help them understand how politics affects their lives. {slug: relevant-experiences, weight: 50, by: Billie}
-- [-] Many 16-year-olds would simply vote the way their parents do. {slug: copy-parents, weight: 45, by: Alex}
-- [-] Most other adult rights, like buying alcohol, start at 18. {slug: adult-rights-at-18, weight: 35, by: Sam}
-- [-] Turnout among young voters is already low. {slug: low-turnout, weight: 25, by: Billie}
-`;
-  }
-
-  static sampleB() {
-    return `---
-title: Votes at 16 (Obi's weighting)
----
-
-# 16-year-olds should be allowed to vote in general elections. {slug: votes-at-16, by: Ms. Smith}
-
-- [+] Sixteen-year-olds can work and pay tax, so they should have a say in how it is spent. {slug: pay-tax, weight: 80, by: Sam}
-  - [-] Most 16-year-olds don't earn enough to pay income tax. {slug: little-income-tax, weight: 30, by: Alex}
-  - [+] They still pay VAT on everything they buy. {slug: pay-vat, weight: 60, by: Obi}
-- [+] Decisions made now affect young people for longer than anyone else. {slug: longest-affected, weight: 70, by: Billie}
-- [+] Schools already teach citizenship, so 16-year-olds are prepared to vote. {slug: citizenship-classes, weight: 55, by: Obi}
-- [+] Turnout among young voters is low, and voting at 16 could help raise it. {slug: low-turnout, weight: 40, by: Billie}
-- [-] Teenagers don't have enough experience to vote responsibly. {slug: inexperience, weight: 40, by: Li}
-  - [+] Most 16-year-olds don't have jobs or haven't done any paid work. {slug: no-jobs, weight: 20, by: Obi}
-  - [+] Teenagers' lives are mostly controlled by their parents so a lot of us don't really get to experience independence. {slug: parental-control, weight: 30, by: Li}
-  - [+] Many 16-year-olds would simply vote the way their parents do. {slug: copy-parents, weight: 45, by: Alex}
-  - [-] A lot of adults have pretty limited life experiences too. {slug: adults-limited-too, weight: 80, by: Alex}
-  - [-] Many teenagers have had life experiences that help them understand how politics affects their lives. {slug: relevant-experiences, weight: 70, by: Billie}
-    - [+] Young people are directly affected by policies on schools, transport and housing. {slug: affected-by-policy, weight: 60, by: Obi}
-- [-] Most other adult rights, like buying alcohol, start at 18. {slug: adult-rights-at-18, weight: 35, by: Sam}
-`;
-  }
 }
 </script>
 <script>
 /* Loader: fetch the maps named in the query string, then boot the runtime.
    ?src=<url> (alias ?ours=) is the map (A); ?theirs=<url> is a second map (B) and opens the diff view on ours vs theirs.
-   Without them, the page opens on the sample maps. */
+   Without ?src the page opens on the Open panel; without ?theirs the diff view asks for B. */
 (async () => {
   const q = new URLSearchParams(location.search);
   const get = async (raw) => {
@@ -3155,7 +3136,7 @@ title: Votes at 16 (Obi's weighting)
     const main = document.createElement('main');
     main.style.cssText = 'max-width:640px;margin:48px auto;padding:0 16px;font:15px/1.6 system-ui,sans-serif';
     main.innerHTML = '<h1 style="font-size:22px">Argument mapper</h1><pre style="padding:12px;background:#FBE9E6;color:#7A1A10;white-space:pre-wrap"></pre>'
-      + '<p><a href="./">Open the sample map</a> · <a href="?src=examples/votes-at-16/map.md">example map</a></p>';
+      + '<p><a href="./">Start without a map</a> · <a href="?src=examples/votes-at-16/map.md">example map</a></p>';
     main.querySelector('pre').textContent = 'Could not load: ' + e.message;
     document.body.replaceChildren(main);
   }

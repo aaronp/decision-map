@@ -1,9 +1,31 @@
 # Argument mapper
 
-A markdown-backed argument map: a thesis (or proposition with premises), its
-pros and cons, and theirs in turn, each weighted 0–100. Views: tree, pie, markdown
-source and a diff of two maps. The format is described under Source → Format
-in the page.
+This tool was created to help solve [wicked problems](https://en.wikipedia.org/wiki/Wicked_problem) by:
+ - helping people capture their rationale
+ - exposing a visual of that raionale for others to see and contribute to
+ - providing a 'diff' view so people can identify areas they've not thought of or weight differently
+
+[View Here](https://aaronp.github.io/argument-map/)
+
+
+This is based on the excellent [https://www.kialo-edu.com/](https://www.kialo-edu.com/) and research into:
+
+ - [issue-based information system (IBIS)])(https://en.wikipedia.org/wiki/Issue-based_information_system)
+ - [bayesian networks](https://en.wikipedia.org/wiki/Bayesian_network)
+ - [analysis of competing hypothesis](https://en.wikipedia.org/wiki/Analysis_of_competing_hypotheses)
+
+
+# Using it
+
+The data source for this is just markdown.
+
+You can create your own markdown files locally, or host them online in whatever way you wish.
+
+This tool simply provides a convenient way to edit and visualise that data, separate from the data itself.
+
+If you use git (github), you can clone an 'example' project which is a minimal repo for hosting the content.
+
+Simply use `make clone` and then push your saved argument markdown into whatever git repo you like.
 
 ## Run it
 
@@ -23,9 +45,9 @@ GitHub Actions).
 
 | Query | Effect |
 |---|---|
-| _(none)_ | The sample map, with a second weighting as B for the diff |
+| _(none)_ | The Open panel (drop, choose, URL or recent file), or start a new map |
 | `?src=<url>` (alias `?ours=`) | Opens that markdown file as the map |
-| `?theirs=<url>` | Opens a second map as B and starts on the diff view |
+| `?theirs=<url>` | Opens a second map as B and starts on the diff view; without it the diff view offers the Open panel for B |
 | `?view=map\|pie\|source\|diff` | The view (default `map`) |
 | `?focus=<slug>` | The claim in focus (default the thesis) |
 | `?theme=paper\|slate\|night\|contrast` | Overrides the map's own `theme:` |
