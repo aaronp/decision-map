@@ -1,4 +1,4 @@
-# Argument mapper
+# [Decision map](https://aaronp.github.io/argument-map/)
 
 This tool was created to help solve [wicked problems](https://en.wikipedia.org/wiki/Wicked_problem) by:
  - helping people capture their rationale
