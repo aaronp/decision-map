@@ -42,7 +42,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 <div role="toolbar" aria-label="Map file" style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 6px">
   <button type="button" class="tb" onClick="{{tb.toggleNew}}" aria-expanded="{{tb.newExpanded}}" style="min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 8px">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><path d="M14 3v6h6M12 12v6M9 15h6"></path></svg>
-    New map
+    New
   </button>
   <button type="button" class="tb" onClick="{{tb.addPremise}}" disabled="{{tb.premiseDisabled}}" title="{{tb.premiseTitle}}" style="min-height: 40px; padding: 0 12px; border: 0; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 8px; opacity: {{tb.premiseOpacity}}">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5l9.5 9.5-9.5 9.5L2.5 12z"></path><path d="M12 8.5v7M8.5 12h7"></path></svg>
@@ -72,8 +72,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 </div>
 
 <sc-if value="{{nm.open}}" hint-placeholder-val="{{ false }}">
-<section aria-label="New map" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-width: 760px">
-  <h2 style="margin: 0; font-size: 16px; font-weight: 600">New map</h2>
+<section aria-label="New" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-width: 760px">
   <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Title
     <input type="text" value="{{nm.title}}" onChange="{{nm.onTitle}}" style="min-height: 40px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 15px; font-weight: 400">
   </label>
@@ -89,7 +88,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
     <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2)">slug: {{nm.slug}}</code>
     <span style="flex: 1; font-size: 13px; color: var(--ink2); min-width: 200px">This replaces the current map. Download it first to keep it.</span>
     <button type="button" onClick="{{nm.cancel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 14px; cursor: pointer">Cancel</button>
-    <button type="button" onClick="{{nm.create}}" disabled="{{nm.createDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; opacity: {{nm.createOpacity}}">Create map</button>
+    <button type="button" onClick="{{nm.create}}" disabled="{{nm.createDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; opacity: {{nm.createOpacity}}">Create</button>
   </div>
 </section>
 </sc-if>
@@ -126,7 +125,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   <div style="display: flex; gap: 8px; width: 100%; max-width: 620px">
     <label style="flex: 1; min-width: 0; position: relative; display: flex; align-items: center">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color: var(--ink2); position: absolute; left: 12px; pointer-events: none"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-      <input type="search" aria-label="Filter arguments" placeholder="Filter arguments, authors, evidence…" value="{{fl.q}}" onChange="{{fl.onQ}}" style="width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 10px; padding: 0 12px 0 38px; font: inherit; font-size: 14px; background: var(--card); color: var(--ink)">
+      <input type="search" aria-label="Filter decisions" placeholder="Filter decisions, authors, evidence…" value="{{fl.q}}" onChange="{{fl.onQ}}" style="width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 10px; padding: 0 12px 0 38px; font: inherit; font-size: 14px; background: var(--card); color: var(--ink)">
     </label>
     <button type="button" aria-expanded="{{fl.expanded}}" aria-controls="filter-panel" onClick="{{fl.toggle}}" style="min-height: 44px; padding: 0 14px; border: 1px solid var(--control); border-radius: 10px; background: {{fl.btnBg}}; color: {{fl.btnFg}}; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"></path></svg>
@@ -174,7 +173,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       <p style="margin: 0; font-size: 14px; color: var(--ink2)">Open a markdown map, or start a new one.</p>
       <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px">
         <button type="button" onClick="{{tb.toggleOpen}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Open…</button>
-        <button type="button" onClick="{{tb.startNew}}" style="min-height: 40px; padding: 0 16px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">New map</button>
+        <button type="button" onClick="{{tb.startNew}}" style="min-height: 40px; padding: 0 16px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">New</button>
       </div>
     </section>
   </sc-if>
@@ -270,7 +269,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
             <sc-if value="{{fc.canWeight}}" hint-placeholder-val="{{ true }}">
               <label style="display: flex; align-items: center; gap: 8px; color: var(--ink2)">Weight
-                <input type="range" min="0" max="100" step="1" value="{{fc.weight}}" onChange="{{fc.onWeight}}" aria-label="Weight of the focused argument" style="width: 140px; accent-color: {{fc.fg}}">
+                <input type="range" min="0" max="100" step="1" value="{{fc.weight}}" onChange="{{fc.onWeight}}" aria-label="Weight of the focused decision" style="width: 140px; accent-color: {{fc.fg}}">
                 <span style="font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); min-width: 28px">{{fc.weight}}</span>
               </label>
               <button type="button" onClick="{{fc.flip}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">{{fc.flipLabel}}</button>
@@ -707,7 +706,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 
         <sc-if value="{{skd.stale}}" hint-placeholder-val="{{ false }}">
           <div role="status" style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--ink2)">
-            <span>The selected argument is no longer in either map.</span>
+            <span>The selection is no longer in either map.</span>
             <button type="button" onClick="{{skd.clear}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Clear</button>
           </div>
         </sc-if>
@@ -771,7 +770,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
                       </ul>
                     </sc-if>
                     <sc-if value="{{d.noKids}}" hint-placeholder-val="{{ false }}">
-                      <p style="margin: 0; font-size: 13px; color: var(--ink2)">No sub-arguments here.</p>
+                      <p style="margin: 0; font-size: 13px; color: var(--ink2)">No sub-decisions here.</p>
                     </sc-if>
                     <sc-if value="{{d.hasRefs}}" hint-placeholder-val="{{ false }}">
                       <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--rule-soft); padding-top: 8px">

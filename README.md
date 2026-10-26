@@ -1,11 +1,11 @@
-# [Decision map](https://aaronp.github.io/argument-map/)
+# [Decision map](https://aaronp.github.io/decision-map/)
 
 This tool was created to help solve [wicked problems](https://en.wikipedia.org/wiki/Wicked_problem) by:
  - helping people capture their rationale
  - exposing a visual of that raionale for others to see and contribute to
  - providing a 'diff' view so people can identify areas they've not thought of or weight differently
 
-[View Here](https://aaronp.github.io/argument-map/)
+[View Here](https://aaronp.github.io/decision-map/)
 
 
 This is based on the excellent [https://www.kialo-edu.com/](https://www.kialo-edu.com/) and research into:
