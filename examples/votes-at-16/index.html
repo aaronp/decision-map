@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Votes at 16 · argument map</title>
+<script>
+  // The argument mapper lives in its own repo; this repo only holds the data.
+  // Extra query params (view, focus, theme, theirs) are passed through, e.g. ?theirs=obi.md to diff against Obi's weighting.
+  const VIEWER = 'https://aaronp.github.io/arg-map/';
+  const q = new URLSearchParams(location.search);
+  q.set('src', new URL('map.md', location.href).href);
+  if (q.has('theirs')) q.set('theirs', new URL(q.get('theirs'), location.href).href);
+  location.replace(VIEWER + '?' + q + location.hash);
+</script>
+<a href="map.md">map.md</a>
