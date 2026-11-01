@@ -1254,7 +1254,7 @@ async function researchEvidence(key, model, arg, parent) {
 /** Stands in for the map until one is opened or parses; the views that would show it are hidden meanwhile. */
 const BLANK = Object.freeze({
   title: 'Untitled', display: { theme: 'paper', accent: 'blue', confidence: false, evidence: false, goodFaith: false },
-  root: { slug: 'untitled', text: '', side: null, weight: null, by: null, basis: null, confidence: null, refs: [], children: [] },
+  root: { slug: 'untitled', text: '', kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [] },
 });
 
 class Component extends DCLogic {
@@ -1300,12 +1300,12 @@ class Component extends DCLogic {
   }
 
   // ---------------------------------------------------------------- data model (pure)
-  // Node: { slug, text, side: 'pro'|'con'|'premise'|null (null only for the root), weight: 0..100 for pro/con, null for root and premises, by: string|null, children: Node[] }
-  // A root holds either premises or pros/cons, never both. Premises only sit directly under the root.
+  // Node: { slug, text, kind: 'root'|'fact'|'premise', importance: number >= 0 and impact: -1..1 (facts only, else null), by, basis, confidence, details: string|null, refs, children: Node[] }
+  // A root holds either premises or facts, never both. Premises only sit directly under the root.
   // Map:  { title, root: Node }
 
   static parse(src) {
-    const lines = src.split('\n');
+    const lines = src.replace(/\r\n/g, '\n').split('\n');
     const errors = [];
     const err = (i, msg) => { errors.push({ line: i + 1, msg }); };
     let i = 0;
@@ -1351,12 +1351,110 @@ class Component extends DCLogic {
       err(Math.min(i, lines.length - 1), 'expected the thesis as a "# " heading after the front matter');
       return { map: null, errors };
     }
-    const rp = Component.parseAttrs(lines[i].slice(2), i, err, 'root');
-    if (!rp) return { map: null, errors };
+    const legacy = /\{[^{}]*slug:[^{}]*\}\s*$/.test(lines[i]);
+    const root = legacy ? Component.parseLegacy(lines, i, err) : Component.parseHeadings(lines, i, err);
+    if (errors.length) return { map: null, errors };
+    return { map: { title, display, root }, errors: [] };
+  }
+
+  // The current format: "#" headings for hierarchy, "key: value" lines directly under each, then free text and evidence.
+  static parseHeadings(lines, start, err) {
+    const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    const seen = new Set();
+    const stack = [];
+    let root = null;
+    let i = start;
+    const headingAt = (k) => (k < lines.length ? lines[k].match(/^(#+) +(.*)$/) : null);
+    while (i < lines.length) {
+      const h = headingAt(i);
+      if (!h) throw new Error(`bug: parseHeadings is not at a heading on line ${i + 1}`);
+      const at = i;
+      const depth = h[1].length;
+      const text = h[2].trim();
+      if (text === '') err(at, 'heading text is empty');
+      if (depth === 1 && root !== null) err(at, 'only one "# " heading is allowed: the root claim');
+      if (depth > stack.length + 1) err(at, 'heading goes more than one level deeper than its parent');
+      const attrs = {};
+      for (i++; i < lines.length && lines[i].trim() !== '' && !headingAt(i); i++) {
+        const kv = lines[i].match(/^([a-z][a-z-]*):\s*(.*?)\s*$/);
+        if (!kv) { err(i, 'lines directly under a heading look like "key: value"; leave a blank line before free text'); continue; }
+        if (!['slug', 'importance', 'impact', 'by', 'confidence', 'basis', 'kind'].includes(kv[1])) { err(i, `unknown property "${kv[1]}" (allowed: slug, importance, impact, by, confidence, basis, kind)`); continue; }
+        if (has(attrs, kv[1])) { err(i, `property "${kv[1]}" appears twice`); continue; }
+        attrs[kv[1]] = kv[2];
+      }
+      const node = Component.headingNode(text, attrs, depth, at, err);
+      if (node.slug !== null) {
+        if (seen.has(node.slug)) err(at, `duplicate slug "${node.slug}"`);
+        seen.add(node.slug);
+      }
+      const body = [];
+      for (; i < lines.length && !headingAt(i); i++) {
+        const line = lines[i];
+        if (line.startsWith('- [ref] ')) {
+          if (node.kind !== 'fact') { err(i, 'evidence ([ref]) can only sit under a fact, not the root or a premise'); continue; }
+          const ref = Component.parseRef(line.slice(8), i, err);
+          if (ref) node.refs.push(ref);
+        } else body.push(line.startsWith('\\') ? line.slice(1) : line);
+      }
+      const details = body.join('\n').trim();
+      node.details = details === '' ? null : details;
+      if (root === null) { root = node; stack.push(node); continue; }
+      if (depth === 1) continue;
+      stack.length = Math.min(stack.length, depth - 1);
+      const parent = stack[stack.length - 1];
+      if (node.kind === 'premise' && parent !== root) err(at, 'premises can only sit directly under the root');
+      if (parent === root && root.children.some((c) => (c.kind === 'premise') !== (node.kind === 'premise'))) {
+        err(at, 'the root holds either premises or facts, not both');
+      }
+      parent.children.push(node);
+      stack.push(node);
+    }
+    return root;
+  }
+
+  static headingNode(text, attrs, depth, i, err) {
+    const has = (k) => Object.prototype.hasOwnProperty.call(attrs, k);
+    if (has('kind') && attrs.kind !== 'premise') err(i, `kind "${attrs.kind}" must be premise`);
+    const kind = depth === 1 ? 'root' : attrs.kind === 'premise' ? 'premise' : 'fact';
+    let slug = null;
+    if (!has('slug')) err(i, 'missing slug: put "slug: my-claim" directly under the heading');
+    else if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(attrs.slug)) err(i, `slug "${attrs.slug}" may only use lower-case letters, digits and single hyphens`);
+    else slug = attrs.slug;
+    if (has('by') && attrs.by === '') err(i, '"by" is empty; remove it or give a name');
+    let importance = null;
+    let impact = null;
+    let confidence = null;
+    if (kind === 'fact') {
+      if (!has('importance')) err(i, 'missing importance (a number of 0 or more)');
+      else if (!/^\d+(\.\d+)?$/.test(attrs.importance)) err(i, `importance "${attrs.importance}" must be a number of 0 or more`);
+      else importance = Number(attrs.importance);
+      if (!has('impact')) err(i, 'missing impact (a number from -1.0 to 1.0)');
+      else if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(attrs.impact) || Math.abs(Number(attrs.impact)) > 1) err(i, `impact "${attrs.impact}" must be a number from -1.0 to 1.0`);
+      else impact = Number(attrs.impact);
+      if (has('confidence')) {
+        if (!/^[1-5]$/.test(attrs.confidence)) err(i, `confidence "${attrs.confidence}" must be a whole number from 1 to 5`);
+        else confidence = Number(attrs.confidence);
+      }
+      if (has('basis') && attrs.basis === '') err(i, 'basis is empty; remove it or give some text');
+    } else {
+      const label = kind === 'root' ? 'the root' : 'a premise';
+      for (const k of ['importance', 'impact', 'confidence', 'basis']) if (has(k)) err(i, `${label} can't have "${k}"`);
+    }
+    if (depth === 1 && has('kind')) err(i, 'the root can\'t have "kind"');
+    return {
+      slug, text, kind, importance, impact, by: has('by') && attrs.by !== '' ? attrs.by : null,
+      basis: kind === 'fact' && has('basis') && attrs.basis !== '' ? attrs.basis : null, confidence, details: null, refs: [], children: [],
+    };
+  }
+
+  // The original format: an indented list of "- [+] text {slug: …, weight: …}". Read, converted, and saved as headings.
+  static parseLegacy(lines, start, err) {
+    const rp = Component.parseAttrs(lines[start].slice(2), start, err, 'root');
+    if (!rp) return null;
     const root = { slug: rp.slug, text: rp.text, side: null, weight: null, by: rp.by, basis: null, confidence: null, refs: [], children: [] };
     const seen = new Set([root.slug]);
     const stack = [root];
-    for (i++; i < lines.length; i++) {
+    for (let i = start + 1; i < lines.length; i++) {
       const line = lines[i];
       if (line.trim() === '') continue;
       if (line.includes('\t')) { err(i, 'indent with spaces, not tabs'); continue; }
@@ -1407,8 +1505,15 @@ class Component extends DCLogic {
       stack[depth - 1].children.push(node);
       stack.push(node);
     }
-    if (errors.length) return { map: null, errors };
-    return { map: { title, display, root }, errors: [] };
+    const convert = (n) => {
+      const isFact = n.side === 'pro' || n.side === 'con';
+      return {
+        slug: n.slug, text: n.text, kind: n.side === null ? 'root' : n.side === 'premise' ? 'premise' : 'fact',
+        importance: isFact ? n.weight : null, impact: isFact ? (n.side === 'pro' ? 1 : -1) : null,
+        by: n.by, basis: n.basis, confidence: n.confidence, details: null, refs: n.refs, children: n.children.map(convert),
+      };
+    };
+    return convert(root);
   }
 
   // Evidence line body: "[Name](https://url) — optional text" or "Name — optional text" ("--" also separates).
@@ -1487,29 +1592,40 @@ class Component extends DCLogic {
   }
 
   static serialize(map) {
-    const attrs = (n) => {
-      const parts = [`slug: ${n.slug}`];
-      if (n.side === 'pro' || n.side === 'con') parts.push(`weight: ${n.weight}`);
-      if (n.confidence !== null) parts.push(`confidence: ${n.confidence}`);
-      if (n.by !== null) parts.push(`by: ${n.by}`);
-      return `{${parts.join(', ')}}`;
-    };
     const dp = map.display;
-    const out = ['---', `title: ${map.title}`, `theme: ${dp.theme}`, `accent: ${dp.accent}`, `show-confidence: ${dp.confidence}`, `show-evidence: ${dp.evidence}`, `show-good-faith: ${dp.goodFaith}`, '---', '', `# ${map.root.text.trim()} ${attrs(map.root)}`, ''];
+    const out = ['---', `title: ${map.title}`, `theme: ${dp.theme}`, `accent: ${dp.accent}`, `show-confidence: ${dp.confidence}`, `show-evidence: ${dp.evidence}`, `show-good-faith: ${dp.goodFaith}`, '---', ''];
     const walk = (n, depth) => {
-      for (const c of n.children) {
-        const mark = { pro: '+', con: '-', premise: '*' }[c.side];
-        if (mark === undefined) throw new Error(`bug: argument "${c.slug}" has no side`);
-        out.push(`${'  '.repeat(depth)}- [${mark}] ${c.text.trim()} ${attrs(c)}`);
-        if (c.basis !== null && c.basis.trim() !== '') out.push(`${'  '.repeat(depth + 1)}- [basis] ${c.basis.trim()}`);
-        c.refs.forEach((r) => {
-          out.push(`${'  '.repeat(depth + 1)}- [ref] ${r.url === null ? r.name : `[${r.name}](${r.url})`}${r.text === null ? '' : ` — ${r.text}`}`);
-        });
-        walk(c, depth + 1);
+      out.push(`${'#'.repeat(depth)} ${n.text.trim()}`, `slug: ${n.slug}`);
+      if (n.kind === 'premise') out.push('kind: premise');
+      if (n.kind === 'fact') out.push(`importance: ${Number(n.importance.toFixed(1))}`, `impact: ${Number(n.impact.toFixed(2))}`);
+      if (n.by !== null) out.push(`by: ${n.by}`);
+      if (n.confidence !== null) out.push(`confidence: ${n.confidence}`);
+      if (n.basis !== null && n.basis.trim() !== '') out.push(`basis: ${n.basis.replace(/\s*\n\s*/g, ' ').trim()}`);
+      out.push('');
+      if (n.details !== null && n.details.trim() !== '') {
+        // A leading backslash keeps lines that look like a heading or evidence as plain text; the parser removes it.
+        n.details.trim().split('\n').forEach((line) => out.push(/^(#|- \[ref\] |\\)/.test(line) ? `\\${line}` : line));
+        out.push('');
       }
+      if (n.refs.length) {
+        n.refs.forEach((r) => out.push(`- [ref] ${r.url === null ? r.name : `[${r.name}](${r.url})`}${r.text === null ? '' : ` — ${r.text}`}`));
+        out.push('');
+      }
+      n.children.forEach((c) => walk(c, depth + 1));
     };
-    walk(map.root, 0);
-    return out.join('\n') + '\n';
+    walk(map.root, 1);
+    return out.join('\n').replace(/\n+$/, '') + '\n';
+  }
+
+  // ponytail: temporary, so the views not yet ported can still read `side` and `weight`. Removed when the last one is.
+  static withLegacyFields(map) {
+    const walk = (n) => ({
+      ...n,
+      side: n.kind === 'root' ? null : n.kind === 'premise' ? 'premise' : n.impact >= 0 ? 'pro' : 'con',
+      weight: n.kind === 'fact' ? Math.min(100, Math.round(n.importance)) : null,
+      children: n.children.map(walk),
+    });
+    return { ...map, root: walk(map.root) };
   }
 
   static findPath(n, slug) {
@@ -1897,7 +2013,7 @@ class Component extends DCLogic {
     this.edit((m) => ({
       ...m,
       root: Component.mapNode(m.root, slug, (n) => {
-        if (n.side !== 'pro' && n.side !== 'con') throw new Error('bug: basis set on something that isn’t a pro or con');
+        if (n.kind !== 'fact') throw new Error('bug: basis set on something that isn’t a fact');
         return { ...n, basis: t.trim() === '' ? null : t };
       }),
     }));
@@ -1908,7 +2024,7 @@ class Component extends DCLogic {
     this.edit((m) => ({
       ...m,
       root: Component.mapNode(m.root, slug, (n) => {
-        if (n.side !== 'pro' && n.side !== 'con') throw new Error('bug: confidence set on something that isn’t a pro or con');
+        if (n.kind !== 'fact') throw new Error('bug: confidence set on something that isn’t a fact');
         return n.confidence === k ? n : { ...n, confidence: k };
       }),
     }));
@@ -2002,7 +2118,7 @@ class Component extends DCLogic {
     this.edit((m) => ({
       ...m,
       root: Component.mapNode(m.root, slug, (n) => {
-        if (n.side !== 'pro' && n.side !== 'con') throw new Error('bug: evidence added to something that isn’t a pro or con');
+        if (n.kind !== 'fact') throw new Error('bug: evidence added to something that isn’t a fact');
         if (at !== null && (at < 0 || at >= n.refs.length)) throw new Error(`bug: evidence index ${at} out of range`);
         return { ...n, refs: at === null ? [...n.refs, draft] : n.refs.map((r, j) => (j === at ? draft : r)) };
       }),
@@ -2272,7 +2388,7 @@ class Component extends DCLogic {
     const text = s.newText.trim().replace(/\s+/g, ' ');
     const slug = Component.slugBase(text);
     if (title === '' || slug === '') throw new Error('bug: Create pressed with an empty title or claim');
-    const map = { title, display: s.map.display, root: { slug, text, side: null, weight: null, by: null, basis: null, confidence: null, refs: [], children: [] } };
+    const map = { title, display: s.map.display, root: { slug, text, kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [] } };
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
@@ -2287,7 +2403,7 @@ class Component extends DCLogic {
   addArg(side) {
     this.setState((s) => {
       if (s.srcErrors.length) throw new Error('bug: add attempted while the markdown source has errors');
-      if (side === 'premise' && (s.focus !== s.map.root.slug || s.map.root.children.some((c) => c.side !== 'premise'))) {
+      if (side === 'premise' && (s.focus !== s.map.root.slug || s.map.root.children.some((c) => c.kind !== 'premise'))) {
         throw new Error('bug: premise added somewhere other than a root without pros/cons');
       }
       const text = s.draftText.trim().replace(/\s+/g, ' ');
@@ -2296,7 +2412,8 @@ class Component extends DCLogic {
       const slug = s.draftSlugCustom === null ? Component.slugify(text, taken) : s.draftSlugCustom;
       const problem = Component.slugProblem(slug, taken);
       if (problem !== null) throw new Error(`bug: Add pressed with an unusable slug: ${problem}`);
-      const node = { slug, text, side, weight: side === 'premise' ? null : s.draftWeight, by: null, basis: null, confidence: null, refs: [], children: [] };
+      const isPremise = side === 'premise';
+      const node = { slug, text, kind: isPremise ? 'premise' : 'fact', importance: isPremise ? null : 50, impact: isPremise ? null : 0, by: null, basis: null, confidence: null, details: null, refs: [], children: [] };
       const map = { ...s.map, root: Component.mapNode(s.map.root, s.focus, (n) => ({ ...n, children: [...n.children, node] })) };
       return { map, src: Component.serialize(map), adding: null, draftText: '', draftWeight: 100, draftSlugCustom: null };
     });
@@ -2358,9 +2475,10 @@ class Component extends DCLogic {
     };
     const minW = this.props.minCardWidth ?? 34;
     const thr = this.props.diffThreshold ?? 10;
-    const map = s.map;
+    const map = Component.withLegacyFields(s.map);
+    const mapB = s.mapB === null ? null : Component.withLegacyFields(s.mapB);
     /* No map: nothing opened yet (noMap), or a file whose markdown doesn't parse yet (only the source view shows). */
-    const hasMap = map !== BLANK;
+    const hasMap = s.map !== BLANK;
     const noMap = !hasMap && s.src === '';
     const locked = s.srcErrors.length > 0;
     const editable = !locked;
@@ -2411,7 +2529,7 @@ class Component extends DCLogic {
       weight: focus.weight === null ? 0 : focus.weight,
       onWeight: (e) => this.setWeight(focus.slug, Number(e.target.value)),
       flipLabel: focus.side === 'pro' ? 'Make it a con' : 'Make it a pro',
-      flip: () => this.edit((m) => ({ ...m, root: Component.mapNode(m.root, focus.slug, (n) => ({ ...n, side: n.side === 'pro' ? 'con' : 'pro' })) })),
+      flip: () => this.edit((m) => ({ ...m, root: Component.mapNode(m.root, focus.slug, (n) => ({ ...n, impact: -n.impact })) })),
       askDelete: !s.confirmDelete, confirming: s.confirmDelete,
       askDel: () => this.setState({ confirmDelete: true }), cancelDel: () => this.setState({ confirmDelete: false }),
       deleteLabel: nDesc ? `Delete with ${nDesc} sub-argument${nDesc === 1 ? '' : 's'}` : 'Delete argument',
@@ -2618,13 +2736,13 @@ class Component extends DCLogic {
 
     // diff
     const diff = {
-      titleA: map.title, titleB: s.mapB ? s.mapB.title : s.srcB === '' ? 'not chosen yet' : '(doesn’t parse)',
+      titleA: map.title, titleB: mapB ? mapB.title : s.srcB === '' ? 'not chosen yet' : '(doesn’t parse)',
       copyIntoB: () => this.setState({ srcB: Component.serialize(map), mapB: map, errorsB: [] }),
       showSrcB: s.showSrcB, showSrcBPressed: String(s.showSrcB),
       srcBToggleLabel: s.showSrcB ? 'Hide B source' : 'Edit B source',
       toggleSrcB: () => this.setState({ showSrcB: !s.showSrcB }),
       srcB: s.srcB, onSrcB: (e) => this.onSrcB(e.target.value), openB: () => this.setState({ openOpen: true, openTarget: 'B', openError: '', newOpen: false }),
-      bOk: s.mapB !== null, bBad: s.mapB === null && s.errorsB.length > 0, needB: s.srcB === '',
+      bOk: mapB !== null, bBad: mapB === null && s.errorsB.length > 0, needB: s.srcB === '',
       errorsB: s.errorsB.map((e) => ({ text: `Line ${e.line} · ${e.msg}` })),
       leans: [], chips: [], ices: [], rows: [],
       isSankey: s.diffTab === 'sankey', isTable: s.diffTab === 'table', isStructure: s.diffTab === 'structure',
@@ -2639,10 +2757,10 @@ class Component extends DCLogic {
       has: false, stale: false, crumbs: [], shareA: '', shareB: '', ratioCaption: '', barA: 50, barB: 50, cards: [],
       clear: () => this.setState({ diffSel: null }),
     };
-    if (s.view === 'diff' && s.mapB !== null) {
-      const { rows, ia, ib } = Component.diff(map, s.mapB, thr);
-      const scoresB = Component.scoreAll(s.mapB.root);
-      diff.leans = [['A', scores.get(map.root.slug)], ['B', scoresB.get(s.mapB.root.slug)]].map(([label, sc]) => {
+    if (s.view === 'diff' && mapB !== null) {
+      const { rows, ia, ib } = Component.diff(map, mapB, thr);
+      const scoresB = Component.scoreAll(mapB.root);
+      diff.leans = [['A', scores.get(map.root.slug)], ['B', scoresB.get(mapB.root.slug)]].map(([label, sc]) => {
         const l = leanOf(sc);
         return { label, forPct: l.forPct, againstPct: l.againstPct };
       });
@@ -2671,7 +2789,7 @@ class Component extends DCLogic {
       // ---- sankey
       if (s.diffTab === 'sankey') {
         const rowBy = new Map(rows.map((r, k) => [r.slug, { r, k }]));
-        const L = Component.sankeyLayout(rows, map, s.mapB, scores, scoresB);
+        const L = Component.sankeyLayout(rows, map, mapB, scores, scoresB);
         // hover wins over the clicked selection for highlighting
         const hov = s.diffHover !== null ? s.diffHover : s.diffSel;
         const hoverSet = hov !== null;
@@ -2719,7 +2837,7 @@ class Component extends DCLogic {
             if (rows[j].depth < d) { chain.unshift(rows[j]); d = rows[j].depth; }
           }
           const shA = Component.shares(map, scores);
-          const shB = Component.shares(s.mapB, scoresB);
+          const shB = Component.shares(mapB, scoresB);
           const pctOf = (m, slug) => (m.has(slug) ? m.get(slug) * 100 : 0);
           const fmt = (v) => (v === 0 ? '—' : v >= 10 ? `${v.toFixed(0)}%` : `${v.toFixed(1)}%`);
           const a = pctOf(shA, s.diffSel);
@@ -2731,7 +2849,7 @@ class Component extends DCLogic {
             const sc = side === 'A' ? scores : scoresB;
             const sh = side === 'A' ? shA : shB;
             const head = {
-              sideLabel: side === 'A' ? `A · ${map.title}` : `B · ${s.mapB.title}`,
+              sideLabel: side === 'A' ? `A · ${map.title}` : `B · ${mapB.title}`,
               dotBg: side === 'A' ? 'var(--accent)' : 'var(--card)', dotBorder: side === 'A' ? '0' : '2.5px solid var(--side-b)',
             };
             if (!idx.has(s.diffSel)) {
@@ -2823,12 +2941,12 @@ class Component extends DCLogic {
         aria: `${n.side === null ? 'Root' : n.side === 'premise' ? 'Premise' : 'weight ' + n.weight}: ${n.text}${other.has(n.slug) ? '' : ' (orphan)'}`,
       });
       const iceA = Component.icicle(map.root, 5, iceStyle(ib), scores);
-      const iceB = Component.icicle(s.mapB.root, 5, iceStyle(ia), scoresB);
+      const iceB = Component.icicle(mapB.root, 5, iceStyle(ia), scoresB);
       const nOnlyA = rows.filter((r) => r.status === 'onlyA').length;
       const nOnlyB = rows.filter((r) => r.status === 'onlyB').length;
       diff.ices = [
         { label: `A · ${map.title}`, aria: `Structure of map A; ${nOnlyA} argument(s) missing from B`, ...iceA },
-        { label: `B · ${s.mapB.title}`, aria: `Structure of map B; ${nOnlyB} argument(s) missing from A`, ...iceB },
+        { label: `B · ${mapB.title}`, aria: `Structure of map B; ${nOnlyB} argument(s) missing from A`, ...iceB },
       ];
       const glyph = (side) => (side === 'pro' ? '+' : side === 'con' ? '−' : side === 'premise' ? '◇' : '◆');
       const glyphFg = (side) => (side === 'pro' ? P.pro : side === 'con' ? P.con : side === 'premise' ? P.prem : P.thesis);

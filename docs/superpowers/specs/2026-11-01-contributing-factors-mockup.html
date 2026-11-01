@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contributing factors mockup</title>
+<style>
+:root{--bg:#F5F4F0;--card:#FFF;--ink:#1B1D22;--ink2:#4A4F58;--rule:#DEDBD2;--control:#C9C5BA;--pro:#17704F;--con:#B42318;--mid:#EFEDE6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 'IBM Plex Sans',system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 64px;display:flex;flex-direction:column;gap:16px}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:16px 18px}
+.eyebrow{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);font-weight:600;margin:0}
+h1{margin:4px 0 12px;font-size:24px;font-weight:500;line-height:1.3}
+button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--control);border-radius:8px;min-height:36px;padding:0 12px;cursor:pointer}
+button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.crumb{border:0;padding:0;min-height:0;background:none;color:#2B5FA8;text-decoration:underline;font-size:13px;margin-bottom:6px}
+.gauge{position:relative;height:12px;border-radius:6px;background:linear-gradient(to right,var(--con),var(--mid),var(--pro))}
+.gauge i{position:absolute;top:-4px;width:4px;height:20px;margin-left:-2px;border-radius:2px;background:var(--ink)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.score{display:flex;justify-content:space-between;gap:12px;font-size:13px;margin-bottom:6px}
+.score b{font-variant-numeric:tabular-nums}
+#stage{position:relative;display:flex;align-items:flex-end;height:260px;margin-top:12px;user-select:none;-webkit-user-select:none;touch-action:none}
+#stage.axis::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:var(--ink2)}
+.col{position:relative;flex-basis:0;min-width:0;overflow:hidden;cursor:ns-resize;padding:8px;display:flex;flex-direction:column;justify-content:space-between;gap:4px;font-size:13px;line-height:1.3}
+.col.sel{box-shadow:inset 0 0 0 3px var(--ink)}
+.col.pool{outline:2px dashed var(--ink);outline-offset:-5px}
+.col .nums{font-variant-numeric:tabular-nums;font-weight:600;font-size:12px;white-space:nowrap}
+.col .txt{overflow:hidden;min-height:0}
+.split{height:100%;padding:0;display:grid;grid-template-rows:1fr 1fr;gap:0;background:none;overflow:visible}
+.split>div{min-height:0;overflow:hidden;display:flex;flex-direction:column}
+.split .bar{flex:none}
+.split .lab{padding:6px;color:var(--ink);height:100%;overflow:hidden}
+.split.sel{box-shadow:none}
+.split.sel .bar{box-shadow:inset 0 0 0 3px var(--ink)}
+.div{flex:none;width:8px;align-self:stretch;cursor:col-resize;position:relative}
+.div:hover::after,.div.on::after{content:'';position:absolute;left:3px;top:0;bottom:0;width:2px;background:var(--ink)}
+.thermo{position:absolute;top:12px;height:236px;width:30px;margin-left:-15px;border-radius:15px;border:3px solid var(--card);box-shadow:0 2px 12px rgba(0,0,0,.35);background:linear-gradient(to top,var(--con),var(--mid),var(--pro));pointer-events:none;z-index:2}
+.thermo i{position:absolute;left:-5px;right:-5px;height:5px;margin-top:-2.5px;border-radius:3px;background:var(--ink)}
+.thermo b{position:absolute;left:32px;margin-top:-12px;padding:2px 7px;border-radius:6px;background:var(--ink);color:#fff;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.thermo.flip b{left:auto;right:32px}
+.hint{margin:10px 0 0;font-size:13px;color:var(--ink2)}
+dl{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+dl div{background:#F3F2EE;border-radius:8px;padding:6px 10px;min-width:90px}
+dt{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2)}
+dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+#details h2{margin:0;font-size:20px;font-weight:500}
+.kids{display:flex;height:34px;gap:2px;margin:8px 0;border-radius:4px;overflow:hidden}
+.kids span{min-width:0}
+input{font:inherit;flex:1 1 240px;min-height:36px;border:1px solid var(--control);border-radius:8px;padding:0 10px}
+</style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <p class="eyebrow">Mockup · sample data from votes-at-16</p>
+    <div id="crumbs"></div>
+    <h1 id="claim"></h1>
+    <div class="score"><span>Overall score · sum of importance × impact, over total importance</span><b id="score"></b></div>
+    <div class="gauge"><i id="marker"></i></div>
+  </section>
+  <section class="card">
+    <div class="row" role="group" aria-label="View">
+      <strong style="font-size:13px">View:</strong>
+      <button data-m="a">Width only</button>
+      <button data-m="b">Wide and tall</button>
+      <button data-m="c">Area is the score</button>
+    </div>
+    <div class="row" role="group" aria-label="Resize behaviour" style="margin-top:8px">
+      <strong style="font-size:13px">When resizing:</strong>
+      <button data-b="scale">Scale all the others</button>
+      <button data-b="trade">Trade with chosen columns</button>
+    </div>
+    <p class="hint" id="modeHint"></p>
+    <div id="stage"></div>
+    <p class="hint" id="resizeHint"></p>
+  </section>
+  <section class="card" id="details"></section>
+</main>
+<script>
+const f = (text, importance, impact, by, children = []) => ({ text, importance, impact, by, children });
+const root = f('16-year-olds should be allowed to vote in general elections.', 100, 0, 'Ms. Smith', [
+  f('Teenagers don’t have enough experience to vote responsibly.', 70, -0.8, 'Li', [
+    f('Most 16-year-olds don’t have jobs or haven’t done any paid work.', 40, 0.6, 'Obi'),
+    f('Teenagers’ lives are mostly controlled by their parents.', 55, 0.5, 'Li'),
+    f('A lot of adults have pretty limited life experiences too.', 65, -0.7, 'Alex'),
+    f('Many teenagers have had experiences that show how politics affects them.', 50, -0.5, 'Billie'),
+  ]),
+  f('Many 16-year-olds would simply vote the way their parents do.', 45, -0.4, 'Alex'),
+  f('Most other adult rights, like buying alcohol, start at 18.', 35, -0.3, 'Sam'),
+  f('Turnout among young voters is already low.', 25, -0.2, 'Billie'),
+  f('Voting early helps build a lifelong habit of voting.', 50, 0.5, 'Li'),
+  f('Sixteen-year-olds can work and pay tax, so they should have a say.', 60, 0.7, 'Sam', [
+    f('Most 16-year-olds don’t earn enough to pay income tax.', 45, -0.6, 'Alex'),
+    f('They still pay VAT on everything they buy.', 35, 0.8, 'Obi'),
+  ]),
+  f('Decisions made now affect young people for longer than anyone else.', 75, 0.9, 'Billie'),
+]);
+
+const HINTS = {
+  a: 'Every column is the same height. Width is importance and colour is impact.',
+  b: 'Tall means important: importance drives width and height together, and colour is impact.',
+  c: 'Width is importance and height is impact, with green rising and red falling from the axis. Each column’s area is its contribution to the score.',
+};
+const $ = (id) => document.getElementById(id);
+const stage = $('stage');
+const RESIZE_HINTS = {
+  scale: 'Drag a divider as far as you like, even past its neighbour: the selected column (or else the one left of the divider) resizes, and every other column scales to fit. Drag a column up or down for the impact thermometer. Click a column for its details.',
+  trade: '⌘-click or Shift-click columns to mark them with a dashed outline. Dragging a divider then takes importance from those columns or gives it back to them, and all other columns stay put. With none marked, it trades with the column across the divider. Drag a column up or down for the impact thermometer. Click a column for its details.',
+};
+let stack = [root], selected = null, mode = 'a', drag = null, behaviour = 'scale';
+const pool = new Set();
+const cur = () => stack[stack.length - 1];
+const shareOf = (c, parent = cur()) => c.importance / parent.children.reduce((t, k) => t + k.importance, 0);
+
+// ponytail: 2% floor per column, so nothing becomes too thin to grab; revisit if a map has more than ~40 facts.
+const FLOOR = 0.02;
+function resize(d, dx) {
+  const kids = cur().children, T = d.raws.reduce((t, r) => t + r, 0), g0 = d.raws[d.g] / T;
+  const leftOfDivider = d.g === d.i, move = (leftOfDivider ? dx : -dx) / d.room;
+  if (behaviour === 'scale') {
+    // Only this column's number changes; the others scale because widths are shares of the total.
+    // A = share beyond this column's far edge, B = share past the divider. Solved so the divider stays under the pointer.
+    const A = d.raws.reduce((t, r, j) => t + ((leftOfDivider ? j < d.g : j > d.g) ? r : 0), 0) / T;
+    const B = 1 - g0 - A;
+    const g = clamp(((A + g0 + move) * (A + B) - A) / B, FLOOR, 0.9);
+    kids[d.g].importance = g / (1 - g) * (T - d.raws[d.g]);
+    return;
+  }
+  let members = kids.map((k, j) => j).filter((j) => j !== d.g && pool.has(kids[j]));
+  if (!members.length) members = [leftOfDivider ? d.i + 1 : d.i];
+  const P = members.reduce((t, j) => t + d.raws[j], 0);
+  const delta = clamp(move * T, FLOOR * T - d.raws[d.g], P - FLOOR * T * members.length);
+  kids[d.g].importance = d.raws[d.g] + delta;
+  members.forEach((j) => { kids[j].importance = d.raws[j] * (1 - delta / P); });
+}
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const signed = (v) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fill = (v) => `color-mix(in srgb, ${v < 0 ? 'var(--con)' : 'var(--pro)'} ${(12 + 88 * Math.abs(v)).toFixed(0)}%, var(--mid))`;
+const onFill = (v) => (Math.abs(v) > 0.5 ? '#fff' : 'var(--ink)');
+const scoreOf = (n) => {
+  const total = n.children.reduce((t, c) => t + c.importance, 0);
+  return total ? n.children.reduce((t, c) => t + c.importance * c.impact, 0) / total : 0;
+};
+
+function column(c, i, max) {
+  const sel = (c === selected ? ' sel' : '') + (behaviour === 'trade' && pool.has(c) ? ' pool' : '');
+  const nums = `<span class="nums">${Math.round(shareOf(c) * 100)}% · ${signed(c.impact)}</span>`;
+  if (mode === 'c') {
+    const bar = `<div class="bar" style="height:${Math.max(Math.abs(c.impact) * 100, 2)}%;background:${fill(c.impact)}"></div>`;
+    const lab = `<div class="lab"><span class="txt">${esc(c.text)}</span> ${nums}</div>`;
+    const up = c.impact >= 0;
+    return `<div class="col split${sel}" data-i="${i}" style="flex-grow:${c.importance}">
+      <div style="justify-content:flex-end">${up ? bar : lab}</div><div>${up ? lab : bar}</div></div>`;
+  }
+  const h = mode === 'b' ? 70 + 190 * c.importance / max : 260;
+  return `<div class="col${sel}" data-i="${i}" style="flex-grow:${c.importance};height:${h}px;background:${fill(c.impact)};color:${onFill(c.impact)}">
+    <span class="txt">${esc(c.text)}</span>${nums}</div>`;
+}
+
+function render() {
+  const n = cur(), kids = n.children;
+  $('crumbs').innerHTML = stack.length > 1 ? `<button class="crumb" id="up">↑ Back to parent</button>` : '';
+  $('claim').textContent = n.text;
+  const s = scoreOf(n);
+  $('score').textContent = signed(s);
+  $('marker').style.left = `${(s + 1) * 50}%`;
+  document.querySelectorAll('[data-m]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.m === mode));
+  document.querySelectorAll('[data-b]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.b === behaviour));
+  $('modeHint').textContent = HINTS[mode];
+  $('resizeHint').textContent = RESIZE_HINTS[behaviour];
+  stage.className = mode === 'c' ? 'axis' : '';
+  const max = Math.max(...kids.map((k) => k.importance), 1);
+  stage.innerHTML = kids.map((c, i) => column(c, i, max)
+    + (i < kids.length - 1 ? `<div class="div${drag && drag.type === 'div' && drag.i === i ? ' on' : ''}" data-d="${i}"></div>` : '')).join('');
+  if (drag && drag.type === 'impact') {
+    const col = stage.querySelector(`[data-i="${drag.i}"]`);
+    const x = col.offsetLeft + col.offsetWidth / 2;
+    const v = kids[drag.i].impact;
+    stage.insertAdjacentHTML('beforeend', `<div class="thermo${x > stage.offsetWidth - 90 ? ' flip' : ''}" style="left:${x}px"><i style="top:${(1 - v) * 50}%"></i><b style="top:${(1 - v) * 50}%">${signed(v)}</b></div>`);
+  }
+  renderDetails();
+}
+
+function renderDetails() {
+  const box = $('details');
+  if (!selected) { box.innerHTML = '<p class="hint" style="margin:0">Click a column to see its details here.</p>'; return; }
+  const c = selected;
+  box.innerHTML = `<p class="eyebrow">Selected fact</p><h2>${esc(c.text)}</h2>
+    <dl><div><dt>Share of importance</dt><dd>${Math.round(shareOf(c) * 100)}%</dd></div>
+    <div><dt>Impact</dt><dd>${signed(c.impact)}</dd></div>
+    <div><dt>Contribution to score</dt><dd>${signed(shareOf(c) * c.impact)}</dd></div>
+    <div><dt>By</dt><dd>${esc(c.by || '—')}</dd></div></dl>
+    <strong style="font-size:14px">Contributing factors under this fact (${c.children.length})</strong>
+    ${c.children.length ? `<div class="kids">${[...c.children].sort((a, b) => a.impact - b.impact).map((k) => `<span title="${esc(k.text)}" style="flex:${k.importance} 1 0;background:${fill(k.impact)}"></span>`).join('')}</div>` : '<p class="hint" style="margin:6px 0">None yet.</p>'}
+    <div class="row" style="margin-top:8px">
+      <input id="newKid" placeholder="Add a contributing factor under this fact" aria-label="New contributing factor">
+      <button id="addKid">Add</button>
+      <button id="openKid">Open as its own chart</button>
+    </div>`;
+}
+
+function select(c) { selected = c; render(); }
+
+stage.addEventListener('pointerdown', (e) => {
+  const d = e.target.closest('[data-d]'), c = e.target.closest('[data-i]');
+  if (d) {
+    const i = Number(d.dataset.d), kids = cur().children;
+    const room = stage.offsetWidth - 8 * (kids.length - 1);
+    drag = { type: 'div', i, g: selected === kids[i + 1] ? i + 1 : i, x0: e.clientX, raws: kids.map((k) => k.importance), room };
+    render();
+  } else if (c) {
+    const i = Number(c.dataset.i);
+    drag = { type: 'pending', i, x0: e.clientX, y0: e.clientY, start: cur().children[i].impact, mod: e.metaKey || e.shiftKey };
+  }
+  e.preventDefault();
+});
+
+document.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const kids = cur().children, dy = e.clientY - (drag.y0 ?? 0);
+  if (drag.type === 'div') {
+    resize(drag, e.clientX - drag.x0);
+    render();
+  } else if (drag.type === 'pending' && Math.abs(dy) > 5) {
+    drag.type = 'impact';
+    selected = kids[drag.i];
+  }
+  if (drag.type === 'impact') {
+    kids[drag.i].impact = Math.round(clamp(drag.start - dy / 118, -1, 1) * 100) / 100;
+    render();
+  }
+});
+
+document.addEventListener('pointerup', () => {
+  if (!drag) return;
+  const was = drag, kids = cur().children;
+  drag = null;
+  if (was.type === 'pending' && was.mod && behaviour === 'trade') {
+    const c = kids[was.i];
+    if (pool.has(c)) pool.delete(c); else pool.add(c);
+    return render();
+  }
+  if (was.type === 'pending') return select(kids[was.i]);
+  if (was.type === 'impact') kids.sort((a, b) => a.impact - b.impact);
+  render();
+});
+
+document.addEventListener('click', (e) => {
+  if (e.target.dataset.m) { mode = e.target.dataset.m; render(); }
+  if (e.target.dataset.b) { behaviour = e.target.dataset.b; render(); }
+  if (e.target.id === 'up') { selected = stack.pop(); pool.clear(); render(); }
+  if (e.target.id === 'openKid') { stack.push(selected); selected = null; pool.clear(); render(); }
+  if (e.target.id === 'addKid') {
+    const text = $('newKid').value.trim();
+    if (text) { selected.children.push(f(text, 50, 0, null)); render(); }
+  }
+});
+
+render();
+</script>
+</body>
+</html>
