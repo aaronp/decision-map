@@ -1680,6 +1680,81 @@ class Component extends DCLogic {
     return s;
   }
 
+  // Per slug: { score, importance, impact, share }. score is the importance-weighted mean of direct children's impact.
+  // A fact's own importance and impact are as written; a premise's are calculated, since its children are all that define it.
+  static allValues(root) {
+    const out = new Map();
+    const scoreOf = (n) => {
+      const facts = n.children.filter((c) => c.kind === 'fact');
+      const total = facts.reduce((t, c) => t + c.importance, 0);
+      return total === 0 ? 0 : facts.reduce((t, c) => t + c.importance * c.impact, 0) / total;
+    };
+    const visit = (n) => {
+      const premises = n.children.some((c) => c.kind === 'premise');
+      const score = premises ? null : scoreOf(n);
+      const own = (c) => {
+        if (c.kind === 'fact') return { importance: c.importance, impact: c.impact };
+        const impact = scoreOf(c);
+        return { importance: (impact + 1) / 2, impact };
+      };
+      const kids = n.children.map(own);
+      const total = kids.reduce((t, k) => t + k.importance, 0);
+      n.children.forEach((c, i) => {
+        out.set(c.slug, { score: null, ...kids[i], share: total === 0 ? 1 / kids.length : kids[i].importance / total });
+      });
+      const self = out.get(n.slug) ?? { importance: null, impact: null, share: null };
+      out.set(n.slug, { ...self, score });
+      n.children.forEach(visit);
+    };
+    visit(root);
+    return out;
+  }
+
+  // The chart's columns, sorted most negative first. `order` (slugs) holds the positions still during an edit.
+  static factRows(node, values, order = null) {
+    const rows = node.children.map((c) => {
+      const v = values.get(c.slug);
+      return { node: c, importance: v.importance, impact: v.impact, share: v.share, contribution: v.share * v.impact, calculated: c.kind === 'premise' };
+    });
+    const byImpact = (list) => list.map((r, i) => [r, i]).sort((a, b) => a[0].impact - b[0].impact || a[1] - b[1]).map(([r]) => r);
+    if (order === null) return byImpact(rows);
+    const listed = order.map((slug) => rows.find((r) => r.node.slug === slug)).filter(Boolean);
+    return [...listed, ...byImpact(rows.filter((r) => !listed.includes(r)))];
+  }
+
+  // New importances after dragging the divider right of raws[divider]. move: pointer travel as a fraction of total column width, right is positive.
+  static resizeImportance(raws, { divider, resized, move, mode, pool = [] }) {
+    if (resized !== divider && resized !== divider + 1) throw new Error(`bug: column ${resized} doesn't touch divider ${divider}`);
+    const MIN_SHARE = 0.02;
+    const MAX_SHARE = 0.9;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const out = [...raws];
+    const T = raws.reduce((t, r) => t + r, 0);
+    const others = T - raws[resized];
+    if (T === 0 || others === 0) return out;
+    const isLeft = resized === divider;
+    const d = isLeft ? move : -move;
+    if (mode === 'scale') {
+      // Only this number changes; the others scale because widths are shares. Solved so the divider stays under the pointer:
+      // g0 = this column's share, A = share beyond its far edge, B = share past the divider.
+      const g0 = raws[resized] / T;
+      const A = raws.reduce((t, r, j) => t + ((isLeft ? j < resized : j > resized) ? r : 0), 0) / T;
+      const B = 1 - g0 - A;
+      const g = clamp(((A + g0 + d) * (A + B) - A) / B, MIN_SHARE, MAX_SHARE);
+      out[resized] = (g / (1 - g)) * others;
+      return out;
+    }
+    if (mode !== 'trade') throw new Error(`bug: unknown resize mode "${mode}"`);
+    const picked = pool.filter((j) => j !== resized);
+    const members = picked.length ? picked : [isLeft ? divider + 1 : divider];
+    const P = members.reduce((t, j) => t + raws[j], 0);
+    if (P === 0 && d > 0) return out;
+    const delta = clamp(d * T, MIN_SHARE * T - raws[resized], P - MIN_SHARE * T * members.length);
+    out[resized] = raws[resized] + delta;
+    members.forEach((j) => { out[j] = P === 0 ? -delta / members.length : raws[j] - delta * raws[j] / P; });
+    return out;
+  }
+
   // strength(n) = (1 + support) / (1 + support + oppose); support/oppose = Σ child.weight/100 × strength(child)
   static scoreAll(root) {
     const out = new Map();

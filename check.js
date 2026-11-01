@@ -100,6 +100,75 @@ test('saved numbers are rounded', () => {
   assert.ok(out.includes('importance: 38.6\n') && out.includes('impact: 0\n'));
 });
 
+// ---------------------------------------------------------------- scoring and resizing
+const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
+const fact = (slug, importance, impact, children = []) => ({ slug, text: slug, kind: 'fact', importance, impact, by: null, basis: null, confidence: null, details: null, refs: [], children });
+const prem = (slug, children) => ({ ...fact(slug, null, null, children), kind: 'premise' });
+const rootOf = (children) => ({ ...fact('r', null, null, children), kind: 'root' });
+
+test('score uses direct children and leaves a parent impact alone', () => {
+  const tree = rootOf([fact('a', 60, 0.5, [fact('x', 1, -1)]), fact('b', 40, -1)]);
+  const v = Component.allValues(tree);
+  near(v.get('r').score, 0.5 * 0.6 - 0.4);
+  near(v.get('a').impact, 0.5);
+  near(v.get('a').score, -1);
+  near(v.get('a').share, 0.6);
+  const rows = Component.factRows(tree, v);
+  assert.deepEqual(rows.map((r) => r.node.slug), ['b', 'a']);
+  near(rows[1].contribution, 0.3);
+  assert.equal(rows[1].calculated, false);
+});
+
+test('all-zero importance and single children give equal shares and no NaN', () => {
+  const z = rootOf([fact('a', 0, 1), fact('b', 0, -1)]);
+  const vz = Component.allValues(z);
+  near(vz.get('r').score, 0);
+  near(vz.get('a').share, 0.5);
+  near(Component.allValues(rootOf([fact('a', 7, 0.2)])).get('a').share, 1);
+  near(Component.allValues(rootOf([])).get('r').score, 0);
+});
+
+test('premise values are calculated from children', () => {
+  const pt = rootOf([prem('p1', [fact('x', 1, 1)]), prem('p2', []), prem('p3', [fact('y', 1, -1)])]);
+  const vp = Component.allValues(pt);
+  assert.equal(vp.get('r').score, null);
+  near(vp.get('p1').impact, 1);
+  near(vp.get('p1').share, 2 / 3);
+  near(vp.get('p2').share, 1 / 3);
+  near(vp.get('p3').share, 0);
+  assert.equal(Component.factRows(pt, vp)[0].calculated, true);
+  near(Component.allValues(rootOf([prem('p', [fact('y', 1, -1)])])).get('p').share, 1);
+});
+
+test('a frozen order is respected and tolerates changed children', () => {
+  const ord = rootOf([fact('a', 1, 0.9), fact('b', 1, -0.9), fact('c', 1, 0)]);
+  assert.deepEqual(Component.factRows(ord, Component.allValues(ord), ['a', 'gone', 'b']).map((r) => r.node.slug), ['a', 'b', 'c']);
+});
+
+test('scale mode resize', () => {
+  const scale = (raws, divider, resized, move) => Component.resizeImportance(raws, { divider, resized, move, mode: 'scale' });
+  const shareAt = (r, i) => r[i] / r.reduce((t, x) => t + x, 0);
+  near(shareAt(scale([10, 30, 60], 0, 0, 0.2), 0), 0.3);
+  assert.deepEqual(scale([10, 30, 60], 0, 0, 0.2).slice(1), [30, 60]);
+  near(shareAt(scale([10, 30, 60], 0, 0, 0.6), 0), 0.7); // past the neighbour
+  near(shareAt(scale([10, 30, 60], 0, 0, 0.95), 0), 0.9); // upper limit
+  near(shareAt(scale([10, 30, 60], 0, 0, -0.09), 0), 0.02); // lower limit
+  near(shareAt(scale([10, 30, 60], 0, 1, 0.01), 1), 0.23); // column right of the divider
+  assert.deepEqual(scale([0, 0], 0, 0, 0.2), [0, 0]); // nothing to measure against
+  assert.deepEqual(scale([5, 0], 0, 0, 0.2), [5, 0]);
+});
+
+test('trade mode resize', () => {
+  const trade = (raws, divider, resized, move, pool) => Component.resizeImportance(raws, { divider, resized, move, mode: 'trade', pool });
+  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.1, [2]), [70, 50, 80]);
+  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.1, []), [70, 30, 100]); // defaults to across the divider
+  assert.deepEqual(trade([50, 50, 100], 0, 1, 0.1, []), [70, 30, 100]); // moving right shrinks the right column
+  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.9, [1]), [96, 4, 100]); // floor on the trade column
+  assert.deepEqual(trade([50, 50, 100], 0, 0, -0.9, [1]), [4, 96, 100]); // floor on the resized column
+  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.1, [0]), [70, 30, 100]); // the resized column can't trade with itself
+  assert.deepEqual(trade([40, 20, 60, 80], 0, 0, 0.1, [1, 3]), [60, 16, 60, 64]); // in proportion
+});
+
 // ---------------------------------------------------------------- whole-app checks, no browser needed
 const LEGACY_A = fs.readFileSync('check-fixtures/legacy-a.md', 'utf8');
 const LEGACY_B = fs.readFileSync('check-fixtures/legacy-b.md', 'utf8');
