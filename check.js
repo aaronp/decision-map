@@ -564,5 +564,98 @@ test('a new map\'s root text can\'t end in a slug block', () => {
   assert.equal(c.state.newText, 'Fine');
 });
 
+// ---------------------------------------------------------------- overview, sunburst and diff
+const mapOf = (root) => ({ title: 'T', display: {}, root });
+const rowsFor = (a, b) => Component.diff(mapOf(rootOf(a)), mapOf(rootOf(b)), 10).rows;
+const rowOf = (rows, slug) => rows.find((r) => r.slug === slug);
+
+test('an impact change alone counts as changed, at threshold ÷ 100', () => {
+  const d = rowOf(rowsFor([fact('a', 1, 0.8)], [fact('a', 1, 0.1)]), 'a');
+  assert.ok(d.changed && !d.flipped);
+  near(d.impactDelta, -0.7);
+  assert.equal(rowOf(rowsFor([fact('a', 1, 0.8)], [fact('a', 1, 0.75)]), 'a').changed, false);
+});
+
+test('a share change counts as changed, in percentage points', () => {
+  const d = rowOf(rowsFor([fact('a', 50, 0), fact('b', 50, 0)], [fact('a', 70, 0), fact('b', 30, 0)]), 'a');
+  assert.ok(d.changed);
+  near(d.shareDelta, 20);
+  near(d.shareA, 50);
+  near(d.shareB, 70);
+});
+
+test('flipped needs strictly opposite signs', () => {
+  assert.equal(rowOf(rowsFor([fact('a', 1, 0.5)], [fact('a', 1, -0.5)]), 'a').flipped, true);
+  const d = rowOf(rowsFor([fact('a', 1, 0.5)], [fact('a', 1, 0)]), 'a');
+  assert.ok(d.changed && !d.flipped);
+});
+
+test('a premise compares on its calculated values', () => {
+  const d = rowOf(rowsFor([prem('p', [fact('x', 1, 1)]), prem('q', [])], [prem('p', [fact('x', 1, -1)]), prem('q', [])]), 'p');
+  assert.equal(d.flipped, true);
+});
+
+test('rows for a fact only on one side have no deltas', () => {
+  const rows = rowsFor([fact('a', 1, 1)], [fact('a', 1, 1), fact('b', 1, 1)]);
+  assert.equal(rowOf(rows, 'b').status, 'onlyB');
+  assert.equal(rowOf(rows, 'b').shareDelta, null);
+  assert.equal(rowOf(rows, 'b').changed, false);
+  assert.equal(rowOf(rows, 'r').changed, false);
+});
+
+test('layout values never collapse', () => {
+  const lv = Component.allValues(rootOf([fact('a', 0, 1), fact('b', 10, 1)]));
+  near(Component.layoutWeight({ slug: 'a' }, lv), 0.01);
+});
+
+test('whole-map shares add up', () => {
+  const root = rootOf([fact('a', 1, 1, [fact('x', 1, 1), fact('y', 3, 1)]), fact('b', 1, -1)]);
+  const sh = Component.shares(mapOf(root), Component.allValues(root));
+  near(sh.get('a'), 0.5);
+  near(sh.get('y'), 0.375);
+});
+
+test('the overview and sunburst colour by impact', () => {
+  const c = boot(MAP3);
+  const v = c.renderVals();
+  assert.ok(v.ice.boxes.some((b) => b.bg === Component.impactFill(0.5)));
+  c.setState({ view: 'pie' });
+  const p = c.renderVals();
+  assert.ok(p.pie.slices.some((b) => b.fill === Component.impactFill(-0.5)));
+  assert.equal(p.pie.legend.length, 3);
+  assert.equal(p.pie.legend[0].swatch, Component.impactFill(-0.5));
+  assert.deepEqual(unresolved(p), []);
+});
+
+test('every diff tab, chip and selection renders', () => {
+  for (const diffTab of ['sankey', 'table', 'structure']) {
+    for (const diffFilter of ['all', 'changed', 'onlyA', 'onlyB', 'flipped', 'moved', 'text']) {
+      const c = boot(LEGACY_A, LEGACY_B);
+      c.setState({ view: 'diff', diffTab, diffFilter });
+      assert.deepEqual(unresolved(c.renderVals()), [], `${diffTab}/${diffFilter}`);
+    }
+    const c = boot(LEGACY_A, LEGACY_B);
+    c.setState({ view: 'diff', diffTab, diffSel: 'pay-tax', diffHover: 'pay-tax' });
+    assert.deepEqual(unresolved(c.renderVals()), [], `${diffTab} selected`);
+  }
+});
+
+test('a diff can compare premises', () => {
+  const src = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n`;
+  const c = boot(src, src.replace('impact: 1', 'impact: -1'));
+  c.setState({ view: 'diff', diffSel: 'p' });
+  const v = c.renderVals();
+  assert.deepEqual(unresolved(v), []);
+  assert.equal(v.diff.leans[0].signed, '—');
+  c.setState({ diffTab: 'table', diffSel: null });
+  assert.ok(c.renderVals().diff.rows.some((r) => r.badges.some((b) => b.label === 'Flipped')));
+});
+
+test('the diff table has no NaN', () => {
+  const c = boot(LEGACY_A, LEGACY_B);
+  c.setState({ view: 'diff', diffTab: 'table' });
+  assert.ok(!JSON.stringify(c.renderVals().diff.rows).includes('NaN'));
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

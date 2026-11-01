@@ -233,7 +233,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 
     <section aria-label="Overview" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
       <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
-        <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em">Overview · block width is weight share</h2>
+        <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em">Overview · block width is importance share, colour is impact</h2>
         <span style="font-size: 12px; color: var(--ink2)">Click a block to focus it</span>
       </div>
       <div style="position: relative; height: {{ice.height}}px">
@@ -608,16 +608,10 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <span style="font-weight: 700; color: {{fc.fg}}; padding-top: 2px">{{fc.glyphOnly}}</span>
         <p style="margin: 0; font-size: 18px; line-height: 1.4; font-weight: 500">{{fc.text}}</p>
       </div>
-      <sc-if value="{{lean.has}}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{score.has}}" hint-placeholder-val="{{ true }}">
         <div style="display: flex; flex-direction: column; gap: 6px">
-          <div style="display: flex; justify-content: space-between; font-size: 12px">
-            <span style="color: var(--pro); font-weight: 600">+ For {{lean.forPct}}%</span>
-            <span style="color: var(--con); font-weight: 600">− Against {{lean.againstPct}}%</span>
-          </div>
-          <div style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--rule-soft); gap: 2px">
-            <div style="width: {{lean.forPct}}%; background: var(--pro-fill)"></div>
-            <div style="width: {{lean.againstPct}}%; background: var(--con)"></div>
-          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px"><span style="color: var(--ink2)">Overall score</span><span style="font-weight: 700; font-variant-numeric: tabular-nums">{{score.signed}}</span></div>
+          <div style="position: relative; height: 8px; border-radius: 4px; background: linear-gradient(to right, var(--con), var(--sunk), var(--pro))"><span style="position: absolute; left: {{score.left}}%; top: -3px; width: 4px; height: 14px; margin-left: -2px; border-radius: 2px; background: var(--ink)"></span></div>
         </div>
       </sc-if>
       <div style="display: flex; flex-direction: column">
@@ -627,16 +621,12 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <button type="button" onClick="{{l.open}}" style="text-align: left; border: 0; background: none; padding: 0; font: inherit; font-size: 14px; line-height: 1.4; color: var(--ink); cursor: pointer"><span style="font-weight: 700; color: {{l.fg}}">{{l.glyph}}</span> {{l.text}}</button>
             <span></span>
             <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink2)">
-              <sc-if value="{{l.hasSlider}}" hint-placeholder-val="{{ true }}">
-                <input type="range" min="0" max="100" step="1" value="{{l.weight}}" onChange="{{l.change}}" disabled="{{locked}}" aria-label="{{l.sliderLabel}}" style="flex: 1; min-width: 80px; accent-color: {{l.fg}}">
-                <span style="font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); min-width: 24px">{{l.weight}}</span>
-              </sc-if>
               <span style="white-space: nowrap">{{l.share}}</span>
             </div>
           </div>
         </sc-for>
         <sc-if value="{{pie.emptyLegend}}" hint-placeholder-val="{{ false }}">
-          <p style="margin: 0; padding-top: 8px; font-size: 14px; color: var(--ink2)">No arguments under this claim yet. Add some in the Map view.</p>
+          <p style="margin: 0; padding-top: 8px; font-size: 14px; color: var(--ink2)">No contributing factors under this claim yet. Add some in the Map view.</p>
         </sc-if>
       </div>
     </section>
@@ -674,13 +664,10 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <sc-for list="{{diff.leans}}" as="ln" hint-placeholder-count="2">
               <div style="display: flex; flex-direction: column; gap: 6px">
                 <div style="display: flex; justify-content: space-between; font-size: 13px; gap: 8px">
-                  <span><strong>{{ln.label}}</strong> thesis lean</span>
-                  <span style="font-variant-numeric: tabular-nums"><span style="color: var(--pro); font-weight: 600">+{{ln.forPct}}%</span> · <span style="color: var(--con); font-weight: 600">−{{ln.againstPct}}%</span></span>
+                  <span><strong>{{ln.label}}</strong> overall score</span>
+                  <span style="font-weight: 700; font-variant-numeric: tabular-nums">{{ln.signed}}</span>
                 </div>
-                <div style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--rule-soft); gap: 2px">
-                  <div style="width: {{ln.forPct}}%; background: var(--pro-fill)"></div>
-                  <div style="width: {{ln.againstPct}}%; background: var(--con)"></div>
-                </div>
+                <div style="position: relative; height: 8px; border-radius: 4px; background: linear-gradient(to right, var(--con), var(--sunk), var(--pro))"><span style="position: absolute; left: {{ln.left}}%; top: -3px; width: 4px; height: 14px; margin-left: -2px; border-radius: 2px; background: var(--ink)"></span></div>
               </div>
             </sc-for>
           </div>
@@ -704,11 +691,10 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       <sc-if value="{{diff.isSankey}}" hint-placeholder-val="{{ true }}">
       <section aria-label="Sankey diff" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline">
-          <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em">Sankey · each side splits by weight share; arguments meet in the middle by slug</h2>
+          <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em">Sankey · each side splits by importance share; facts meet in the middle by slug</h2>
           <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink2)">
-            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: var(--pro-fill)"></span>Pro</span>
-            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: var(--con)"></span>Con</span>
-            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: var(--moved)"></span>Moved or side flipped</span>
+            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 42px; height: 10px; border-radius: 3px; background: linear-gradient(to right, var(--con), var(--sunk), var(--pro))"></span>Impact −1 to +1</span>
+            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: var(--moved)"></span>Moved or flipped</span>
             <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; box-sizing: border-box; border: 1.5px dashed var(--orphan-line); background: var(--orphan)"></span>Orphan · dead-ends in the middle</span>
           </div>
         </div>
@@ -803,7 +789,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
                       </ul>
                     </sc-if>
                     <sc-if value="{{d.noKids}}" hint-placeholder-val="{{ false }}">
-                      <p style="margin: 0; font-size: 13px; color: var(--ink2)">No sub-decisions here.</p>
+                      <p style="margin: 0; font-size: 13px; color: var(--ink2)">No child factors here.</p>
                     </sc-if>
                     <sc-if value="{{d.hasRefs}}" hint-placeholder-val="{{ false }}">
                       <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--rule-soft); padding-top: 8px">
@@ -834,10 +820,10 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       <sc-if value="{{diff.isStructure}}" hint-placeholder-val="{{ false }}">
       <section aria-label="Structure" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline">
-          <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em">Structure · width is weight share</h2>
+          <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em">Structure · width is importance share</h2>
           <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink2)">
             <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: var(--orphan)"></span>Orphan · missing from the other map</span>
-            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--moved) 0 3px, var(--rule-soft) 3px 6px)"></span>Changed weight, side or position</span>
+            <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: repeating-linear-gradient(135deg, var(--moved) 0 3px, var(--rule-soft) 3px 6px)"></span>Changed share or impact, flipped or moved</span>
             <span style="display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 14px; height: 10px; border-radius: 3px; background: var(--rule-soft)"></span>Same</span>
           </div>
         </div>
@@ -860,7 +846,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       <section aria-label="Differences" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
         <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 260px) 64px; gap: 16px; padding: 4px 14px 8px; font-size: 12px; color: var(--ink2); align-items: end">
           <span>Argument</span>
-          <span style="display: flex; justify-content: space-between"><span>0</span><span>weight · <span style="color: var(--accent); font-weight: 700">●</span> A <span style="color: var(--side-b); font-weight: 700">○</span> B</span><span>100</span></span>
+          <span style="display: flex; justify-content: space-between"><span>0</span><span>share · <span style="color: var(--accent); font-weight: 700">●</span> A <span style="color: var(--side-b); font-weight: 700">○</span> B</span><span>100</span></span>
           <span style="text-align: right">B − A</span>
         </div>
         <sc-for list="{{diff.rows}}" as="r" hint-placeholder-count="8">
@@ -1823,47 +1809,18 @@ class Component extends DCLogic {
     return out;
   }
 
-  // strength(n) = (1 + support) / (1 + support + oppose); support/oppose = Σ child.weight/100 × strength(child)
-  static scoreAll(root) {
-    const out = new Map();
-    const visit = (n) => {
-      let support = 0;
-      let oppose = 0;
-      for (const c of n.children) {
-        const sc = visit(c);
-        if (c.side === 'premise') continue; // premises compete with each other; they don't push the root for or against
-        const contrib = (c.weight / 100) * sc;
-        if (c.side === 'pro') support += contrib;
-        else if (c.side === 'con') oppose += contrib;
-        else throw new Error(`bug: argument "${c.slug}" has no side`);
-      }
-      const strength = (1 + support) / (1 + support + oppose);
-      out.set(n.slug, { support, oppose, strength });
-      return strength;
-    };
-    visit(root);
-    return out;
+  // Layout size among siblings. A share of 0 still gets a sliver so it stays clickable.
+  static layoutWeight(c, values) {
+    return Math.max(values.get(c.slug).share, 0.01);
   }
 
-  static orderedKids(n) {
-    return [...n.children.filter((c) => c.side === 'pro'), ...n.children.filter((c) => c.side === 'con'), ...n.children.filter((c) => c.side === 'premise')];
-  }
-
-  // Layout size among siblings: pro/con use their weight, premises their rolled-up strength (×100).
-  // A size of 0 still gets a sliver (as if 1) so it stays clickable.
-  static layoutWeight(c, scores) {
-    if (c.side === 'premise') return Math.max(scores.get(c.slug).strength * 100, 1);
-    if (c.side === 'pro' || c.side === 'con') return Math.max(c.weight, 1);
-    throw new Error(`bug: layoutWeight called on the root "${c.slug}"`);
-  }
-
-  static partition(node, maxDepth, scores) {
+  static partition(node, maxDepth, values) {
     const out = [];
     const walk = (n, depth, x0, x1) => {
       out.push({ node: n, depth, x0, x1 });
       if (depth >= maxDepth || n.children.length === 0) return;
-      const kids = Component.orderedKids(n);
-      const ew = kids.map((c) => Component.layoutWeight(c, scores));
+      const kids = Component.factRows(n, values).map((r) => r.node);
+      const ew = kids.map((c) => Component.layoutWeight(c, values));
       const total = ew.reduce((a, b) => a + b, 0);
       let x = x0;
       kids.forEach((c, k) => { const w = (x1 - x0) * ew[k] / total; walk(c, depth + 1, x, x + w); x += w; });
@@ -1872,8 +1829,8 @@ class Component extends DCLogic {
     return out;
   }
 
-  static icicle(root, maxDepth, styleOf, scores) {
-    const parts = Component.partition(root, maxDepth, scores);
+  static icicle(root, maxDepth, styleOf, values) {
+    const parts = Component.partition(root, maxDepth, values);
     const maxD = parts.reduce((m, p) => Math.max(m, p.depth), 0);
     return {
       height: (maxD + 1) * 28,
@@ -1899,6 +1856,9 @@ class Component extends DCLogic {
   static diff(a, b, thr) {
     const ia = Component.index(a.root);
     const ib = Component.index(b.root);
+    const va = Component.allValues(a.root);
+    const vb = Component.allValues(b.root);
+    const pct = (v) => (v === null ? null : v * 100);
     const rows = [];
     const visit = (slug, depth, parentStatus) => {
       const ea = ia.get(slug);
@@ -1908,22 +1868,27 @@ class Component extends DCLogic {
       const nb = eb ? eb.node : null;
       const status = na && nb ? 'both' : na ? 'onlyA' : 'onlyB';
       const both = status === 'both';
-      const delta = both && na.weight !== null && nb.weight !== null ? nb.weight - na.weight : null;
+      const A = na ? va.get(slug) : null;
+      const B = nb ? vb.get(slug) : null;
+      const comparable = both && A.impact !== null && B.impact !== null;
+      const shareDelta = comparable ? (B.share - A.share) * 100 : null;
+      const impactDelta = comparable ? B.impact - A.impact : null;
       const moved = both && ea.parent !== eb.parent;
       rows.push({
         slug, depth, status,
-        wA: na ? na.weight : null, wB: nb ? nb.weight : null, delta,
+        shareA: A ? pct(A.share) : null, shareB: B ? pct(B.share) : null, shareDelta,
+        impactA: A ? A.impact : null, impactB: B ? B.impact : null, impactDelta,
+        kindA: na ? na.kind : null, kindB: nb ? nb.kind : null,
         text: na ? na.text : nb.text, textB: nb ? nb.text : null,
-        sideA: na ? na.side : null, sideB: nb ? nb.side : null,
-        weightChanged: delta !== null && Math.abs(delta) >= thr,
-        flipped: both && na.side !== nb.side,
+        changed: comparable && (Math.abs(shareDelta) >= thr || Math.abs(impactDelta) >= thr / 100),
+        flipped: comparable && A.impact * B.impact < 0,
         moved, parentBText: moved ? (eb.parent === null ? '(top level)' : ib.get(eb.parent).node.text) : null,
         textChanged: both && na.text !== nb.text,
         branchRoot: !both && parentStatus !== status,
       });
       const kids = [
-        ...(na ? Component.orderedKids(na).map((c) => c.slug) : []),
-        ...(nb ? Component.orderedKids(nb).filter((c) => !ia.has(c.slug)).map((c) => c.slug) : []),
+        ...(na ? na.children.map((c) => c.slug) : []),
+        ...(nb ? nb.children.filter((c) => !ia.has(c.slug)).map((c) => c.slug) : []),
       ];
       kids.forEach((k) => visit(k, depth + 1, status));
     };
@@ -1941,12 +1906,12 @@ class Component extends DCLogic {
   }
 
   // Share of the whole map per slug: root = 1, child = parent × layoutWeight / Σ sibling layoutWeights.
-  static shares(map, scores) {
+  static shares(map, values) {
     const v = new Map();
     const walk = (n, val) => {
       v.set(n.slug, val);
-      const tot = n.children.reduce((acc, c) => acc + Component.layoutWeight(c, scores), 0);
-      n.children.forEach((c) => walk(c, val * Component.layoutWeight(c, scores) / tot));
+      const tot = n.children.reduce((acc, c) => acc + Component.layoutWeight(c, values), 0);
+      n.children.forEach((c) => walk(c, val * Component.layoutWeight(c, values) / tot));
     };
     walk(map.root, 1);
     return v;
@@ -1957,7 +1922,7 @@ class Component extends DCLogic {
   // so pros and cons split their parent and the values of a node's children always add up to the node.
   // Both sides share one merged structure (the diff rows); the finest-level entries ("tips") meet in the middle by slug.
   // Where a node is broken down on one side but not the other, a synthetic "#self" tip carries the undivided value.
-  static sankeyLayout(rows, a, b, scoresA, scoresB) {
+  static sankeyLayout(rows, a, b, valuesA, valuesB) {
     const K = 520; // px for a whole map
     const G = 6; // gap between tips
     const STEP = 150; // column pitch
@@ -1967,8 +1932,8 @@ class Component extends DCLogic {
     const f = (n) => n.toFixed(1);
     const ia = Component.index(a.root);
     const ib = Component.index(b.root);
-    const vA = Component.shares(a, scoresA);
-    const vB = Component.shares(b, scoresB);
+    const vA = Component.shares(a, valuesA);
+    const vB = Component.shares(b, valuesB);
     const all = [];
     const roots = [];
     const stack = [];
@@ -2203,7 +2168,7 @@ class Component extends DCLogic {
     const faceted = conf !== 'any' || ev !== 'any';
     const selfMatch = (n) => {
       if (faceted) {
-        if (n.side !== 'pro' && n.side !== 'con') return false;
+        if (n.kind !== 'fact') return false;
         if (conf === 'unset' && n.confidence !== null) return false;
         if (conf !== 'unset' && conf !== 'any' && (n.confidence === null || n.confidence < Number(conf))) return false;
         if (ev === 'with' && n.refs.length === 0) return false;
@@ -2582,7 +2547,6 @@ class Component extends DCLogic {
     const noMap = !hasMap && s.src === '';
     const locked = s.srcErrors.length > 0;
     const editable = !locked;
-    const scores = Component.scoreAll(map.root);
     const path = Component.findPath(map.root, Component.safeFocus(s.map.root, s.focus));
     const focus = path[path.length - 1];
     const parent = path.length > 1 ? path[path.length - 2] : null;
@@ -2590,18 +2554,14 @@ class Component extends DCLogic {
     const panelNode = targetPath[targetPath.length - 1];
     const pathSlugs = new Set(path.map((n) => n.slug));
 
-    const sideOf = (n) => {
-      if (n.side === 'pro') return { fg: P.pro, tint: P.proTint, glyph: '+', label: 'Pro', solid: P.proFill[0] };
-      if (n.side === 'con') return { fg: P.con, tint: P.conTint, glyph: '−', label: 'Con', solid: P.conFill[0] };
-      if (n.side === 'premise') return { fg: P.prem, tint: P.premTint, glyph: '◇', label: 'Premise', solid: P.premFill[0] };
-      if (n.side === null) return { fg: P.thesis, tint: P.thesisTint, glyph: '◆', label: 'Thesis', solid: P.thesis };
-      throw new Error(`bug: unknown side "${n.side}"`);
-    };
-    const leanOf = (sc) => {
-      const tot = sc.support + sc.oppose;
-      if (tot === 0) return { has: false, none: true, forPct: 0, againstPct: 0, caption: '' };
-      const f = Math.round(100 * sc.support / tot);
-      return { has: true, none: false, forPct: f, againstPct: 100 - f, caption: `Holds at ${Math.round(sc.strength * 100)}% after weighing` };
+    const values = Component.allValues(s.map.root);
+    const sideOf = (n, vals = values) => {
+      if (n.kind === 'root') return { fg: P.thesis, tint: P.thesisTint, glyph: '◆', label: 'Thesis', solid: P.thesis };
+      const impact = vals.get(n.slug).impact;
+      const solid = Component.impactFill(impact);
+      if (n.kind === 'premise') return { fg: P.prem, tint: P.premTint, glyph: '◇', label: 'Premise', solid };
+      if (n.kind !== 'fact') throw new Error(`bug: unknown kind "${n.kind}"`);
+      return { fg: impact < 0 ? P.con : P.pro, tint: impact < 0 ? P.conTint : P.proTint, glyph: impact < 0 ? '−' : impact > 0 ? '+' : '0', label: 'Fact', solid };
     };
 
     const tabs = [['pie', 'Pie view'], ['map', 'Tree view'], ['source', 'Markdown source'], ['diff', 'Compare two maps']].map(([id, label]) => ({
@@ -2615,25 +2575,14 @@ class Component extends DCLogic {
       label: Component.truncate(n.text, 36), sep: k < arr.length - 1 ? '›' : '', go: () => this.setFocus(n.slug),
     }));
 
-    const rootPremises = map.root.children.filter((c) => c.side === 'premise');
-    const rootHasArgs = map.root.children.some((c) => c.side === 'pro' || c.side === 'con');
-    const premises = focus.children.filter((c) => c.side === 'premise');
-    const isProposition = premises.length > 0;
+    const rootHasFacts = map.root.children.some((c) => c.kind === 'fact');
+    const isProposition = focus.children.some((c) => c.kind === 'premise');
     const fst = sideOf(focus);
     const fc = {
       slug: focus.slug, text: focus.text, by: focus.by === null ? '' : focus.by, hasBy: focus.by !== null,
       kind: focus.kind === 'fact' ? 'Fact' : focus.kind === 'premise' ? '◇ Premise' : isProposition ? '◆ Proposition' : '◆ Thesis', glyphOnly: fst.glyph,
       fg: fst.fg, tint: fst.tint, border: fst.fg,
     };
-    const values = Component.allValues(s.map.root);
-    const best = premises.reduce((b, c) => (b === null || scores.get(c.slug).strength > scores.get(b.slug).strength ? c : b), null);
-    const lean = {
-      ...leanOf(scores.get(focus.slug)),
-      noneText: best !== null
-        ? `Leading premise: “${Component.truncate(best.text, 90)}”, holding at ${Math.round(scores.get(best.slug).strength * 100)}%.`
-        : 'No weighted arguments under this claim yet.',
-    };
-
     // filter
     const flt = Component.makeFilter(s.q, s.fConf, s.fEv);
     const filterActive = flt.active;
@@ -2645,18 +2594,22 @@ class Component extends DCLogic {
       const st = sideOf(n);
       const isFocus = n.slug === focus.slug;
       const onPath = pathSlugs.has(n.slug);
-      /* The Evidence and Good faith overlays mark blocks as they do cards: dotted edge, diagonal lines. */
-      const isArgN = n.side === 'pro' || n.side === 'con';
-      const bg = isFocus ? st.fg : onPath ? st.solid : st.tint;
+      const v = values.get(n.slug);
+      const isFactN = n.kind === 'fact';
+      const notes = [
+        ...(disp.confidence && isFactN && n.confidence !== null ? [`confidence ${n.confidence} of 5`] : []),
+        ...(disp.evidence && isFactN ? [`${n.refs.length} evidence`] : []),
+        ...(disp.goodFaith && isFactN && n.basis === null ? ['no basis'] : []),
+      ];
       return {
-        bg: disp.goodFaith && isArgN && n.basis === null ? `repeating-linear-gradient(135deg, color-mix(in srgb, var(--ink) 22%, transparent) 0 2px, transparent 2px 7px), ${bg}` : bg,
-        border: disp.evidence && isArgN && n.refs.length === 0 ? '2px dotted var(--ink2)' : '2px solid var(--card)',
-        shadow: isFocus ? `0 0 0 2px ${P.ink}` : `inset 0 0 0 1.5px ${st.solid}`,
-        aria: `${st.label}${n.weight === null ? '' : ', weight ' + n.weight}: ${n.text}`,
+        bg: n.kind === 'root' ? st.tint : st.solid,
+        border: '2px solid var(--card)',
+        shadow: isFocus ? `0 0 0 2px ${P.ink}` : onPath ? `inset 0 0 0 2px ${P.ink}` : 'none',
+        aria: `${st.label}${v.impact === null ? '' : `, ${Math.round(v.share * 100)}% share, impact ${Component.signed(v.impact)}`}: ${n.text}${notes.length ? ` (${notes.join(', ')})` : ''}`,
         op: filterActive && !matchSet.has(n.slug) ? 0.22 : 1,
         pick: () => this.setFocus(n.slug),
       };
-    }, scores);
+    }, values);
 
     // the chart of contributing factors
     const taken = Component.allSlugs(map.root);
@@ -2766,9 +2719,9 @@ class Component extends DCLogic {
     const pieRoot = isPinned ? pinPath[pinPath.length - 1] : focus;
     const pieParent = isPinned ? (pinPath.length > 1 ? pinPath[pinPath.length - 2] : null) : parent;
     const pieUp = isPinned ? (focus.slug === pieRoot.slug ? null : pieRoot) : pieParent;
-    const pieLean = leanOf(scores.get(pieRoot.slug));
-    const piePrem = pieRoot.children.filter((c) => c.side === 'premise').length;
-    const parts = Component.partition(pieRoot, Infinity, scores).filter((p) => p.depth >= 1);
+    const pieScore = values.get(pieRoot.slug).score;
+    const piePrem = pieRoot.children.filter((c) => c.kind === 'premise').length;
+    const parts = Component.partition(pieRoot, Infinity, values).filter((p) => p.depth >= 1);
     const nRings = Math.max(1, ...parts.map((p) => p.depth));
     const ringW = (250 - 72) / nRings;
     const RINGS = Array.from({ length: nRings }, (_, k) => [72 + k * ringW + (k === 0 ? 0 : 1.5), 72 + (k + 1) * ringW - (k === nRings - 1 ? 0 : 1.5)]);
@@ -2782,7 +2735,7 @@ class Component extends DCLogic {
         const isFoc = n.slug === focus.slug;
         return {
           d: Component.arc(260, 260, r0, r1, p.x0 * 2 * Math.PI, p.x1 * 2 * Math.PI),
-          fill: (n.side === 'pro' ? P.proFill : n.side === 'con' ? P.conFill : P.premFill)[Math.min(p.depth, 3) - 1],
+          fill: Component.impactFill(values.get(n.slug).impact),
           stroke: hov || isFoc ? P.ink : 'var(--card)', sw: isFoc ? 3.5 : hov ? 2.5 : 1.5,
           op: filterActive && !matchSet.has(n.slug) ? 0.2 : 1,
           pick: () => this.setFocus(n.slug),
@@ -2795,36 +2748,31 @@ class Component extends DCLogic {
         const rm = (RINGS[0][0] + RINGS[0][1]) / 2;
         return {
           x: ((260 + rm * Math.sin(am)) / 520 * 100).toFixed(2), y: ((260 - rm * Math.cos(am)) / 520 * 100).toFixed(2),
-          text: p.node.side === 'premise' ? `${Math.round(scores.get(p.node.slug).strength * 100)}%` : `${sideOf(p.node).glyph}${p.node.weight}`,
-          fg: p.node.side === 'pro' ? 'var(--pro-deep)' : p.node.side === 'premise' ? 'var(--prem-deep)' : '#FFFFFF',
+          text: Component.signed(values.get(p.node.slug).impact),
+          fg: Component.impactInk(values.get(p.node.slug).impact),
         };
       }),
       centerBg: sideOf(pieRoot).fg, centerDisabled: pieUp === null, centerCursor: pieUp === null ? 'default' : 'pointer',
       centerClick: () => { if (!pieUp) throw new Error('bug: centre clicked with nowhere to go'); this.setFocus(pieUp.slug); },
       centerAria: pieUp === null ? `Centre: ${Component.truncate(pieRoot.text, 60)}` : isPinned ? 'Select the pinned centre claim' : 'Go up to the parent claim',
-      centerBig: piePrem > 0 ? String(piePrem) : pieLean.has ? `${pieLean.forPct}%` : '—',
-      centerSmall: (piePrem > 0 ? (piePrem === 1 ? 'premise' : 'premises') : pieLean.has ? 'for' : 'no arguments') + (pieUp === null ? '' : isPinned ? ' · select' : ' · ↑ up'),
+      centerBig: piePrem > 0 ? String(piePrem) : pieRoot.children.length ? Component.signed(pieScore) : '—',
+      centerSmall: (piePrem > 0 ? (piePrem === 1 ? 'premise' : 'premises') : pieRoot.children.length ? 'score' : 'no factors') + (pieUp === null ? '' : isPinned ? ' · select' : ' · ↑ up'),
       pinPressed: String(isPinned), pinFill: isPinned ? 'currentColor' : 'none',
       pinBg: isPinned ? P.ink : 'var(--card)', pinFg: isPinned ? 'var(--on-ink)' : P.ink, pinBorder: isPinned ? P.ink : P.line,
       pinLabel: isPinned ? 'Unpin the pie so it follows your selection' : 'Pin the pie at this level; clicking a slice will select it without re-centring',
       togglePin: () => this.setState({ pinned: isPinned ? null : focus.slug }),
       hoverText: hoverNode
-        ? `${sideOf(hoverNode).glyph} ${hoverNode.text} — ${hoverNode.weight === null ? '' : `weight ${hoverNode.weight}, `}holds ${Math.round(scores.get(hoverNode.slug).strength * 100)}%`
-        : 'Slice angle is weight share among siblings. Hover to read a slice; click to focus it.',
+        ? `${sideOf(hoverNode).glyph} ${hoverNode.text}${hoverNode.kind === 'root' ? '' : ` — ${Math.round(values.get(hoverNode.slug).share * 100)}% share, impact ${Component.signed(values.get(hoverNode.slug).impact)}`}`
+        : 'Slice angle is importance share among siblings, and colour is impact. Hover to read a slice; click to focus it.',
     };
-    const legendAll = Component.orderedKids(focus);
-    const legendKids = filterActive ? legendAll.filter((c) => matchSet.has(c.slug)) : legendAll;
-    const wTotal = legendAll.reduce((a, c) => a + Component.layoutWeight(c, scores), 0);
-    pie.legend = legendKids.map((c) => {
-      const st = sideOf(c);
-      const sharePct = Math.round(100 * Component.layoutWeight(c, scores) / wTotal);
+    const legendAll = Component.factRows(focus, values);
+    const legendKids = filterActive ? legendAll.filter((r) => matchSet.has(r.node.slug)) : legendAll;
+    pie.legend = legendKids.map((r) => {
+      const st = sideOf(r.node);
       return {
-        glyph: st.glyph, fg: st.fg, swatch: st.solid, text: c.text,
-        hasSlider: c.side !== 'premise', weight: c.weight === null ? 0 : c.weight,
-        share: c.side === 'premise' ? `holds ${Math.round(scores.get(c.slug).strength * 100)}% · ${sharePct}% of ring` : `${sharePct}% of ring`,
-        sliderLabel: `Weight of “${Component.truncate(c.text, 50)}”`,
-        open: () => this.setFocus(c.slug),
-        change: (e) => this.setWeight(c.slug, Number(e.target.value)),
+        glyph: st.glyph, fg: st.fg, swatch: st.solid, text: r.node.text,
+        share: `${Math.round(r.share * 100)}% of ring · impact ${Component.signed(r.impact)}`,
+        open: () => this.setFocus(r.node.slug),
       };
     });
     pie.emptyLegend = legendKids.length === 0;
@@ -2832,7 +2780,7 @@ class Component extends DCLogic {
     // diff
     const diff = {
       titleA: map.title, titleB: mapB ? mapB.title : s.srcB === '' ? 'not chosen yet' : '(doesn’t parse)',
-      copyIntoB: () => this.setState({ srcB: Component.serialize(map), mapB: map, errorsB: [] }),
+      copyIntoB: () => this.setState({ srcB: Component.serialize(s.map), mapB: s.map, errorsB: [] }),
       showSrcB: s.showSrcB, showSrcBPressed: String(s.showSrcB),
       srcBToggleLabel: s.showSrcB ? 'Hide B source' : 'Edit B source',
       toggleSrcB: () => this.setState({ showSrcB: !s.showSrcB }),
@@ -2854,16 +2802,16 @@ class Component extends DCLogic {
     };
     if (s.view === 'diff' && mapB !== null) {
       const { rows, ia, ib } = Component.diff(map, mapB, thr);
-      const scoresB = Component.scoreAll(mapB.root);
-      diff.leans = [['A', scores.get(map.root.slug)], ['B', scoresB.get(mapB.root.slug)]].map(([label, sc]) => {
-        const l = leanOf(sc);
-        return { label, forPct: l.forPct, againstPct: l.againstPct };
+      const valuesB = Component.allValues(s.mapB.root);
+      diff.leans = [['A', values, map.root.slug], ['B', valuesB, mapB.root.slug]].map(([label, vals, slug]) => {
+        const sc = vals.get(slug).score;
+        return { label, signed: sc === null ? '—' : Component.signed(sc), left: ((sc ?? 0) + 1) * 50 };
       });
       const preds = {
-        all: () => true, weight: (r) => r.weightChanged, onlyA: (r) => r.status === 'onlyA', onlyB: (r) => r.status === 'onlyB',
+        all: () => true, changed: (r) => r.changed, onlyA: (r) => r.status === 'onlyA', onlyB: (r) => r.status === 'onlyB',
         flipped: (r) => r.flipped, moved: (r) => r.moved, text: (r) => r.textChanged,
       };
-      const chipDefs = [['all', 'All'], ['weight', `Weight Δ ≥ ${thr}`], ['onlyA', 'Only in A'], ['onlyB', 'Only in B'], ['flipped', 'Side flipped'], ['moved', 'Moved'], ['text', 'Text changed']];
+      const chipDefs = [['all', 'All'], ['changed', 'Changed'], ['onlyA', 'Only in A'], ['onlyB', 'Only in B'], ['flipped', 'Flipped'], ['moved', 'Moved'], ['text', 'Text changed']];
       diff.chips = chipDefs.map(([id, label]) => {
         const on = s.diffFilter === id;
         return {
@@ -2884,7 +2832,7 @@ class Component extends DCLogic {
       // ---- sankey
       if (s.diffTab === 'sankey') {
         const rowBy = new Map(rows.map((r, k) => [r.slug, { r, k }]));
-        const L = Component.sankeyLayout(rows, map, mapB, scores, scoresB);
+        const L = Component.sankeyLayout(rows, s.map, s.mapB, values, valuesB);
         // hover wins over the clicked selection for highlighting
         const hov = s.diffHover !== null ? s.diffHover : s.diffSel;
         const hoverSet = hov !== null;
@@ -2903,6 +2851,7 @@ class Component extends DCLogic {
           return idx.get(slug).node;
         };
         const pct = (v, of) => (100 * v / of).toFixed(3);
+        const valsOn = (side) => (side === 'A' ? values : valuesB);
         const ORPHAN = 'var(--orphan)';
         const links = L.links.map((l) => {
           const on = lit(l.slug);
@@ -2910,7 +2859,7 @@ class Component extends DCLogic {
           let base;
           if (l.kind === 'dead' || (l.kind === 'tree' && l.row.status !== 'both')) { fill = ORPHAN; base = 0.55; }
           else if (l.kind === 'match' && (l.row.flipped || l.row.moved)) { fill = 'var(--moved)'; base = 0.45; }
-          else { fill = sideOf(nodeOn(l.side === null ? 'A' : l.side, l.slug)).solid; base = l.kind === 'match' ? 0.45 : 0.3; }
+          else { const lside = l.side === null ? 'A' : l.side; fill = sideOf(nodeOn(lside, l.slug), valsOn(lside)).solid; base = l.kind === 'match' ? 0.45 : 0.3; }
           return { d: l.d, fill, op: on ? (hoverSet ? Math.min(base + 0.3, 0.85) : base) : 0.08, enter: enter(l.slug), leave, pick: pick(l.slug) };
         });
         const bars = L.bars.map((b) => {
@@ -2918,7 +2867,7 @@ class Component extends DCLogic {
           const orphan = b.row.status !== 'both';
           return {
             x: b.x.toFixed(1), y: b.y.toFixed(1), w: b.w, h: Math.max(b.h, 1).toFixed(1),
-            fill: orphan ? ORPHAN : sideOf(n).solid, stroke: orphan ? 'var(--orphan-line)' : 'none', dash: orphan ? '3 2' : 'none',
+            fill: orphan ? ORPHAN : sideOf(n, valsOn(b.side)).solid, stroke: orphan ? 'var(--orphan-line)' : 'none', dash: orphan ? '3 2' : 'none',
             op: lit(b.slug) ? 1 : 0.25, enter: enter(b.slug), leave, pick: pick(b.slug),
           };
         });
@@ -2931,8 +2880,8 @@ class Component extends DCLogic {
           for (let j = selK - 1, d = rows[selK].depth; j >= 0 && d > 0; j--) {
             if (rows[j].depth < d) { chain.unshift(rows[j]); d = rows[j].depth; }
           }
-          const shA = Component.shares(map, scores);
-          const shB = Component.shares(mapB, scoresB);
+          const shA = Component.shares(s.map, values);
+          const shB = Component.shares(s.mapB, valuesB);
           const pctOf = (m, slug) => (m.has(slug) ? m.get(slug) * 100 : 0);
           const fmt = (v) => (v === 0 ? '—' : v >= 10 ? `${v.toFixed(0)}%` : `${v.toFixed(1)}%`);
           const a = pctOf(shA, s.diffSel);
@@ -2941,7 +2890,7 @@ class Component extends DCLogic {
           const card = (side) => {
             const idx = side === 'A' ? ia : ib;
             const other = side === 'A' ? ib : ia;
-            const sc = side === 'A' ? scores : scoresB;
+            const vals = valsOn(side);
             const sh = side === 'A' ? shA : shB;
             const head = {
               sideLabel: side === 'A' ? `A · ${map.title}` : `B · ${mapB.title}`,
@@ -2956,13 +2905,14 @@ class Component extends DCLogic {
             }
             const e = idx.get(s.diffSel);
             const n = e.node;
-            const st = sideOf(n);
-            const kids = Component.orderedKids(n).map((c) => {
-              const cs = sideOf(c);
+            const st = sideOf(n, vals);
+            const nv = vals.get(n.slug);
+            const kids = Component.factRows(n, vals).map((kr) => {
+              const cs = sideOf(kr.node, vals);
               return {
-                glyph: cs.glyph, fg: cs.fg, text: c.text,
-                w: c.weight === null ? `${Math.round(sc.get(c.slug).strength * 100)}%` : String(c.weight),
-                orphan: !other.has(c.slug), note: `only in ${side}`,
+                glyph: cs.glyph, fg: cs.fg, text: kr.node.text,
+                w: `${Math.round(kr.share * 100)}% · ${Component.signed(kr.impact)}`,
+                orphan: !other.has(kr.node.slug), note: `only in ${side}`,
               };
             });
             return {
@@ -2970,8 +2920,8 @@ class Component extends DCLogic {
               hasBy: n.by !== null, by: n.by === null ? '' : n.by,
               border: `1px solid ${P.line}`, bg: 'var(--card)', text: n.text,
               stats: [
-                { label: 'Weight', value: n.weight === null ? '—' : String(n.weight) },
-                { label: 'Holds', value: `${Math.round(sc.get(n.slug).strength * 100)}%` },
+                { label: 'Share', value: nv.share === null ? '—' : `${Math.round(nv.share * 100)}%` },
+                { label: 'Impact', value: nv.impact === null ? '—' : Component.signed(nv.impact) },
                 { label: 'Share of map', value: fmt(sh.get(n.slug) * 100) },
                 { label: 'Confidence', value: n.confidence === null ? '—' : `${n.confidence}/5` },
               ],
@@ -2999,7 +2949,7 @@ class Component extends DCLogic {
               go: () => this.setState({ diffSel: c.slug }),
             })),
             shareA: fmt(a), shareB: fmt(b),
-            ratioCaption: `share of each whole map` + (r.wA !== null || r.wB !== null ? ` · weight ${r.wA === null ? '—' : r.wA} : ${r.wB === null ? '—' : r.wB}` : ''),
+            ratioCaption: `share of each whole map` + (r.impactA !== null || r.impactB !== null ? ` · impact ${r.impactA === null ? '—' : Component.signed(r.impactA)} : ${r.impactB === null ? '—' : Component.signed(r.impactB)}` : ''),
             barA: a + b === 0 ? 50 : (100 * a / (a + b)).toFixed(1), barB: a + b === 0 ? 50 : (100 * b / (a + b)).toFixed(1),
             cards: [card('A'), card('B')],
             clear: () => this.setState({ diffSel: null }),
@@ -3008,79 +2958,84 @@ class Component extends DCLogic {
         const labels = L.bars.filter((b) => b.h >= 7).map((b) => {
           const n = nodeOn(b.side, b.slug);
           const r = b.row;
-          const w = b.side === 'A' ? r.wA : r.wB;
-          const dl = b.side === 'B' && r.delta !== null && r.delta !== 0 ? ` (${r.delta > 0 ? '+' : '−'}${Math.abs(r.delta)})` : '';
+          const w = b.side === 'A' ? r.shareA : r.shareB;
+          const dl = b.side === 'B' && r.shareDelta !== null && Math.round(r.shareDelta) !== 0 ? ` (${r.shareDelta > 0 ? '+' : '−'}${Math.abs(Math.round(r.shareDelta))})` : '';
           const tag = r.status !== 'both' ? ' · orphan' : '';
           const x = b.side === 'A' ? b.x + b.w + 4 : b.x - 4;
           return {
-            text: `${sideOf(n).glyph} ${Component.truncate(n.text, 24)}${w === null ? '' : ` ${w}${dl}`}${tag}`,
+            text: `${sideOf(n, valsOn(b.side)).glyph} ${Component.truncate(n.text, 24)}${w === null ? '' : ` ${Math.round(w)}%${dl}`}${tag}`,
             left: pct(x, L.W), top: pct(b.y + b.h / 2, L.H),
             transform: b.side === 'A' ? 'translate(0, -50%)' : 'translate(-100%, -50%)',
             fg: r.status !== 'both' ? 'var(--warn-fg)' : P.ink, op: lit(b.slug) ? 1 : 0.3,
           };
         });
         const hr = hoverSet && rowBy.has(hov) ? rowBy.get(hov).r : null;
+        const sideText = (share, impact, absent) => (absent ? 'missing' : share === null ? '—' : `${Math.round(share)}%, ${Component.signed(impact)}`);
         sk = {
           viewBox: `0 0 ${L.W.toFixed(0)} ${L.H.toFixed(0)}`, ratio: `${L.W.toFixed(0)} / ${L.H.toFixed(0)}`,
           links, bars, labels,
           hoverText: hr === null
-            ? 'Hover a bar or band to trace one argument across both maps. Filters above dim everything that doesn’t match.'
-            : `${hr.text} · A: ${hr.wA === null ? (hr.status === 'onlyB' ? 'missing' : '—') : hr.wA} → B: ${hr.wB === null ? (hr.status === 'onlyA' ? 'missing' : '—') : hr.wB}`
-              + (hr.flipped ? ' · side flipped' : '') + (hr.moved ? ' · moved' : '') + (hr.textChanged ? ' · text changed' : ''),
+            ? 'Hover a bar or band to trace one fact across both maps. Filters above dim everything that doesn’t match.'
+            : `${hr.text} · A: ${sideText(hr.shareA, hr.impactA, hr.status === 'onlyB')} → B: ${sideText(hr.shareB, hr.impactB, hr.status === 'onlyA')}`
+              + (hr.flipped ? ' · flipped' : '') + (hr.moved ? ' · moved' : '') + (hr.textChanged ? ' · text changed' : ''),
         };
       }
 
-      const changed = new Set(rows.filter((r) => r.weightChanged || r.flipped || r.moved).map((r) => r.slug));
+      const changed = new Set(rows.filter((r) => r.changed || r.flipped || r.moved).map((r) => r.slug));
       const iceStyle = (other) => (n) => ({
         bg: !other.has(n.slug) ? P.orphan : changed.has(n.slug) ? 'repeating-linear-gradient(135deg, var(--moved) 0 3px, var(--rule-soft) 3px 6px)' : 'var(--rule-soft)',
-        aria: `${n.side === null ? 'Root' : n.side === 'premise' ? 'Premise' : 'weight ' + n.weight}: ${n.text}${other.has(n.slug) ? '' : ' (orphan)'}`,
+        aria: `${n.kind === 'root' ? 'Root' : n.kind === 'premise' ? 'Premise' : 'Fact'}: ${n.text}${other.has(n.slug) ? '' : ' (orphan)'}`,
       });
-      const iceA = Component.icicle(map.root, 5, iceStyle(ib), scores);
-      const iceB = Component.icicle(mapB.root, 5, iceStyle(ia), scoresB);
+      const iceA = Component.icicle(map.root, 5, iceStyle(ib), values);
+      const iceB = Component.icicle(mapB.root, 5, iceStyle(ia), valuesB);
       const nOnlyA = rows.filter((r) => r.status === 'onlyA').length;
       const nOnlyB = rows.filter((r) => r.status === 'onlyB').length;
       diff.ices = [
-        { label: `A · ${map.title}`, aria: `Structure of map A; ${nOnlyA} argument(s) missing from B`, ...iceA },
-        { label: `B · ${mapB.title}`, aria: `Structure of map B; ${nOnlyB} argument(s) missing from A`, ...iceB },
+        { label: `A · ${map.title}`, aria: `Structure of map A; ${nOnlyA} fact(s) missing from B`, ...iceA },
+        { label: `B · ${mapB.title}`, aria: `Structure of map B; ${nOnlyB} fact(s) missing from A`, ...iceB },
       ];
-      const glyph = (side) => (side === 'pro' ? '+' : side === 'con' ? '−' : side === 'premise' ? '◇' : '◆');
-      const glyphFg = (side) => (side === 'pro' ? P.pro : side === 'con' ? P.con : side === 'premise' ? P.prem : P.thesis);
+      const glyph = (kind, impact) => (kind === 'premise' ? '◇' : kind === 'root' ? '◆' : impact < 0 ? '−' : impact > 0 ? '+' : '0');
+      const glyphFg = (kind, impact) => (kind === 'premise' ? P.prem : kind === 'root' ? P.thesis : impact < 0 ? P.con : P.pro);
       diff.rows = rows.map((r, k) => ({ r, k })).filter(({ k }) => visible[k]).map(({ r, k }) => {
         const badges = [];
         if (r.status === 'onlyA') badges.push({ label: r.branchRoot ? 'Only in A' : 'Only in A · in missing branch', bg: 'var(--accent-tint)', fg: 'var(--accent)' });
         if (r.status === 'onlyB') badges.push({ label: r.branchRoot ? 'Only in B' : 'Only in B · in missing branch', bg: 'var(--side-b-tint)', fg: 'var(--side-b)' });
-        if (r.weightChanged) badges.push({ label: 'Weight', bg: 'var(--sunk)', fg: P.ink });
-        if (r.flipped) badges.push({ label: 'Side flipped', bg: 'var(--sunk)', fg: P.ink });
+        if (r.changed) badges.push({ label: 'Changed', bg: 'var(--sunk)', fg: P.ink });
+        if (r.flipped) badges.push({ label: 'Flipped', bg: 'var(--sunk)', fg: P.ink });
         if (r.moved) badges.push({ label: 'Moved', bg: 'var(--sunk)', fg: P.ink });
         if (r.textChanged) badges.push({ label: 'Text', bg: 'var(--sunk)', fg: P.ink });
         const notes = [];
+        if (r.impactDelta !== null && r.impactDelta !== 0) notes.push({ text: `Impact ${Component.signed(r.impactA)} in A, ${Component.signed(r.impactB)} in B.` });
         if (r.moved) notes.push({ text: `In B it sits under “${Component.truncate(r.parentBText, 70)}”.` });
         if (r.textChanged) notes.push({ text: `B says: “${r.textB}”` });
         const orphan = r.status !== 'both';
-        const hasA = r.wA !== null;
-        const hasB = r.wB !== null;
-        const hasBar = hasA && hasB && r.wA !== r.wB;
-        const deltaText = r.delta !== null ? (r.delta > 0 ? `+${r.delta}` : r.delta < 0 ? `−${-r.delta}` : '0')
+        const hasA = r.shareA !== null;
+        const hasB = r.shareB !== null;
+        const wA = hasA ? Math.round(r.shareA) : 0;
+        const wB = hasB ? Math.round(r.shareB) : 0;
+        const hasBar = hasA && hasB && wA !== wB;
+        const roundedDelta = r.shareDelta === null ? null : Math.round(r.shareDelta);
+        const deltaText = roundedDelta !== null ? (roundedDelta > 0 ? `+${roundedDelta}` : roundedDelta < 0 ? `−${-roundedDelta}` : '0')
           : r.status === 'onlyA' ? 'A only' : r.status === 'onlyB' ? 'B only' : '—';
         return {
           text: r.text, indent: r.depth * 20,
-          glyph: r.flipped ? `${glyph(r.sideA)}→${glyph(r.sideB)}` : glyph(r.sideA !== null || r.status === 'onlyA' ? r.sideA : r.sideB),
-          glyphFg: glyphFg(r.status === 'onlyB' ? r.sideB : r.sideA),
+          glyph: r.flipped ? `${glyph(r.kindA, r.impactA)}→${glyph(r.kindB, r.impactB)}` : r.status === 'onlyB' ? glyph(r.kindB, r.impactB) : glyph(r.kindA, r.impactA),
+          glyphFg: r.status === 'onlyB' ? glyphFg(r.kindB, r.impactB) : glyphFg(r.kindA, r.impactA),
           canOpen: r.status !== 'onlyB', cannotOpen: r.status === 'onlyB',
           open: () => this.setState({ view: 'map', focus: r.slug, adding: null, confirmDelete: false }),
           badges, hasBadges: badges.length > 0, notes,
           bg: orphan ? 'var(--warn-bg)' : 'var(--card)',
           border: orphan ? '1.5px dashed var(--warn-dash)' : (match[k] && s.diffFilter !== 'all' ? `1px solid ${P.muted}` : '1px solid transparent'),
           opacity: match[k] ? 1 : 0.45,
-          hasA, hasB, wA: hasA ? r.wA : 0, wB: hasB ? r.wB : 0, hasBar,
-          barLeft: hasBar ? Math.min(r.wA, r.wB) : 0, barWidth: hasBar ? Math.abs(r.wA - r.wB) : 0,
-          weightAria: `Weight in A: ${hasA ? r.wA : 'none'}; in B: ${hasB ? r.wB : 'none'}`,
-          deltaText, deltaFg: r.weightChanged || orphan ? P.ink : P.muted, deltaWeight: r.weightChanged || orphan ? 700 : 400,
+          hasA, hasB, wA, wB, hasBar,
+          barLeft: hasBar ? Math.min(wA, wB) : 0, barWidth: hasBar ? Math.abs(wA - wB) : 0,
+          weightAria: `Share in A: ${hasA ? `${wA}%` : 'none'}; in B: ${hasB ? `${wB}%` : 'none'}`,
+          deltaText, deltaFg: r.changed || orphan ? P.ink : P.muted, deltaWeight: r.changed || orphan ? 700 : 400,
         };
       });
     }
 
-    const premiseDisabled = locked || rootHasArgs || !hasMap;
+    const premiseDisabled = locked || rootHasFacts || !hasMap;
     const unsaved = s.src !== s.savedSrc;
     const target = this.openTarget();
     const tb = {
@@ -3088,7 +3043,7 @@ class Component extends DCLogic {
       addPremise: () => this.setState({ view: 'map', focus: map.root.slug, adding: 'premise', draftText: '', draftSlugCustom: null, confirmDelete: false, hover: null, selectedFact: null, tradePool: [], frozenOrder: null }),
       premiseDisabled, premiseOpacity: premiseDisabled ? 0.45 : 1,
       premiseTitle: locked ? 'Fix the markdown errors first'
-        : rootHasArgs ? 'This root already has pros and cons. Premises go under a root that has none (start a new map, or remove them).'
+        : rootHasFacts ? 'This root already has contributing factors. Premises go under a root that has none (start a new map, or remove them).'
         : 'Add a premise under the root',
       download: () => this.download(), dlDisabled: noMap, dlOpacity: noMap ? 0.45 : 1, dlTitle: `Download ${s.fileName}` + (typeof window.showSaveFilePicker === 'function' ? ' (choose where)' : ''),
       file: s.fileName + (unsaved ? ' *' : ''), fileTitle: s.fileUrl ?? (this.handle !== null ? 'File on this computer' : 'Not saved to a file yet'),
@@ -3252,7 +3207,7 @@ class Component extends DCLogic {
     let totalArgs = 0;
     let shownArgs = 0;
     const countArgs = (n) => {
-      if (n.side === 'pro' || n.side === 'con') { totalArgs += 1; if (flt.selfMatch(n)) shownArgs += 1; }
+      if (n.kind === 'fact') { totalArgs += 1; if (flt.selfMatch(n)) shownArgs += 1; }
       n.children.forEach(countArgs);
     };
     countArgs(map.root);
@@ -3327,7 +3282,7 @@ class Component extends DCLogic {
       ice, hasParent: parent !== null, crumbs,
       parentCard: parent === null ? { text: '', glyph: '', fg: P.ink } : { text: parent.text, glyph: sideOf(parent).glyph, fg: sideOf(parent).fg },
       goUp: () => { if (!parent) throw new Error('bug: up pressed on the thesis'); this.setFocus(parent.slug); },
-      fc, pn, lean, score, chart, add, pie, diff,
+      fc, pn, score, chart, add, pie, diff,
       isMd: s.sourceTab === 'md', isJson: s.sourceTab === 'json',
       srcTabs: [['md', 'Markdown'], ['json', 'JSON']].map(([id, label]) => ({
         label, pressed: String(s.sourceTab === id),
