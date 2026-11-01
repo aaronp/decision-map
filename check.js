@@ -555,11 +555,11 @@ test('locked maps still select but can\'t edit', () => {
   assert.equal(v.add.canOpen, false);
 });
 
-test('a new map\'s root text can\'t end in a slug block', () => {
+test('a new map\'s title can\'t end in a slug block', () => {
   const c = boot(NESTED);
-  c.renderVals().nm.onText({ target: { value: 'Fine' } });
-  c.renderVals().nm.onText({ target: { value: 'Bad {slug: x}' } });
-  assert.equal(c.state.newText, 'Fine');
+  c.renderVals().nm.onTitle({ target: { value: 'Fine' } });
+  c.renderVals().nm.onTitle({ target: { value: 'Bad {slug: x}' } });
+  assert.equal(c.state.newTitle, 'Fine');
 });
 
 // ---------------------------------------------------------------- overview, sunburst and diff
@@ -694,21 +694,68 @@ test('the format help describes the current format', () => {
   const tpl = template;
   assert.ok(tpl.includes('importance: 60') && tpl.includes('kind: premise'));
   assert.ok(!tpl.includes('[+]') && !tpl.includes('[*]'));
-  assert.ok(tpl.includes('Contributing factors (a thesis)'));
+  assert.ok(tpl.includes('Compare options instead of one thesis'));
 });
 
-test('new maps of each kind can be created and reopened', () => {
-  for (const kind of ['args', 'premises']) {
-    const c = boot(MAP3);
-    c.setState({ newKind: kind, newTitle: 'New', newText: 'A claim', newOpen: true });
-    c.renderVals().nm.create();
-    assert.equal(c.state.map.root.kind, 'root');
-    c.renderVals().add.onDraftText({ target: { value: 'First one' } });
-    if (kind === 'args') { c.renderVals().add.open(); c.renderVals().add.onDraftText({ target: { value: 'First one' } }); }
-    c.renderVals().add.save();
-    assert.equal(c.state.map.root.children[0].kind, kind === 'args' ? 'fact' : 'premise');
-    reloaded(c);
-  }
+test('a new map takes its slug from the title, with an optional description', () => {
+  const c = boot();
+  c.setState({ newTitle: 'Where to?', newDesc: '', newOptions: [] });
+  c.createMap();
+  assert.equal(c.state.map.root.slug, 'where-to');
+  assert.equal(c.state.map.root.text, 'Where to?');
+  assert.equal(c.state.map.title, 'Where to?');
+  assert.equal(c.state.map.root.details, null);
+  assert.equal(Component.parse(c.state.src).errors.length, 0);
+  reloaded(c);
+});
+
+test('a description becomes the root details', () => {
+  const c = boot();
+  c.setState({ newTitle: 'T1', newDesc: 'Why it matters', newOptions: [] });
+  c.createMap();
+  assert.equal(c.state.map.root.details, 'Why it matters');
+});
+
+test('options become premises with unique slugs, and blanks are ignored', () => {
+  const c = boot();
+  c.setState({ newTitle: 'Lisbon', newDesc: '', newOptions: ['Lisbon', 'lisbon', '  ', 'Berlin'] });
+  c.createMap();
+  const kids = c.state.map.root.children;
+  assert.deepEqual(kids.map((k) => k.kind), ['premise', 'premise', 'premise']);
+  const slugs = [c.state.map.root.slug, ...kids.map((k) => k.slug)];
+  assert.equal(new Set(slugs).size, 4);
+  assert.equal(Component.parse(c.state.src).errors.length, 0);
+  reloaded(c);
+});
+
+test('Create is disabled until the title has a letter or digit', () => {
+  const c = boot();
+  c.setState({ newOpen: true, newTitle: '?!' });
+  assert.equal(c.renderVals().nm.createDisabled, true);
+  c.setState({ newTitle: 'a' });
+  assert.equal(c.renderVals().nm.createDisabled, false);
+});
+
+test('the card can add and remove options', () => {
+  const c = boot();
+  c.renderVals().nm.startOptions();
+  assert.equal(c.renderVals().nm.options.length, 2);
+  c.renderVals().nm.addOption();
+  c.renderVals().nm.options[1].onChange({ target: { value: 'Mid' } });
+  c.renderVals().nm.options[0].remove();
+  assert.deepEqual(c.state.newOptions, ['Mid', '']);
+});
+
+test('with no map open the new-map card shows without Cancel', () => {
+  const c = boot('');
+  assert.equal(c.renderVals().hasMap, false);
+  assert.equal(c.renderVals().nm.open, true);
+  assert.equal(c.renderVals().nm.canCancel, false);
+  const d = boot(MAP3);
+  assert.equal(d.renderVals().nm.open, false);
+  d.setState({ newOpen: true });
+  assert.equal(d.renderVals().nm.canCancel, true);
+  assert.equal(d.renderVals().pageDisplay, 'none');
 });
 
 test('an edit turns an old-format source into the new format', () => {

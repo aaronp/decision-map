@@ -1,0 +1,762 @@
+<title>Decision Map Focus View</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F4F0;--card:#FFF;--ink:#1B1D22;--ink2:#4A4F58;--ink3:#7A7F88;--rule:#DEDBD2;--rule-soft:#ECE9E1;--control:#C9C5BA;--on-ink:#FFF;--sunk:color-mix(in srgb,var(--ink) 4%,var(--card));--accent:#2B5FA8;--pro:#17704F;--pro-fill:#3FA77E;--con:#B42318;--con-fill:#B42318;--prem:#4F3F9E}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 'IBM Plex Sans',system-ui,sans-serif;display:flex;flex-direction:column}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;background:var(--card);border-bottom:1px solid var(--rule);padding:8px 20px;min-height:60px}
+.brand{font-weight:600;font-size:15px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.views{display:flex;gap:2px;margin:0 auto}
+.views button{width:42px;height:42px;border:0;border-bottom:2.5px solid transparent;background:none;color:var(--ink3);display:grid;place-items:center}
+.views button[aria-pressed=true]{color:var(--ink);border-color:var(--ink)}
+.views button[disabled]{cursor:not-allowed}
+.filter{width:190px;height:36px;border:1px solid var(--control);border-radius:8px;padding:0 10px;background:var(--card);font-size:14px}
+.seg{display:flex;background:var(--sunk);border-radius:8px;padding:2px}
+.seg button{width:36px;height:32px;border:0;border-radius:6px;background:none;color:var(--ink2);display:grid;place-items:center}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--on-ink)}
+.menu{position:relative}
+.menu summary{list-style:none;cursor:pointer;width:36px;height:36px;border-radius:8px;display:grid;place-items:center;font-size:20px;line-height:1}
+.menu summary::-webkit-details-marker{display:none}
+.menu summary:hover{background:var(--sunk)}
+.menu div{position:absolute;right:0;top:40px;z-index:5;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:4px;min-width:150px;box-shadow:0 8px 24px #0002}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:6px;font-size:14px}
+.menu button:hover{background:var(--sunk)}
+.main-only{display:contents}
+body.creating .main-only{display:none}
+
+main{flex:1;display:flex;flex-direction:column;width:100%;max-width:1400px;margin:0 auto;padding:20px}
+
+/* new-map card */
+.new{flex:1;background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:clamp(28px,7vh,80px) clamp(24px,7vw,96px);display:flex;flex-direction:column;gap:18px}
+.new .t{border:0;outline:0;background:none;width:100%;padding:0;font-size:2.25rem;line-height:1.15;font-weight:700;letter-spacing:-.01em}
+.new .d{border:0;outline:0;background:none;width:100%;padding:0;font-size:1.15rem;color:var(--ink2);resize:none;min-height:3.5em}
+.new ::placeholder{color:var(--ink3)}
+.slug{font:12px 'IBM Plex Mono',ui-monospace,monospace;color:var(--ink3)}
+.opts{display:flex;flex-direction:column;gap:8px;max-width:640px}
+.opt{display:flex;gap:8px}
+.opt input{flex:1;height:44px;border:1px solid var(--control);border-radius:8px;padding:0 12px;background:var(--card)}
+.ghost{align-self:flex-start;height:40px;padding:0 12px;border:1px dashed var(--control);border-radius:8px;background:none;color:var(--ink2);font-size:14px}
+.ghost:hover{border-color:var(--ink);color:var(--ink)}
+.x{width:44px;height:44px;border:0;border-radius:8px;background:none;color:var(--ink3);font-size:18px}
+.x:hover{background:var(--sunk)}
+.foot{margin-top:auto;padding-top:18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.foot a{color:var(--ink2);font-size:14px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.primary{height:48px;padding:0 24px;border:0;border-radius:10px;background:var(--ink);color:var(--on-ink);font-weight:600}
+.primary[disabled]{opacity:.35;cursor:not-allowed}
+.spring{flex:1}
+
+/* focus view */
+.crumbs{display:flex;align-items:center;gap:12px;min-height:34px;padding:0 8px;margin-bottom:8px;font-size:14px;color:var(--ink2)}
+.trail{flex:1;min-width:0;display:flex;align-items:center;gap:2px}
+.trail button,.trail .cur{flex:0 1 auto;min-width:4ch;max-width:36ch;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trail button{border:0;border-radius:6px;background:none;color:var(--ink2);padding:5px 6px}
+.trail button:hover{background:var(--sunk);color:var(--ink)}
+.trail .cur{padding:5px 6px;color:var(--ink);font-weight:500}
+.trail .sep{flex:none;color:var(--ink3)}
+.crumbs .m{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;color:var(--ink3);white-space:nowrap}
+.barwrap.pie-on{height:min(68vh,640px)}
+.piebox{flex:1;min-width:0;background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:8px}
+.piebox svg{display:block;width:100%;height:100%}
+.arc{cursor:pointer;stroke:var(--card);stroke-width:1}
+.arc:hover,.arc:focus-visible{stroke:var(--ink);stroke-width:1.5;outline:0}
+.pie-score{font:500 26px 'IBM Plex Mono',ui-monospace,monospace;fill:var(--ink);text-anchor:middle;dominant-baseline:central}
+.claim{padding:14px 8px 26px}
+.claim h1{margin:0;font-size:2.25rem;line-height:1.15;font-weight:700;letter-spacing:-.01em;border-radius:6px}
+.claim .desc{margin:10px 0 0;font-size:1.1rem;color:var(--ink2);max-width:80ch;border-radius:6px;min-height:1.5em}
+.claim .desc:empty::before{content:'Add a description (optional)';color:var(--ink3)}
+.health{display:flex;align-items:center;gap:14px;margin-top:22px}
+.track{position:relative;flex:1;height:12px;border-radius:6px;background:var(--rule-soft);overflow:hidden}
+.track i{position:absolute;top:0;bottom:0}
+.track::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--ink3)}
+.hlabel{font-size:14px;color:var(--ink2);white-space:nowrap;min-width:190px;text-align:right}
+.hlabel b{font:500 15px 'IBM Plex Mono',ui-monospace,monospace;color:var(--ink);margin-left:6px}
+.more{margin-top:14px;font-size:14px;color:var(--ink2)}
+.more summary{cursor:pointer;width:max-content}
+.more .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 16px;margin-top:10px;max-width:800px}
+.more label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600}
+.more input{height:36px;border:1px solid var(--control);border-radius:8px;padding:0 10px;background:var(--card);font-weight:400;font-size:14px}
+.danger{margin-top:10px;border:0;background:none;color:var(--con);font-size:13px;padding:6px 0;text-decoration:underline}
+
+.barwrap{display:flex;gap:8px;height:min(46vh,420px);min-height:240px}
+.plus{border:1.5px dashed var(--control);border-radius:12px;background:none;color:var(--ink2);font-size:26px;font-weight:300;display:grid;place-items:center}
+.plus:hover{border-color:var(--ink);background:var(--card);color:var(--ink)}
+.plus.side{width:48px;flex:none}
+.plus.wide{flex:1;font-size:17px;font-weight:500}
+.plus.wide span{display:block;font-size:44px;font-weight:300;line-height:1.1}
+.bar{position:relative;flex:1;min-width:0;display:flex;background:var(--card);border:1px solid var(--rule);border-radius:12px;overflow:hidden;user-select:none}
+.axis{position:absolute;left:0;right:0;top:50%;height:1px;background:var(--ink3);pointer-events:none;display:none}
+.mode-area .axis{display:block}
+.col{position:relative;min-width:6px;overflow:hidden;cursor:pointer;touch-action:pan-y}
+.col:focus-visible{outline-offset:-3px}
+.col .fill{position:absolute;left:0;right:0}
+.col:hover .fill{filter:brightness(.95)}
+.col .lbl{position:absolute;inset:0;padding:12px 10px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.3;font-weight:500;pointer-events:none}
+.col .ttl{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:9;overflow:hidden}
+.col .meta{margin-top:auto;font:12px 'IBM Plex Mono',ui-monospace,monospace;white-space:nowrap}
+.col.narrow .ttl{display:none}
+.col.tiny .meta{display:none}
+.col.dim{opacity:.25}
+.col.born{animation:born .6s ease-out}
+@keyframes born{from{opacity:0;box-shadow:inset 0 0 0 3px var(--ink)}}
+.div{flex:none;width:7px;margin:0 -3px;z-index:2;cursor:col-resize;position:relative;touch-action:none}
+.div::after{content:'';position:absolute;left:3px;top:0;bottom:0;width:1px;background:var(--card)}
+.div:hover::after{left:2px;width:3px;background:var(--ink)}
+.thermo{position:absolute;right:6px;top:8px;bottom:8px;width:12px;border-radius:6px;background:linear-gradient(var(--pro-fill),var(--rule-soft),var(--con-fill));border:1px solid var(--ink)}
+.thermo i{position:absolute;left:-4px;right:-4px;height:4px;margin-top:-2px;background:var(--ink);border-radius:2px}
+.hint{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink3);padding:8px 56px 0}
+
+.depth{position:relative;margin:2px 56px 0}
+.cell{position:absolute;border:0;border-radius:2px;padding:0 6px;font-size:12px;line-height:1;color:var(--ink);text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell:hover{filter:brightness(.92);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.cell:focus-visible{outline-offset:-2px;z-index:1}
+.col.can:hover::after{content:'↕';position:absolute;top:6px;right:8px;font-size:14px;color:var(--ink);pointer-events:none}
+.tune{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 28px;margin-top:20px;max-width:800px}
+.tune label{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;font-weight:600;color:var(--ink2)}
+.tune small{font-weight:400;color:var(--ink3);font-size:13px}
+.tune output{font:500 14px 'IBM Plex Mono',ui-monospace,monospace;color:var(--ink)}
+.tune input{grid-column:1/-1;width:100%}
+.calc{margin:18px 0 0;font-size:14px;color:var(--ink3)}
+.col.marked .fill{opacity:.65}
+.col.marked::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;border:2px dashed var(--ink2);background:repeating-linear-gradient(45deg,transparent 0 6px,color-mix(in srgb,var(--ink) 16%,transparent) 6px 8px)}
+.arc.locked{fill-opacity:.65;stroke:var(--ink2);stroke-width:2;stroke-dasharray:5 4}
+.hatch-rect{fill:var(--ink);opacity:.22}
+.hatchover{pointer-events:none}
+.bound{fill:none;stroke:transparent;stroke-width:12;cursor:grab;touch-action:none;pointer-events:stroke}
+.bound:hover{stroke:color-mix(in srgb,var(--ink) 35%,transparent)}
+.clearmarks{margin-left:8px;height:26px;padding:0 10px;border:1px solid var(--control);border-radius:6px;background:var(--card);color:var(--ink);font-size:13px}
+.clearmarks:hover{border-color:var(--ink)}
+.ctl{cursor:pointer}
+.ctl circle{fill:var(--ink);stroke:var(--card);stroke-width:2}
+.ctl path{stroke:var(--on-ink);stroke-width:2;stroke-linecap:round;fill:none}
+.ctl:hover circle{fill:var(--accent)}
+
+dialog{border:1px solid var(--rule);border-radius:16px;padding:28px;width:min(560px,calc(100vw - 32px));color:var(--ink);background:var(--card)}
+dialog::backdrop{background:#1b1d2255}
+dialog form{display:flex;flex-direction:column;gap:14px}
+dialog .t{border:0;outline:0;font-size:1.5rem;font-weight:600;width:100%;padding:0;background:none}
+dialog textarea{border:0;outline:0;resize:none;width:100%;padding:0;color:var(--ink2);background:none}
+dialog .imp{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-size:13px;color:var(--ink2);padding-top:8px}
+dialog input[type=range]{width:100%;accent-color:var(--ink)}
+dialog output{display:block;text-align:center;font:500 15px 'IBM Plex Mono',ui-monospace,monospace;color:var(--ink)}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.acts button[value=cancel]{height:48px;padding:0 16px;border:0;background:none;color:var(--ink2)}
+</style>
+
+<header class="top">
+  <span class="brand" id="brand">Decision map</span>
+  <span class="main-only">
+    <nav class="views" aria-label="Views">
+      <button data-view="pie" aria-pressed="false" title="Sunburst" aria-label="Sunburst"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v5.5M15.5 12H21M9.5 14.5l-4 4"/></svg></button>
+      <button data-view="bar" aria-pressed="true" title="Bar" aria-label="Bar"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8.5" y="2.5" width="7" height="5" rx="1"/><rect x="2.5" y="16.5" width="7" height="5" rx="1"/><rect x="14.5" y="16.5" width="7" height="5" rx="1"/><path d="M12 7.5v4M6 16.5v-2.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2.5"/></svg></button>
+      <button disabled title="Source (not in this prototype)" aria-label="Source"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M5.5 15V9l3 3 3-3v6M16.5 9v6M14 12.5l2.5 2.5 2.5-2.5"/></svg></button>
+      <button disabled title="Diff (not in this prototype)" aria-label="Diff"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13M12.5 3.5L16 7l-3.5 3.5M21 17H8M11.5 13.5L8 17l3.5 3.5"/></svg></button>
+    </nav>
+    <input class="filter" id="filter" type="search" placeholder="Filter…" aria-label="Filter points">
+    <div class="seg" role="group" aria-label="Chart view">
+      <button data-mode="width" title="Width only" aria-label="Width only"><svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor"><rect width="3" height="16"/><rect x="4" width="9" height="16"/><rect x="14" width="6" height="16"/></svg></button>
+      <button data-mode="tall" title="Wide and tall" aria-label="Wide and tall"><svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor"><rect y="11" width="3" height="5"/><rect x="4" width="9" height="16"/><rect x="14" y="6" width="6" height="10"/></svg></button>
+      <button data-mode="area" title="Area is the score" aria-label="Area is the score"><svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor"><rect y="8" width="3" height="6"/><rect x="4" y="1" width="9" height="7"/><rect x="14" y="4" width="6" height="4"/></svg></button>
+    </div>
+  </span>
+  <details class="menu" id="menu"><summary aria-label="File menu">⋯</summary><div><button id="newBtn">New map</button><button disabled title="Not in this prototype">Open…</button><button disabled title="Not in this prototype">Save</button></div></details>
+</header>
+
+<main id="main"></main>
+
+<dialog id="add"><form method="dialog">
+  <input class="t" name="title" placeholder="Your point" required autocomplete="off">
+  <textarea name="desc" rows="2" placeholder="Description (optional)"></textarea>
+  <div class="imp" id="impRow">
+    <span>Contrary</span><input type="range" name="impact" min="-1" max="1" step="0.05"><span>Supporting</span>
+    <span></span><output id="impOut"></output><span></span>
+  </div>
+  <div class="acts"><button value="cancel" formnovalidate>Cancel</button><button class="primary" value="add">Add</button></div>
+</form></dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+function h(tag, props = {}, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k in e && k !== 'list') e[k] = v;
+    else e.setAttribute(k, v);
+  }
+  e.append(...kids);
+  return e;
+}
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const signed = (x) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2);
+const slugify = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').split('-').slice(0, 6).join('-');
+
+let uid = 0;
+const node = (title, opts = {}, children = []) => {
+  const n = { id: ++uid, title, desc: opts.desc || '', imp: opts.imp ?? 50, impact: opts.impact ?? 0, kind: opts.kind || 'fact', slug: slugify(title), parent: null, children };
+  children.forEach((c) => { c.parent = n; });
+  return n;
+};
+const score = (n) => {
+  const es = n.children.map(eff);
+  const t = es.reduce((a, e) => a + e.imp, 0);
+  return t === 0 ? 0 : es.reduce((a, e) => a + e.imp * e.impact, 0) / t;
+};
+// Options (premises) are calculated, as in the README: impact = score of children, importance = (impact + 1) / 2.
+const eff = (n) => { if (n.kind !== 'option') return n; const s = score(n); return { imp: (s + 1) / 2, impact: s }; };
+const hasOptions = (n) => n.children.some((c) => c.kind === 'option');
+const sorted = (n) => [...n.children].sort((a, b) => eff(a).impact - eff(b).impact);
+const shareOf = (c, sibs) => { const t = sibs.reduce((a, s) => a + eff(s).imp, 0); return t === 0 ? 1 / sibs.length : eff(c).imp / t; };
+
+let view = 'bar', mode = 'width', focus = null, filter = '', born = null, addTo = null, pieTimer = null, pieDrag = false;
+const marked = new Set(); // Locked points at the current level: a resize leaves their size alone. Cleared when the level changes.
+
+const samples = {
+  votes: () => node('16-year-olds should be allowed to vote in general elections.', { kind: 'root', desc: 'Whether to lower the UK general election voting age from 18.' }, [
+    node('Sixteen-year-olds can work and pay tax, so they should have a say in how it is spent.', { imp: 60, impact: .8 }, [
+      node("Most 16-year-olds don't earn enough to pay income tax.", { imp: 45, impact: -.7 }),
+      node('They still pay VAT on everything they buy.', { imp: 35, impact: .6 }),
+    ]),
+    node('Decisions made now affect young people for longer than anyone else.', { imp: 75, impact: .95 }),
+    node('Voting early helps build a lifelong habit of voting.', { imp: 50, impact: .4 }),
+    node("Teenagers don't have enough experience to vote responsibly.", { imp: 70, impact: -.75 }, [
+      node('A lot of adults have pretty limited life experiences too.', { imp: 65, impact: -.6 }),
+      node('Many teenagers have had life experiences that help them understand how politics affects their lives.', { imp: 50, impact: -.5 }),
+      node("Teenagers' lives are mostly controlled by their parents.", { imp: 55, impact: .5 }),
+    ]),
+    node('Many 16-year-olds would simply vote the way their parents do.', { imp: 45, impact: -.45 }),
+    node('Most other adult rights, like buying alcohol, start at 18.', { imp: 35, impact: -.3 }),
+    node('Turnout among young voters is already low.', { imp: 25, impact: -.15 }),
+  ]),
+  office: () => node('Where should we open the new office?', { kind: 'root', desc: 'Comparing three cities.' }, [
+    node('Lisbon', { kind: 'option' }, [node('Lower salaries and rent', { imp: 60, impact: .8 }), node('Few senior engineers locally', { imp: 40, impact: -.6 })]),
+    node('Berlin', { kind: 'option' }, [node('Deep hiring pool', { imp: 70, impact: .9 }), node('Slow visa process', { imp: 20, impact: -.4 })]),
+    node('Toronto', { kind: 'option' }, [node('Awkward time zone for the team', { imp: 60, impact: -.7 }), node('Good universities nearby', { imp: 30, impact: .5 })]),
+  ]),
+};
+
+/* ---- New map card ---- */
+function renderNew() {
+  document.body.classList.add('creating');
+  $('#brand').textContent = 'Decision map';
+  const options = [];
+  const slug = h('div', { class: 'slug' });
+  const create = h('button', { class: 'primary', disabled: true, onclick: submit }, 'Create');
+  const title = h('input', { class: 't', placeholder: 'What are you deciding?', 'aria-label': 'Title', autocomplete: 'off', oninput: sync, onkeydown: (e) => { if (e.key === 'Enter') submit(); } });
+  const desc = h('textarea', { class: 'd', placeholder: 'Add a description (optional)', 'aria-label': 'Description' });
+  const list = h('div', { class: 'opts' });
+  const toggle = h('button', { class: 'ghost', onclick: () => { addOpt(); addOpt(); options[0].focus(); drawToggle(); } }, '+ Compare options instead of one thesis');
+  function addOpt() {
+    const inp = h('input', { placeholder: `Option ${options.length + 1}`, 'aria-label': 'Option', autocomplete: 'off' });
+    options.push(inp);
+    const row = h('div', { class: 'opt' }, inp, h('button', { class: 'x', 'aria-label': 'Remove option', onclick: () => { options.splice(options.indexOf(inp), 1); row.remove(); drawToggle(); } }, '×'));
+    list.insertBefore(row, adder);
+  }
+  const adder = h('button', { class: 'ghost', onclick: () => { addOpt(); options.at(-1).focus(); } }, '+ Add option');
+  function drawToggle() { toggle.hidden = options.length > 0; adder.hidden = options.length === 0; list.hidden = options.length === 0; }
+  list.append(adder);
+  function sync() {
+    const s = slugify(title.value);
+    slug.textContent = s ? `slug: ${s}` : '';
+    create.disabled = !s;
+  }
+  function submit() {
+    if (!slugify(title.value)) return;
+    const opts = options.map((o) => o.value.trim()).filter(Boolean).map((t) => node(t, { kind: 'option' }));
+    const root = node(title.value.trim(), { kind: 'root', desc: desc.value.trim() }, opts);
+    show(root);
+  }
+  drawToggle();
+  $('#main').replaceChildren(h('section', { class: 'new' }, title, desc, slug, toggle, list,
+    h('div', { class: 'foot' },
+      h('a', { onclick: () => show(samples.votes()) }, 'Try it with Votes at 16'),
+      h('a', { onclick: () => show(samples.office()) }, 'Try it with options'),
+      h('span', { class: 'spring' }), create)));
+  title.focus();
+}
+
+/* ---- Focus view ---- */
+function show(n) {
+  focus = n;
+  marked.clear();
+  document.body.classList.remove('creating');
+  let root = n; while (root.parent) root = root.parent;
+  $('#brand').textContent = root.title;
+  $('#brand').title = root.title;
+  const m = $('#main');
+  m.replaceChildren();
+  if (n.parent) {
+    const sibs = n.parent.children, e = eff(n);
+    const path = [];
+    for (let p = n.parent; p; p = p.parent) path.unshift(p);
+    const trail = path.flatMap((p) => [
+      h('button', { title: p.title, onclick: () => show(p) }, p.title),
+      h('span', { class: 'sep', 'aria-hidden': 'true' }, '›'),
+    ]);
+    m.append(h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' },
+      h('div', { class: 'trail' }, ...trail, h('span', { class: 'cur', title: n.title, 'aria-current': 'page' }, n.title)),
+      h('span', { class: 'm', id: 'pm' }, `${signed(e.impact)} · ${Math.round(shareOf(n, sibs) * 100)}% of this level`)));
+  }
+  const editable = (tag, cls, get, set) => {
+    const el = h(tag, { class: cls });
+    el.setAttribute('contenteditable', 'plaintext-only');
+    el.setAttribute('spellcheck', 'false');
+    el.textContent = get();
+    el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); el.blur(); } });
+    el.addEventListener('blur', () => { set(el.textContent.trim()); el.textContent = get(); });
+    return el;
+  };
+  const healthEl = h('div', { class: 'health', id: 'health' });
+  const more = h('details', { class: 'more' }, h('summary', {}, 'More'),
+    h('div', { class: 'fields' },
+      h('label', {}, 'By', h('input')),
+      n.kind === 'fact' ? h('label', {}, 'Basis', h('input')) : '',
+      n.kind === 'fact' ? h('label', {}, 'Confidence', h('input', { type: 'number', min: 1, max: 5 })) : '',
+      n.kind === 'fact' ? h('label', {}, 'Evidence', h('input', { placeholder: 'Add a link' })) : '',
+      h('label', {}, 'Slug', h('input', { value: n.slug, readOnly: true }))),
+    n.parent ? h('button', { class: 'danger', onclick: (e) => {
+      // The artifact viewer has no confirm(), so points with children take a second click.
+      if (n.children.length && e.target.dataset.armed !== '1') {
+        e.target.dataset.armed = '1';
+        e.target.textContent = `Click again to delete this and its ${n.children.length} point(s)`;
+        return;
+      }
+      remove(n);
+    } }, 'Delete this point') : '');
+  m.append(h('section', { class: 'claim' },
+    editable('h1', '', () => n.title, (v) => { if (v) n.title = v; if (!n.parent) $('#brand').textContent = n.title; }),
+    editable('p', 'desc', () => n.desc, (v) => { n.desc = v; }),
+    n.kind === 'fact' ? tuner(n) : n.kind === 'option' ? h('p', { class: 'calc' }, 'Importance and impact are calculated from this option’s points.') : '',
+    healthEl, more));
+  m.append(h('div', { class: 'barwrap', id: 'barwrap' }));
+  m.append(h('div', { class: 'depth', id: 'depth' }));
+  m.append(h('div', { class: 'hint', id: 'hint' }));
+  renderBar();
+  scrollTo(0, 0);
+}
+
+function remove(n) {
+  const p = n.parent;
+  p.children = p.children.filter((c) => c !== n);
+  show(p);
+}
+
+function renderHealth() {
+  const el = $('#health');
+  const has = focus.children.length > 0;
+  let s = score(focus), label;
+  if (!has) label = 'No points yet';
+  else if (hasOptions(focus)) {
+    const lead = sorted(focus).at(-1);
+    s = eff(lead).impact;
+    label = `Leading: ${lead.title}`;
+  } else label = Math.abs(s) < .1 ? 'Balanced' : s > 0 ? 'Mostly supported' : 'Mostly contrary';
+  const fill = h('i');
+  fill.style.cssText = `left:${s >= 0 ? 50 : 50 + s * 50}%;width:${Math.abs(s) * 50}%;background:var(${s >= 0 ? '--pro-fill' : '--con-fill'})`;
+  el.replaceChildren(h('div', { class: 'track' }, fill), h('div', { class: 'hlabel' }, label, has ? h('b', {}, signed(s)) : ''));
+}
+
+function renderBar() {
+  const wrap = $('#barwrap');
+  const was = new Map([...wrap.querySelectorAll('.col')].map((c) => [+c.dataset.id, c.getBoundingClientRect().left]));
+  wrap.classList.toggle('mode-area', mode === 'area');
+  const kids = sorted(focus);
+  wrap.classList.toggle('pie-on', view === 'pie' && kids.length > 0);
+  const noun = hasOptions(focus) ? 'option' : 'point';
+  renderHealth();
+  if (!kids.length) {
+    wrap.replaceChildren(h('button', { class: 'plus wide', onclick: () => openAdd(0) }, h('div', {}, h('span', {}, '+'), `Add the first ${noun}`)));
+    $('#hint').replaceChildren();
+    $('#depth').replaceChildren();
+    $('#depth').style.height = 0;
+    return;
+  }
+  const leftTitle = hasOptions(focus) ? 'Add an option' : 'Add a contrary point';
+  const rightTitle = hasOptions(focus) ? 'Add an option' : 'Add a supporting point';
+  const plusL = h('button', { class: 'plus side', title: leftTitle, 'aria-label': leftTitle, onclick: () => openAdd(hasOptions(focus) ? 0 : -.5) }, '+');
+  const plusR = h('button', { class: 'plus side', title: rightTitle, 'aria-label': rightTitle, onclick: () => openAdd(hasOptions(focus) ? 0 : .5) }, '+');
+  if (view === 'pie') {
+    born = null;
+    wrap.replaceChildren(plusL, h('div', { class: 'piebox', id: 'pie' }), plusR);
+    $('#depth').replaceChildren();
+    $('#depth').style.height = 0;
+    $('#hint').replaceChildren(h('span', { id: 'pieinfo' }, PIE_HINT), h('span', { id: 'pielocks' }));
+    drawPie();
+    redrawLockHint();
+    return;
+  }
+  const bar = h('div', { class: 'bar', id: 'bar' }, h('div', { class: 'axis' }));
+  kids.forEach((c, i) => {
+    if (i) bar.append(hasOptions(focus) ? '' : divider(kids, i - 1));
+    bar.append(column(c));
+  });
+  wrap.replaceChildren(plusL, bar, plusR);
+  paint();
+  // Animate columns sliding into their sorted places.
+  for (const c of bar.querySelectorAll('.col')) {
+    const id = +c.dataset.id;
+    if (id === born) c.classList.add('born');
+    if (was.has(id)) {
+      const dx = was.get(id) - c.getBoundingClientRect().left;
+      if (dx) c.animate([{ transform: `translateX(${dx}px)` }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    }
+  }
+  born = null;
+  $('#hint').replaceChildren(
+    h('span', {}, hasOptions(focus) ? '← weakest' : '← contrary'),
+    h('span', { id: 'barhint' }),
+    h('span', {}, hasOptions(focus) ? 'strongest →' : 'supporting →'));
+  drawBarHint();
+}
+
+function drawBarHint() {
+  const el = $('#barhint');
+  if (hasOptions(focus)) el.replaceChildren('Calculated from each option’s own points · click to open');
+  else if (!marked.size) el.replaceChildren('Drag a divider to weigh · drag up or down for impact · click to open · Ctrl or ⌘-click to lock');
+  else el.replaceChildren(...lockNodes());
+}
+
+function lockNodes() {
+  return [`${marked.size} locked · a resize leaves ${marked.size === 1 ? 'it' : 'them'} alone`,
+    h('button', { class: 'clearmarks', onclick: () => { marked.clear(); paint(); redrawLockHint(); } }, 'Clear')];
+}
+
+function redrawLockHint() {
+  if (view === 'pie') $('#pielocks').replaceChildren(...(marked.size ? lockNodes() : []));
+  else drawBarHint();
+}
+
+function toggleLock(c) {
+  if (c.kind !== 'fact') return;
+  if (marked.has(c.id)) marked.delete(c.id); else marked.add(c.id);
+  paint();
+  redrawLockHint();
+}
+
+// Shared by the bar's dividers and the pie's slice edges. Boundary i sits between kids[i] and kids[i + 1], and
+// the returned function takes how far it has moved, as a fraction of the whole bar or circle.
+function startResize(kids, i) {
+  const left = kids[i], right = kids[i + 1], T = kids.reduce((s, k) => s + k.imp, 0);
+  const p0 = kids.slice(0, i + 1).reduce((s, k) => s + k.imp, 0) / T;
+  if (!marked.size) {
+    // Nothing locked: keep the boundary under the pointer, changing only this one fact's stored number.
+    const L = kids.slice(0, i).reduce((s, k) => s + k.imp, 0), R = T - L - left.imp;
+    return (dp) => {
+      const p = clamp(p0 + dp, .01, .99);
+      left.imp = +clamp((p * (L + R) - L) / (1 - p), .02 / .98 * (L + R), .9 / .1 * (L + R)).toFixed(1);
+    };
+  }
+  // Resize whichever side of the boundary is unlocked (the left if both are). Two locked neighbours can't move.
+  if (marked.has(left.id) && marked.has(right.id)) return null;
+  const a = marked.has(left.id) ? right : left;
+  const pool = kids.filter((k) => !marked.has(k.id) && k !== a);
+  if (!pool.length) return null;
+  // Zero-sum: only the resized point and the unlocked points change, in proportion to their sizes.
+  const x0 = a.imp, dir = a === left ? 1 : -1, starts = pool.map((p) => p.imp), sum0 = starts.reduce((s, v) => s + v, 0);
+  const minD = .02 * T - x0, maxD = Math.max(0, sum0 * (1 - .02 * T / Math.min(...starts)));
+  return (dp) => {
+    const delta = clamp(dp * T * dir, minD, maxD);
+    a.imp = +(x0 + delta).toFixed(1);
+    pool.forEach((p, k) => { p.imp = +(starts[k] * (1 - delta / sum0)).toFixed(1); });
+  };
+}
+
+function colour(i) {
+  const p = Math.round(14 + Math.abs(i) * 56);
+  return `color-mix(in srgb,var(${i >= 0 ? '--pro-fill' : '--con-fill'}) ${p}%,var(--card))`;
+}
+
+const PIE_HINT = 'Drag between inner slices to weigh · Ctrl or ⌘-click to lock · hover to add · click to open';
+
+// The same tree as the bar and its depth rows, drawn as rings around the current point.
+function drawPie() {
+  const svgEl = (tag, attrs = {}, ...kids) => {
+    const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    e.append(...kids);
+    return e;
+  };
+  const depthOf = (n) => (n.children.length ? 1 + Math.max(...n.children.map(depthOf)) : 0);
+  const R0 = 52, ring = (172 - R0) / depthOf(focus), q = filter.toLowerCase(); // 172 leaves room for a + outside the outer ring.
+  const ctl = svgEl('g', { id: 'pie-ctl' });
+  const keep = () => clearTimeout(pieTimer);
+  const hideSoon = () => {
+    keep();
+    pieTimer = setTimeout(() => { ctl.replaceChildren(); const i = $('#pieinfo'); if (i) i.textContent = PIE_HINT; }, 180);
+  };
+  const addButton = (pos, label, onAdd) => {
+    const g = svgEl('g', { class: 'ctl', transform: `translate(${pos})` }, svgEl('title', {}, label), svgEl('circle', { r: 10 }), svgEl('path', { d: 'M-5 0H5M0-5V5' }));
+    g.addEventListener('mouseenter', keep);
+    g.addEventListener('mouseleave', hideSoon);
+    g.addEventListener('click', onAdd);
+    return g;
+  };
+  const pt = (r, a) => `${(r * Math.sin(a)).toFixed(2)} ${(-r * Math.cos(a)).toFixed(2)}`;
+  const svg = svgEl('svg', { viewBox: '-200 -200 400 400', role: 'group', 'aria-label': 'Sunburst of points' },
+    svgEl('defs', {}, svgEl('pattern', { id: 'lock-hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' },
+      svgEl('rect', { class: 'hatch-rect', width: 2, height: 8 }))));
+  const walk = (parent, start, span, level) => {
+    let a = start;
+    for (const c of sorted(parent)) {
+      const da = shareOf(c, parent.children) * span, e = eff(c);
+      if (da > 0) {
+        const end = a + Math.min(da, 2 * Math.PI - .001), r0 = R0 + level * ring, r1 = r0 + ring, large = end - a > Math.PI ? 1 : 0;
+        const info = `${c.title} (${signed(e.impact)})`;
+        const arc = svgEl('path', {
+          class: 'arc', tabindex: 0, role: 'button', 'aria-label': info,
+          d: `M${pt(r1, a)}A${r1} ${r1} 0 ${large} 1 ${pt(r1, end)}L${pt(r0, end)}A${r0} ${r0} 0 ${large} 0 ${pt(r0, a)}Z`,
+        }, svgEl('title', {}, info));
+        arc.style.fill = colour(e.impact);
+        if (q && !(c.title + ' ' + c.desc).toLowerCase().includes(q)) arc.style.opacity = .25;
+        const say = (text) => () => { $('#pieinfo').textContent = text; };
+        // On hover: a + on each side adds a sibling here, and a leaf also gets a + outside it for a first child.
+        const start = a, rm = (r0 + r1) / 2, opts = hasOptions(parent);
+        arc.addEventListener('mouseenter', () => {
+          if (pieDrag) return;
+          keep();
+          say(info)();
+          const gap = (end - start) * rm, pad = gap < 24 ? (24 - gap) / 2 / rm : 0;
+          const full = end - start > 6; // A whole ring's two edges meet, so nudge the buttons apart.
+          const sibling = (ang, label, delta) => addButton(pt(rm, ang), opts ? 'Add an option' : label,
+            () => openAdd(opts ? 0 : clamp(+(e.impact + delta).toFixed(2), -1, 1), parent));
+          ctl.replaceChildren(
+            sibling(full ? start + .2 : start - pad, 'Add a more contrary point beside this', -.25),
+            sibling(full ? end - .2 : end + pad, 'Add a more supporting point beside this', .25));
+          if (!c.children.length) ctl.append(addButton(pt(r1 + 14, (start + end) / 2), `Add a point under: ${c.title}`, () => openAdd(0, c)));
+        });
+        arc.addEventListener('mouseleave', hideSoon);
+        arc.addEventListener('focus', say(info));
+        arc.addEventListener('blur', say(PIE_HINT));
+        // Locks apply to the inner ring only, the same points the bar's columns show.
+        const isLocked = level === 0 && marked.has(c.id);
+        if (isLocked) arc.classList.add('locked');
+        arc.addEventListener('contextmenu', (ev) => { if (ev.ctrlKey) ev.preventDefault(); });
+        arc.addEventListener('pointerdown', (ev) => { if (level === 0 && (ev.ctrlKey || ev.metaKey || ev.shiftKey)) toggleLock(c); });
+        arc.addEventListener('click', (ev) => { if (!ev.ctrlKey && !ev.metaKey && !ev.shiftKey) show(c); });
+        arc.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') show(c); });
+        svg.append(arc);
+        if (isLocked) svg.append(svgEl('path', { class: 'hatchover', d: arc.getAttribute('d'), fill: 'url(#lock-hatch)' }));
+      }
+      if (c.children.length) walk(c, a, da, level + 1);
+      a += da;
+    }
+  };
+  walk(focus, 0, 2 * Math.PI, 0);
+  // Drag handles on the edges between inner-ring slices. Like the bar, there's none where the last slice meets the first.
+  if (!hasOptions(focus)) {
+    const kids = sorted(focus);
+    let edge = 0;
+    kids.slice(0, -1).forEach((c, i) => {
+      edge += shareOf(c, kids) * 2 * Math.PI;
+      const handle = svgEl('path', { class: 'bound', d: `M${pt(R0, edge)}L${pt(R0 + ring, edge)}` }, svgEl('title', {}, 'Drag to change importance'));
+      handle.addEventListener('pointerdown', (ev) => {
+        ev.preventDefault();
+        const resize = startResize(kids, i);
+        if (!resize) return;
+        const r = svg.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const angle = (m) => Math.atan2(m.clientX - cx, cy - m.clientY);
+        let prev = angle(ev), moved = 0;
+        pieDrag = true;
+        keep();
+        const move = (m) => {
+          const now = angle(m);
+          let d = now - prev;
+          if (d > Math.PI) d -= 2 * Math.PI;
+          if (d < -Math.PI) d += 2 * Math.PI;
+          moved += d;
+          prev = now;
+          resize(moved / (2 * Math.PI));
+          drawPie();
+          renderHealth();
+        };
+        const up = () => { pieDrag = false; removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+        addEventListener('pointermove', move);
+        addEventListener('pointerup', up);
+      });
+      svg.append(handle);
+    });
+  }
+  if (!hasOptions(focus)) svg.append(svgEl('text', { class: 'pie-score', x: 0, y: 0 }, signed(score(focus))));
+  svg.append(ctl);
+  $('#pie').replaceChildren(svg);
+}
+
+function paint() {
+  if (view === 'pie') { if ($('#pie')) drawPie(); return; }
+  const bar = $('#bar');
+  if (!bar) return;
+  const kids = focus.children, maxShare = Math.max(...kids.map((k) => shareOf(k, kids)));
+  const q = filter.toLowerCase();
+  for (const col of bar.querySelectorAll('.col')) {
+    const c = kids.find((k) => k.id === +col.dataset.id), e = eff(c), share = shareOf(c, kids);
+    col.style.flex = `${share * 1000} 1 0`;
+    col.title = c.title;
+    const f = col.querySelector('.fill');
+    f.style.background = colour(e.impact);
+    f.style.top = f.style.bottom = f.style.height = f.style.minHeight = '';
+    if (mode === 'width') { f.style.top = f.style.bottom = 0; }
+    else if (mode === 'tall') { f.style.bottom = 0; f.style.height = `${28 + 72 * share / maxShare}%`; }
+    else {
+      f.style.height = `${Math.abs(e.impact) * 50}%`;
+      f.style.minHeight = '3px';
+      if (e.impact >= 0) f.style.bottom = '50%'; else f.style.top = '50%';
+    }
+    col.querySelector('.meta').textContent = `${signed(e.impact)} · ${Math.round(share * 100)}%`;
+    col.querySelector('.ttl').textContent = c.title + (c.children.length ? `  ▸ ${c.children.length}` : '');
+    const w = col.getBoundingClientRect().width;
+    col.classList.toggle('marked', marked.has(c.id));
+    col.classList.toggle('narrow', w < 76);
+    col.classList.toggle('tiny', w < 96 && w < 76 && w < 60);
+    col.classList.toggle('dim', !!q && !(c.title + ' ' + c.desc).toLowerCase().includes(q));
+  }
+  drawDepth();
+  document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', b.dataset.mode === mode));
+}
+
+// Everything below the current points, as rows lined up under their parent column.
+function drawDepth() {
+  const ROW = 30, box = $('#depth'), origin = box.getBoundingClientRect().left, q = filter.toLowerCase();
+  const cells = [];
+  let rows = 0;
+  const walk = (parent, left, width, row) => {
+    rows = Math.max(rows, row + 1);
+    let x = left;
+    for (const c of sorted(parent)) {
+      const w = shareOf(c, parent.children) * width, e = eff(c);
+      const cell = h('button', { class: 'cell', title: `${c.title} (${signed(e.impact)})`, 'aria-label': c.title, onclick: () => show(c) }, w > 56 ? c.title : '');
+      cell.style.cssText = `left:${x}px;top:${row * ROW}px;width:${Math.max(w - 1, 2)}px;height:${ROW - 2}px;background:${colour(e.impact)}`;
+      if (q && !(c.title + ' ' + c.desc).toLowerCase().includes(q)) cell.style.opacity = .25;
+      cells.push(cell);
+      if (c.children.length) walk(c, x, w, row + 1);
+      x += w;
+    }
+  };
+  for (const col of $('#bar').querySelectorAll('.col')) {
+    const c = focus.children.find((k) => k.id === +col.dataset.id), r = col.getBoundingClientRect();
+    if (c.children.length) walk(c, r.left - origin, r.width, 0);
+  }
+  box.replaceChildren(...cells);
+  box.style.height = `${rows * ROW}px`;
+}
+
+// The current point's own importance and impact, relative to its parent. Its children never change these.
+function tuner(n) {
+  const sibs = n.parent.children;
+  const others = () => sibs.filter((s) => s !== n).reduce((a, s) => a + s.imp, 0);
+  const shareOut = h('output'), impOut = h('output');
+  const sync = () => {
+    const pct = Math.round(shareOf(n, sibs) * 100);
+    shareOut.textContent = `${pct}%`;
+    impOut.textContent = signed(n.impact);
+    impR.style.accentColor = colour(n.impact);
+    $('#pm').textContent = `${signed(n.impact)} · ${pct}% of this level`;
+  };
+  const shareR = h('input', { type: 'range', id: 'tune-importance', min: 2, max: 90, step: 1, value: Math.round(shareOf(n, sibs) * 100), disabled: sibs.length < 2,
+    oninput: (e) => { const s = +e.target.value / 100; n.imp = +(s / (1 - s) * others()).toFixed(1); sync(); } });
+  const impR = h('input', { type: 'range', id: 'tune-impact', min: -1, max: 1, step: .05, value: n.impact,
+    oninput: (e) => { n.impact = +e.target.value; sync(); } });
+  sync();
+  return h('div', { class: 'tune' },
+    h('label', {}, h('span', {}, 'Importance ', h('small', {}, 'bar width')), shareOut, shareR),
+    h('label', {}, h('span', {}, 'Impact ', h('small', {}, 'colour depth')), impOut, impR));
+}
+
+function column(c) {
+  const col = h('div', { class: c.kind === 'fact' ? 'col can' : 'col', tabIndex: 0, role: 'button', onkeydown: (e) => { if (e.key === 'Enter') show(c); } },
+    h('div', { class: 'fill' }),
+    h('div', { class: 'lbl' }, h('div', { class: 'ttl' }), h('div', { class: 'meta' })));
+  col.dataset.id = c.id;
+  // Click opens. Vertical drag sets impact (not on options, whose impact is calculated). Re-sorts on release.
+  col.addEventListener('contextmenu', (e) => { if (e.ctrlKey) e.preventDefault(); }); // Ctrl-click on a Mac.
+  col.addEventListener('pointerdown', (d) => {
+    if (d.ctrlKey || d.metaKey || d.shiftKey) { toggleLock(c); return; }
+    if (d.button) return;
+    const startY = d.clientY, start = c.impact, half = col.clientHeight / 2;
+    let dragging = false, thermo = null;
+    const move = (m) => {
+      if (!dragging && Math.abs(m.clientY - startY) < 5) return;
+      if (c.kind === 'option') return;
+      if (!dragging) {
+        dragging = true;
+        thermo = h('div', { class: 'thermo' }, h('i'));
+        col.append(thermo);
+      }
+      c.impact = +clamp(start - (m.clientY - startY) / half, -1, 1).toFixed(2);
+      thermo.firstChild.style.top = `${(1 - c.impact) * 50}%`;
+      paint(); renderHealth();
+    };
+    const up = () => {
+      removeEventListener('pointermove', move); removeEventListener('pointerup', up);
+      if (dragging) renderBar(); else show(c);
+    };
+    addEventListener('pointermove', move); addEventListener('pointerup', up);
+  });
+  return col;
+}
+
+function divider(kids, i) {
+  const d = h('div', { class: 'div', title: 'Drag to change importance' });
+  d.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    const resize = startResize(kids, i);
+    if (!resize) return;
+    const width = $('#bar').getBoundingClientRect().width, startX = ev.clientX;
+    const move = (m) => {
+      resize((m.clientX - startX) / width);
+      paint(); renderHealth();
+    };
+    const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', move); addEventListener('pointerup', up);
+  });
+  return d;
+}
+
+/* ---- Add dialog ---- */
+const dlg = $('#add'), form = dlg.querySelector('form');
+function openAdd(impact, parent = focus) {
+  addTo = parent;
+  form.reset();
+  const isOpt = hasOptions(parent);
+  form.title.placeholder = isOpt ? 'Your option' : 'Your point';
+  $('#impRow').hidden = isOpt;
+  $('#impRow').style.display = isOpt ? 'none' : '';
+  form.impact.value = impact;
+  $('#impOut').textContent = signed(+impact);
+  dlg.showModal();
+  form.title.focus();
+}
+form.impact.addEventListener('input', () => { $('#impOut').textContent = signed(+form.impact.value); });
+dlg.addEventListener('close', () => {
+  if (dlg.returnValue !== 'add') return;
+  const isOpt = hasOptions(addTo);
+  const c = node(form.title.value.trim(), { desc: form.desc.value.trim(), impact: isOpt ? 0 : +form.impact.value, kind: isOpt ? 'option' : 'fact' });
+  c.parent = addTo;
+  addTo.children.push(c);
+  born = c.id;
+  renderBar();
+});
+
+/* ---- Header ---- */
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+  mode = b.dataset.mode;
+  $('#barwrap')?.classList.toggle('mode-area', mode === 'area');
+  paint();
+}));
+document.querySelectorAll('.views button[data-view]').forEach((b) => b.addEventListener('click', () => {
+  view = b.dataset.view;
+  document.querySelectorAll('.views button[data-view]').forEach((o) => o.setAttribute('aria-pressed', o === b));
+  document.querySelector('.seg').hidden = view === 'pie'; // The chart views only apply to the bar.
+  if (focus) renderBar();
+}));
+$('#filter').addEventListener('input', (e) => { filter = e.target.value; paint(); });
+$('#newBtn').addEventListener('click', () => { $('#menu').open = false; renderNew(); });
+addEventListener('resize', paint);
+document.querySelector('.seg button[data-mode=width]').setAttribute('aria-pressed', 'true');
+
+renderNew();
+</script>

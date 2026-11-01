@@ -74,29 +74,42 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 </div>
 
 <sc-if value="{{nm.open}}" hint-placeholder-val="{{ false }}">
-<section aria-label="New" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-width: 760px">
-  <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Title
-    <input type="text" value="{{nm.title}}" onChange="{{nm.onTitle}}" style="min-height: 40px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 15px; font-weight: 400">
-  </label>
-  <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600">Root claim or question
-    <textarea rows="2" value="{{nm.text}}" onChange="{{nm.onText}}" style="box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; font-weight: 400; resize: vertical"></textarea>
-  </label>
-  <fieldset style="border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px">
-    <legend style="font-size: 13px; font-weight: 600; padding: 0; margin-bottom: 6px">Start with</legend>
-    <label style="display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer"><input type="radio" name="new-kind" checked="{{nm.isArgs}}" onChange="{{nm.pickArgs}}"> Contributing factors (a thesis)</label>
-    <label style="display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer"><input type="radio" name="new-kind" checked="{{nm.isPremises}}" onChange="{{nm.pickPremises}}"> Premises, each with its own contributing factors</label>
-  </fieldset>
-  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
-    <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2)">slug: {{nm.slug}}</code>
-    <span style="flex: 1; font-size: 13px; color: var(--ink2); min-width: 200px">This replaces the current map. Download it first to keep it.</span>
-    <button type="button" onClick="{{nm.cancel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 14px; cursor: pointer">Cancel</button>
-    <button type="button" onClick="{{nm.create}}" disabled="{{nm.createDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; opacity: {{nm.createOpacity}}">Create</button>
+<section aria-label="New map" style="background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: clamp(28px, 7vh, 80px) clamp(24px, 7vw, 96px); min-height: calc(100vh - 150px); box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+  <input type="text" aria-label="Title" autoFocus="{{ true }}" autocomplete="off" placeholder="What are you deciding?" value="{{nm.title}}" onChange="{{nm.onTitle}}" onKeyDown="{{nm.onTitleKey}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em">
+  <textarea aria-label="Description" rows="3" placeholder="Add a description (optional)" value="{{nm.desc}}" onChange="{{nm.onDesc}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; font: inherit; font-size: 1.15rem; color: var(--ink2); resize: none"></textarea>
+  <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink3); min-height: 16px">{{nm.slugLine}}</code>
+  <sc-if value="{{nm.showOptionsToggle}}" hint-placeholder-val="{{ true }}">
+    <button type="button" onClick="{{nm.startOptions}}" style="align-self: flex-start; min-height: 40px; padding: 0 12px; border: 1px dashed var(--control); border-radius: 8px; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer">+ Compare options instead of one thesis</button>
+  </sc-if>
+  <sc-if value="{{nm.hasOptions}}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; flex-direction: column; gap: 8px; max-width: 640px">
+      <sc-for list="{{nm.options}}" as="o" hint-placeholder-count="2">
+        <div style="display: flex; gap: 8px">
+          <input type="text" aria-label="{{o.label}}" placeholder="{{o.label}}" autocomplete="off" value="{{o.value}}" onChange="{{o.onChange}}" style="flex: 1; min-width: 0; min-height: 44px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 12px; font: inherit">
+          <button type="button" class="tb" aria-label="Remove {{o.label}}" onClick="{{o.remove}}" style="width: 44px; height: 44px; border: 0; border-radius: 8px; color: var(--ink3); font: inherit; font-size: 18px; cursor: pointer">×</button>
+        </div>
+      </sc-for>
+      <button type="button" onClick="{{nm.addOption}}" style="align-self: flex-start; min-height: 40px; padding: 0 12px; border: 1px dashed var(--control); border-radius: 8px; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer">+ Add option</button>
+    </div>
+  </sc-if>
+  <div style="margin-top: auto; padding-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+    <sc-if value="{{nm.canCancel}}" hint-placeholder-val="{{ false }}">
+      <span style="font-size: 13px; color: var(--ink2)">This replaces the current map. Download it first to keep it.</span>
+    </sc-if>
+    <span style="flex: 1"></span>
+    <sc-if value="{{nm.canCancel}}" hint-placeholder-val="{{ false }}">
+      <button type="button" onClick="{{nm.cancel}}" style="min-height: 48px; padding: 0 16px; border: 1px solid var(--control); border-radius: 10px; background: var(--card); font: inherit; font-size: 14px; cursor: pointer">Cancel</button>
+    </sc-if>
+    <sc-if value="{{nm.showOpen}}" hint-placeholder-val="{{ true }}">
+      <button type="button" onClick="{{tb.toggleOpen}}" style="min-height: 48px; padding: 0 16px; border: 1px solid var(--control); border-radius: 10px; background: var(--card); font: inherit; font-size: 14px; cursor: pointer">Open…</button>
+    </sc-if>
+    <button type="button" onClick="{{nm.create}}" disabled="{{nm.createDisabled}}" style="min-height: 48px; padding: 0 24px; border: 0; border-radius: 10px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; opacity: {{nm.createOpacity}}">Create</button>
   </div>
 </section>
 </sc-if>
 
 <sc-if value="{{hasMap}}" hint-placeholder-val="{{ true }}">
-<div style="display: flex; flex-direction: column; gap: 20px">
+<div style="display: {{pageDisplay}}; flex-direction: column; gap: 20px">
 <header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
   <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
     <span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink2); font-weight: 600">Argument map · markdown-backed</span>
@@ -166,19 +179,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 </div>
 </sc-if>
 
-<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<div style="display: {{pageDisplay}}; flex-wrap: wrap; gap: 24px; align-items: flex-start">
 <main style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
-
-  <sc-if value="{{tb.isEmpty}}" hint-placeholder-val="{{ false }}">
-    <section aria-label="No map open" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 32px 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
-      <h2 style="margin: 0; font-size: 18px; font-weight: 600">No map open</h2>
-      <p style="margin: 0; font-size: 14px; color: var(--ink2)">Open a markdown map, or start a new one.</p>
-      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px">
-        <button type="button" onClick="{{tb.toggleOpen}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer">Open…</button>
-        <button type="button" onClick="{{tb.startNew}}" style="min-height: 40px; padding: 0 16px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">New</button>
-      </div>
-    </section>
-  </sc-if>
 
   <sc-if value="{{tb.openOpen}}" hint-placeholder-val="{{ false }}">
   <section aria-label="{{tb.openTitle}}" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px">
@@ -1329,7 +1331,7 @@ class Component extends DCLogic {
     this.autosaveTimer = null;
     this.lastSrc = A.text;
     this.state = {
-      fileStatus: '', openTarget: 'A', newOpen: false, newTitle: '', newText: '', newKind: 'args',
+      fileStatus: '', openTarget: 'A', newOpen: false, newTitle: '', newDesc: '', newOptions: [],
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
       themeQ: THEMES.some((t) => t.id === qTheme) ? qTheme : null,
@@ -2361,18 +2363,24 @@ class Component extends DCLogic {
 
   createMap() {
     const s = this.state;
-    const title = s.newTitle.trim();
-    const text = s.newText.trim().replace(/\s+/g, ' ');
-    const slug = Component.slugBase(text);
-    if (title === '' || slug === '') throw new Error('bug: Create pressed with an empty title or claim');
-    const map = { title, display: s.map.display, root: { slug, text, kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [] } };
+    const title = s.newTitle.trim().replace(/\s+/g, ' ');
+    const slug = Component.slugBase(title);
+    if (slug === '') throw new Error('bug: Create pressed with a title that has no letters or digits');
+    const details = s.newDesc.trim();
+    const taken = new Set([slug]);
+    const children = s.newOptions.map((o) => o.trim().replace(/\s+/g, ' ')).filter((text) => Component.slugBase(text) !== '').map((text) => {
+      const optionSlug = Component.slugify(text, taken);
+      taken.add(optionSlug);
+      return { slug: optionSlug, text, kind: 'premise', importance: null, impact: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [] };
+    });
+    const map = { title, display: s.map.display, root: { slug, text: title, kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: details === '' ? null : details, refs: [], children } };
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
       map, src: Component.serialize(map), srcErrors: [], focus: slug, view: 'map',
-      fileName: `${Component.slugBase(title) || slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
-      newOpen: false, newTitle: '', newText: '',
-      adding: s.newKind === 'premises' ? 'premise' : null, draftText: '', draftSlugCustom: null, selectedFact: null, tradePool: [], frozenOrder: null, pinned: null,
+      fileName: `${slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
+      newOpen: false, newTitle: '', newDesc: '', newOptions: [],
+      adding: null, draftText: '', draftSlugCustom: null, selectedFact: null, tradePool: [], frozenOrder: null, pinned: null,
       confirmDelete: false, hover: null, notice: null, fileStatus: `New map · ${title}`,
     });
   }
@@ -3073,9 +3081,6 @@ class Component extends DCLogic {
       openNote: target === 'B' ? 'B is compared with the current map, fact by fact (matched by slug). Opening a URL puts it in the address bar as ?theirs=.'
         : 'The file replaces the current map. A file opened from this computer can be saved back to it. Opening a URL puts it in the address bar as ?src=, so the link opens this map.',
       canCancel: s.openOpen,
-      /* An empty page says so, and offers the two ways to get a map. */
-      isEmpty: noMap && !s.openOpen && !s.newOpen,
-      startNew: () => this.setState({ newOpen: true, openOpen: false }),
       dropBd: s.dropActive ? 'var(--accent)' : 'var(--control)', dropBg: s.dropActive ? 'var(--accent-tint)' : 'transparent',
       onDragOver: (e) => { e.preventDefault(); if (!s.dropActive) this.setState({ dropActive: true }); },
       onDragLeave: () => this.setState({ dropActive: false }),
@@ -3106,21 +3111,33 @@ class Component extends DCLogic {
       openFromUrl: () => this.openFromUrl(),
       onOpenUrlKey: (e) => { if (e.key === 'Enter' && s.openUrl.trim() !== '' && !s.openBusy) this.openFromUrl(); },
     };
-    const newBase = Component.slugBase(s.newText);
-    const createDisabled = s.newTitle.trim() === '' || newBase === '';
+    const newBase = Component.slugBase(s.newTitle);
+    const createDisabled = newBase === '';
+    /* Curly braces are reserved for the old {slug: …} block, so these fields can't hold them. */
+    const newText = (v, apply) => {
+      if (/[{}]/.test(v)) { this.setState({ notice: 'Curly braces are reserved for the {slug: …} block in the markdown, so this text can’t contain them.' }); return; }
+      apply(v.replace(/\s*\n\s*/g, ' '));
+    };
     const nm = {
-      open: s.newOpen, title: s.newTitle, text: s.newText, slug: newBase === '' ? '—' : newBase,
-      onTitle: (e) => this.setState({ newTitle: e.target.value.replace(/\s*\n\s*/g, ' ') }),
-      onText: (e) => {
-        const v = e.target.value;
-        if (/[{}]/.test(v)) { this.setState({ notice: 'Curly braces are reserved for the {slug: …} block in the markdown, so claim text can’t contain them.' }); return; }
-        this.setState({ newText: v.replace(/\s*\n\s*/g, ' ') });
-      },
-      isArgs: s.newKind === 'args', isPremises: s.newKind === 'premises',
-      pickArgs: () => this.setState({ newKind: 'args' }), pickPremises: () => this.setState({ newKind: 'premises' }),
+      /* With no map open this card is the page, unless the Open panel has taken over. */
+      open: s.newOpen || (noMap && !s.openOpen),
+      title: s.newTitle, desc: s.newDesc, slugLine: newBase === '' ? '' : `slug: ${newBase}`,
+      onTitle: (e) => newText(e.target.value, (newTitle) => this.setState({ newTitle })),
+      onTitleKey: (e) => { if (e.key === 'Enter' && !createDisabled) this.createMap(); },
+      onDesc: (e) => this.setState({ newDesc: e.target.value }),
+      showOptionsToggle: s.newOptions.length === 0, hasOptions: s.newOptions.length > 0,
+      startOptions: () => this.setState({ newOptions: ['', ''] }),
+      addOption: () => this.setState((st) => ({ newOptions: [...st.newOptions, ''] })),
+      options: s.newOptions.map((value, i) => ({
+        value, label: `Option ${i + 1}`,
+        onChange: (e) => newText(e.target.value, (v) => this.setState((st) => ({ newOptions: st.newOptions.map((o, j) => (j === i ? v : o)) }))),
+        remove: () => this.setState((st) => ({ newOptions: st.newOptions.filter((_, j) => j !== i) })),
+      })),
+      canCancel: !noMap, showOpen: noMap,
       cancel: () => this.setState({ newOpen: false }),
       create: () => this.createMap(), createDisabled, createOpacity: createDisabled ? 0.45 : 1,
     };
+    const pageDisplay = nm.open ? 'none' : 'flex';
 
     const targetValues = values.get(panelNode.slug);
     const targetKids = Component.factRows(panelNode, values);
@@ -3290,6 +3307,7 @@ class Component extends DCLogic {
 
     return {
       title: map.title, tabs, tb, nm, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
+      pageDisplay,
       hasMap, isMap: hasMap && s.view === 'map', isPie: hasMap && s.view === 'pie', isDiff: hasMap && s.view === 'diff', isSource: !noMap && s.view === 'source',
       hasNotice: s.notice !== null, notice: s.notice === null ? '' : s.notice, clearNotice: () => this.setState({ notice: null }),
       locked,
