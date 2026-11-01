@@ -35,6 +35,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px soli
 label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
 [role=button]:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important}
+.am-col[data-can="true"]:hover::after{content:'↕';position:absolute;top:6px;right:8px;z-index:2;font-size:14px;color:var(--ink);pointer-events:none}
 </style>
 </helmet>
 <div class="am-root" data-theme="{{themeId}}" data-accent="{{accentId}}">
@@ -290,11 +291,6 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
           </sc-for>
         </div>
-        <div role="group" aria-label="When resizing" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
-          <sc-for list="{{chart.modes}}" as="t" hint-placeholder-count="2">
-            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
-          </sc-for>
-        </div>
       </div>
 
       <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
@@ -303,7 +299,10 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
           </sc-if>
           <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
-            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.selected}}" title="{{c.text}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; box-shadow: {{c.ring}}; outline: {{c.poolOutline}}; outline-offset: -5px; font-size: 13px; line-height: 1.3">
+            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
+              <sc-if value="{{c.isLocked}}" hint-placeholder-val="{{ false }}">
+                <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></div>
+              </sc-if>
               <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
                 <div style="height: 100%; display: grid; grid-template-rows: 1fr 1fr">
                   <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
@@ -334,7 +333,13 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             </div>
           </sc-if>
         </div>
-        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink2)">{{chart.hint}}</p>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; min-height: 26px; font-size: 13px; color: var(--ink3)">
+          <sc-if value="{{chart.hasLocks}}" hint-placeholder-val="{{ false }}">
+            <span role="status">{{chart.lockText}}</span>
+            <button type="button" onClick="{{chart.clearLocks}}" style="min-height: 26px; padding: 0 10px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer">Clear</button>
+          </sc-if>
+          <sc-if value="{{chart.noLocks}}" hint-placeholder-val="{{ true }}"><span>{{chart.hint}}</span></sc-if>
+        </div>
       </sc-if>
       <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
         <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
@@ -346,9 +351,6 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <span style="background: var(--sunk); font-weight: 700; padding: 4px 10px; border-radius: 999px">{{pn.kind}}</span>
         <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{pn.slug}}</code>
         <span style="flex: 1"></span>
-        <sc-if value="{{pn.canOpen}}" hint-placeholder-val="{{ true }}">
-          <button type="button" onClick="{{pn.open}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Open</button>
-        </sc-if>
         <sc-if value="{{pn.canDelete}}" hint-placeholder-val="{{ true }}">
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
             <sc-if value="{{pn.askDelete}}" hint-placeholder-val="{{ true }}">
@@ -1248,7 +1250,6 @@ async function checkRationale(key, claim, parent, pros, cons) {
 const PANEL_RESET = Object.freeze({ adding: null, confirmDelete: false, evOpen: false, evEdit: null });
 const SLUG_BLOCK_NOTICE = 'Text can’t end in a {slug: …} block, because that’s how old map files are recognised.';
 const CHART_VIEW_STORE = 'argmap.chartView';
-const RESIZE_MODE_STORE = 'argmap.resizeMode';
 const OR_KEY_STORE = 'argmap.openRouterApiKey';
 const OR_MODEL_STORE = 'argmap.openRouterModel';
 const OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -1336,9 +1337,8 @@ class Component extends DCLogic {
       focus: qFocus !== null && Component.findPath(map.root, qFocus) !== null ? qFocus : map.root.slug,
       sourceTab: 'md',
       adding: null, draftText: '',
-      selectedFact: null, tradePool: [], frozenOrder: null, thermoSlug: null,
+      lockedFacts: [], frozenOrder: null, thermoSlug: null,
       chartView: ['width', 'tall', 'area'].includes(loadSetting(CHART_VIEW_STORE)) ? loadSetting(CHART_VIEW_STORE) : 'width',
-      resizeMode: loadSetting(RESIZE_MODE_STORE) === 'trade' ? 'trade' : 'scale',
       draftSlugCustom: null, pinned: null,
       evOpen: false, evEdit: null, evName: '', evText: '', evUrl: '',
       q: '', filtOpen: false, fConf: 'any', fEv: 'any',
@@ -1729,11 +1729,6 @@ class Component extends DCLogic {
     return `color-mix(in srgb, var(${impact < 0 ? '--con' : '--pro'}) ${Math.round(12 + 88 * Math.abs(impact))}%, var(--sunk))`;
   }
 
-  static panelSlug(root, focus, selectedFact) {
-    if (selectedFact !== null && Component.findPath(root, selectedFact) !== null) return selectedFact;
-    return Component.safeFocus(root, focus);
-  }
-
   static safeFocus(root, focus) {
     return Component.findPath(root, focus) !== null ? focus : root.slug;
   }
@@ -1783,6 +1778,17 @@ class Component extends DCLogic {
     if (order === null) return byImpact(rows);
     const listed = order.map((slug) => rows.find((r) => r.node.slug === slug)).filter(Boolean);
     return [...listed, ...byImpact(rows.filter((r) => !listed.includes(r)))];
+  }
+
+  // The resizeImportance plan for the divider right of rows[i], given the locked slugs. null means this divider can't move.
+  static lockPlan(i, rows, lockedFacts) {
+    const isLocked = (r) => lockedFacts.includes(r.node.slug);
+    if (!rows.some(isLocked)) return { divider: i, resized: i, mode: 'scale' };
+    const leftLocked = isLocked(rows[i]);
+    if (leftLocked && isLocked(rows[i + 1])) return null;
+    const resized = leftLocked ? i + 1 : i;
+    const pool = rows.map((r, j) => j).filter((j) => j !== resized && !isLocked(rows[j]));
+    return pool.length ? { divider: i, resized, mode: 'trade', pool } : null;
   }
 
   // New importances after dragging the divider right of raws[divider]. move: pointer travel as a fraction of total column width, right is positive.
@@ -2054,7 +2060,7 @@ class Component extends DCLogic {
   }
 
   setFocus(slug) {
-    this.setState({ focus: slug, adding: null, confirmDelete: false, hover: null, selectedFact: null, tradePool: [], frozenOrder: null, evOpen: false, evEdit: null });
+    this.setState({ focus: slug, adding: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null, evOpen: false, evEdit: null });
   }
 
   setBasis(v) {
@@ -2115,7 +2121,7 @@ class Component extends DCLogic {
       if (r.errors.length) return { src: v, srcErrors: r.errors };
       const keep = Component.findPath(r.map.root, s.focus) !== null;
       return {
-        src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, selectedFact: null, tradePool: [], frozenOrder: null, evOpen: false, evEdit: null,
+        src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, lockedFacts: [], frozenOrder: null, evOpen: false, evEdit: null,
         pinned: s.pinned !== null && Component.findPath(r.map.root, s.pinned) !== null ? s.pinned : null,
         focus: keep ? s.focus : r.map.root.slug,
         notice: keep || s.map === BLANK ? s.notice : `“${s.focus}” is no longer in the source, so the view moved to the thesis.`,
@@ -2300,7 +2306,7 @@ class Component extends DCLogic {
       this.setState({ ...file, src: text, srcErrors: r.errors, view: 'source', sourceTab: 'md', fileStatus: `Opened ${name} · ${r.errors.length} error${r.errors.length === 1 ? '' : 's'} to fix` });
       return;
     }
-    this.setState({ ...file, src: text, map: r.map, srcErrors: [], focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, selectedFact: null, tradePool: [], frozenOrder: null, pinned: null, notice: null, fileStatus: `Opened ${name}` });
+    this.setState({ ...file, src: text, map: r.map, srcErrors: [], focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null, pinned: null, notice: null, fileStatus: `Opened ${name}` });
   }
 
   loadB(text, name, url = null) {
@@ -2374,7 +2380,7 @@ class Component extends DCLogic {
       map, src: Component.serialize(map), srcErrors: [], focus: slug, view: 'map',
       fileName: `${slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
-      adding: null, draftText: '', draftSlugCustom: null, selectedFact: null, tradePool: [], frozenOrder: null, pinned: null,
+      adding: null, draftText: '', draftSlugCustom: null, lockedFacts: [], frozenOrder: null, pinned: null,
       confirmDelete: false, hover: null, notice: null, fileStatus: `New map · ${title}`,
     });
   }
@@ -2382,7 +2388,7 @@ class Component extends DCLogic {
   addArg(side) {
     this.setState((s) => {
       if (s.srcErrors.length) throw new Error('bug: add attempted while the markdown source has errors');
-      const parentSlug = Component.panelSlug(s.map.root, s.focus, s.selectedFact);
+      const parentSlug = Component.safeFocus(s.map.root, s.focus);
       if (side === 'premise' && (parentSlug !== s.map.root.slug || s.map.root.children.some((c) => c.kind !== 'premise'))) {
         throw new Error('bug: premise added somewhere other than a root without facts');
       }
@@ -2405,12 +2411,11 @@ class Component extends DCLogic {
     const path = Component.findPath(s.map.root, slug);
     if (path.length < 2) throw new Error('bug: delete offered on the thesis');
     this.edit((m) => ({ ...m, root: Component.removeNode(m.root, slug) }));
-    this.setState({ ...PANEL_RESET, selectedFact: null, focus: slug === s.focus ? path[path.length - 2].slug : s.focus });
+    this.setState({ ...PANEL_RESET, lockedFacts: [], focus: path[path.length - 2].slug });
   }
 
   panelTarget() {
-    const s = this.state;
-    return Component.panelSlug(s.map.root, s.focus, s.selectedFact);
+    return Component.safeFocus(this.state.map.root, this.state.focus);
   }
 
   setBy(v) {
@@ -2449,23 +2454,28 @@ class Component extends DCLogic {
     this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => (n.impact === impact ? n : { ...n, impact })) }));
   }
 
-  // Which column a divider resizes, and the column indexes it may trade with.
   dividerPlan(i, rows) {
-    const s = this.state;
-    return {
-      divider: i, resized: s.selectedFact === rows[i + 1].node.slug ? i + 1 : i, mode: s.resizeMode,
-      pool: rows.map((r, j) => (s.tradePool.includes(r.node.slug) ? j : -1)).filter((j) => j >= 0),
-    };
+    return Component.lockPlan(i, rows, this.state.lockedFacts);
+  }
+
+  toggleLock(slug) {
+    this.setState((s) => ({ lockedFacts: s.lockedFacts.includes(slug) ? s.lockedFacts.filter((x) => x !== slug) : [...s.lockedFacts, slug] }));
+  }
+
+  clearLocks() {
+    this.setState({ lockedFacts: [] });
   }
 
   startDivider(i, rows, e) {
     if (e.pointerType === 'touch') return;
+    const plan = this.dividerPlan(i, rows);
+    if (plan === null) return;
     const chart = e.currentTarget.closest('[data-chart]');
     if (!chart) throw new Error('bug: divider is not inside the chart');
     e.currentTarget.setPointerCapture(e.pointerId);
     this.drag = {
       type: 'divider', pointerId: e.pointerId, x0: e.clientX, width: chart.getBoundingClientRect().width - 8 * (rows.length - 1),
-      slugs: rows.map((r) => r.node.slug), raws: rows.map((r) => r.importance), plan: this.dividerPlan(i, rows),
+      slugs: rows.map((r) => r.node.slug), raws: rows.map((r) => r.importance), plan,
     };
     e.preventDefault();
   }
@@ -2486,12 +2496,20 @@ class Component extends DCLogic {
     const move = { ArrowRight: step, ArrowLeft: -step }[e.key];
     if (move === undefined) return;
     e.preventDefault();
+    const plan = this.dividerPlan(i, rows);
+    if (plan === null) return;
     const raws = rows.map((r) => r.importance);
-    this.setImportances(rows.map((r) => r.node.slug), raws, Component.resizeImportance(raws, { ...this.dividerPlan(i, rows), move }));
+    this.setImportances(rows.map((r) => r.node.slug), raws, Component.resizeImportance(raws, { ...plan, move }));
   }
 
   startColumnDrag(slug, impact, order, draggable, e) {
     this.suppressClick = false;
+    // A lock happens on pointer down, because Ctrl-click on a Mac fires contextmenu with no click.
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      if (draggable) this.toggleLock(slug);
+      this.suppressClick = true;
+      return;
+    }
     if (!draggable || e.pointerType === 'touch') return;
     e.currentTarget.setPointerCapture(e.pointerId);
     this.drag = { type: 'column', pointerId: e.pointerId, slug, y0: e.clientY, start: impact, order, moved: false };
@@ -2504,7 +2522,7 @@ class Component extends DCLogic {
     if (!d.moved) {
       if (Math.abs(dy) <= 5) return;
       d.moved = true;
-      this.setState((s) => ({ ...(s.selectedFact === d.slug ? {} : PANEL_RESET), frozenOrder: d.order, selectedFact: d.slug, thermoSlug: d.slug }));
+      this.setState({ frozenOrder: d.order, thermoSlug: d.slug });
     }
     this.setImpact(d.slug, d.start - dy / 118); // 236px of thermometer spans the whole range
   }
@@ -2519,21 +2537,14 @@ class Component extends DCLogic {
     this.setState({ frozenOrder: null, thermoSlug: null });
   }
 
-  toggleFact(slug) {
-    this.setState((s) => ({ ...PANEL_RESET, selectedFact: s.selectedFact === slug ? null : slug }));
-  }
-
-  onColumnClick(slug, e) {
+  onColumnClick(slug) {
     if (this.suppressClick) { this.suppressClick = false; return; }
-    if ((e.metaKey || e.shiftKey || e.ctrlKey) && this.state.resizeMode === 'trade') {
-      this.setState((s) => ({ tradePool: s.tradePool.includes(slug) ? s.tradePool.filter((x) => x !== slug) : [...s.tradePool, slug] }));
-      return;
-    }
-    this.toggleFact(slug);
+    this.setFocus(slug);
   }
 
   onColumnKey(slug, impact, order, draggable, e) {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.toggleFact(slug); return; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setFocus(slug); return; }
+    if (e.key === 'l' || e.key === 'L') { e.preventDefault(); if (draggable) this.toggleLock(slug); return; }
     const step = e.shiftKey ? 0.01 : 0.05;
     const d = { ArrowUp: step, ArrowDown: -step }[e.key];
     if (d === undefined || !draggable) return;
@@ -2568,7 +2579,7 @@ class Component extends DCLogic {
     const path = Component.findPath(map.root, Component.safeFocus(map.root, s.focus));
     const focus = path[path.length - 1];
     const parent = path.length > 1 ? path[path.length - 2] : null;
-    const targetPath = Component.findPath(map.root, Component.panelSlug(map.root, s.focus, s.selectedFact));
+    const targetPath = Component.findPath(map.root, Component.safeFocus(map.root, s.focus));
     const panelNode = targetPath[targetPath.length - 1];
     const pathSlugs = new Set(path.map((n) => n.slug));
 
@@ -2661,8 +2672,7 @@ class Component extends DCLogic {
       const c = r.node;
       const draggable = editable && !r.calculated;
       const dividerDraggable = editable && !r.calculated && i < rows.length - 1 && !rows[i + 1].calculated;
-      const isSel = s.selectedFact === c.slug;
-      const inPool = s.resizeMode === 'trade' && s.tradePool.includes(c.slug);
+      const isLocked = s.lockedFacts.includes(c.slug);
       const marks = r.calculated ? [] : [
         ...(disp.confidence && c.confidence !== null ? ['★'.repeat(c.confidence) + '☆'.repeat(5 - c.confidence)] : []),
         ...(disp.evidence ? [`📎 ${c.refs.length}`] : []),
@@ -2670,16 +2680,17 @@ class Component extends DCLogic {
       ].join(' · ');
       return {
         slug: c.slug, text: c.text, share: r.share, grow: r.share.toFixed(5), pct: String(Math.round(r.share * 100)), signed: Component.signed(r.impact),
-        aria: `${c.text}: ${Math.round(r.share * 100)}% of importance, impact ${Component.signed(r.impact)}${r.calculated ? ', calculated from its child factors' : ''}. Press Enter to select${draggable ? ', up and down arrows to change impact' : ''}.`,
-        selected: isSel, inPool, ring: isSel ? 'inset 0 0 0 3px var(--ink)' : 'none', poolOutline: inPool ? '2px dashed var(--ink)' : 'none',
-        op: filterActive && !matchSet.has(c.slug) ? 0.22 : 1,
+        aria: `${c.text}: ${Math.round(r.share * 100)}% of importance, impact ${Component.signed(r.impact)}${r.calculated ? ', calculated from its child factors' : ''}. Press Enter to open${draggable ? ', up and down arrows to change impact, L to lock' : ''}.${isLocked ? ' Locked.' : ''}`,
+        isLocked, pressed: String(isLocked), canDrag: String(draggable),
+        op: filterActive && !matchSet.has(c.slug) ? 0.22 : isLocked ? 0.8 : 1,
         isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
         fill: Component.impactFill(r.impact),
         bg: isArea ? 'transparent' : Component.impactFill(r.impact), ink: 'var(--ink)',
         height: s.chartView === 'tall' ? `${70 + 190 * (biggest === 0 ? 1 : r.importance / biggest)}px` : '100%',
         cursor: draggable ? 'ns-resize' : 'pointer',
         hasMarks: marks !== '', marks,
-        click: (e) => this.onColumnClick(c.slug, e),
+        click: () => this.onColumnClick(c.slug),
+        menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
         down: (e) => this.startColumnDrag(c.slug, r.impact, order, draggable, e),
         move: (e) => this.moveColumnDrag(e), up: (e) => this.endColumnDrag(e),
         key: (e) => this.onColumnKey(c.slug, r.impact, order, draggable, e),
@@ -2695,6 +2706,7 @@ class Component extends DCLogic {
     });
     const thermoAt = rows.findIndex((r) => r.node.slug === s.thermoSlug);
     const thermoLeft = thermoAt < 0 ? 0 : rows.slice(0, thermoAt).reduce((t, r) => t + r.share, 0) + rows[thermoAt].share / 2;
+    const lockCount = rows.filter((r) => s.lockedFacts.includes(r.node.slug)).length;
     const chart = {
       title: isProposition ? 'Premises' : 'Contributing factors',
       countLabel: rows.length ? String(rows.length) : '',
@@ -2705,15 +2717,11 @@ class Component extends DCLogic {
         id, label, ...pressed(s.chartView === id), isWidth: id === 'width', isTall: id === 'tall', isArea: id === 'area',
         pick: () => { storeSetting(CHART_VIEW_STORE, id); this.setState({ chartView: id }); },
       })),
-      modes: [['scale', 'Scale all the others'], ['trade', 'Trade with chosen columns']].map(([id, label]) => ({
-        id, label, ...pressed(s.resizeMode === id),
-        pick: () => { storeSetting(RESIZE_MODE_STORE, id); this.setState({ resizeMode: id }); },
-      })),
+      lockCount, hasLocks: lockCount > 0, noLocks: lockCount === 0, clearLocks: () => this.clearLocks(),
+      lockText: `${lockCount} locked · a resize leaves ${lockCount === 1 ? 'it' : 'them'} alone`,
       hint: !editable || rows.every((r) => r.calculated)
-        ? (rows.length && rows[0].calculated ? 'Premise values are calculated from their child factors. Click a column for its details.' : 'Click a column for its details.')
-        : s.resizeMode === 'scale'
-          ? 'Drag a divider as far as you like, even past its neighbour: the selected column, or else the one left of the divider, resizes and the rest scale to fit. Drag a column up or down to change its impact. Click a column for its details.'
-          : '⌘-click or Shift-click columns to mark them. Dragging a divider then trades importance only with those columns, or with the column across the divider if none are marked. Drag a column up or down to change its impact. Click a column for its details.',
+        ? (rows.length && rows[0].calculated ? 'Calculated from each option’s own points · click to open' : 'Click a column to open it')
+        : 'Drag a divider to weigh · drag up or down for impact · click to open · Ctrl or ⌘-click to lock',
       thermo: thermoAt < 0 ? { has: false, left: 0, top: 50, label: '', side: 'left' } : {
         has: true, left: (thermoLeft * 100).toFixed(2), top: ((1 - rows[thermoAt].impact) * 50).toFixed(1), label: Component.signed(rows[thermoAt].impact),
         side: thermoLeft > 0.85 ? 'right' : 'left',
@@ -3057,7 +3065,7 @@ class Component extends DCLogic {
     const target = this.openTarget();
     const tb = {
       toggleNew: () => this.setState({ newOpen: !s.newOpen, openOpen: false }), newExpanded: String(s.newOpen),
-      addPremise: () => this.setState({ view: 'map', focus: map.root.slug, adding: 'premise', draftText: '', draftSlugCustom: null, confirmDelete: false, hover: null, selectedFact: null, tradePool: [], frozenOrder: null }),
+      addPremise: () => this.setState({ view: 'map', focus: map.root.slug, adding: 'premise', draftText: '', draftSlugCustom: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null }),
       premiseDisabled, premiseOpacity: premiseDisabled ? 0.45 : 1,
       premiseTitle: locked ? 'Fix the markdown errors first'
         : rootHasFacts ? 'This root already has contributing factors. Premises go under a root that has none (start a new map, or remove them).'
@@ -3145,7 +3153,6 @@ class Component extends DCLogic {
       importance: targetIsFact ? panelNode.importance : 0, impact: targetIsFact ? panelNode.impact : 0,
       signed: Component.signed(targetValues.impact ?? 0), pct: String(Math.round((targetValues.share ?? 0) * 100)),
       contribution: Component.signed((targetValues.share ?? 0) * (targetValues.impact ?? 0)),
-      canOpen: panelNode.slug !== focus.slug, open: () => this.setFocus(panelNode.slug),
       canDelete: editable && panelNode.kind !== 'root', askDelete: !s.confirmDelete, confirming: s.confirmDelete,
       askDel: () => this.setState({ confirmDelete: true }), cancelDel: () => this.setState({ confirmDelete: false }),
       deleteLabel: nDesc ? `Delete with ${nDesc} child factor${nDesc === 1 ? '' : 's'}` : 'Delete',

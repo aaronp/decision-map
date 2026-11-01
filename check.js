@@ -270,25 +270,104 @@ test('scale drag changes only the resized fact, even past its neighbour', () => 
   assert.ok(changed[0].startsWith('importance: '));
 });
 
-test('a divider resizes the selected column when it touches it', () => {
+// Shared fixtures for the focus view. DEEP_MAP is r > level-1 > ... > level-6.
+const PREMISE_MAP = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n\n## Q\nslug: q\nkind: premise\n\n### G\nslug: g\nimportance: 1\nimpact: -0.5\n`;
+const DEEP_MAP = `---\ntitle: T\n---\n\n# R\nslug: r\n` + [1, 2, 3, 4, 5, 6].map((n) => `\n${'#'.repeat(n + 1)} L${n}\nslug: level-${n}\nimportance: 1\nimpact: 0.5\n`).join('');
+const imps = (c) => ['a', 'b', 'c'].map((sl) => nodeOf(c, sl).importance);
+const dragDivider = (c, slug, dx) => {
+  colOf(c, slug).dividerDown(ev({ clientX: 0 }));
+  colOf(c, slug).dividerMove(ev({ clientX: dx })); // width 1016 less two dividers is 1000px
+  colOf(c, slug).dividerUp(ev());
+};
+const lock = (c, slug) => colOf(c, slug).down(ev({ metaKey: true }));
+
+test('clicking a column opens it', () => {
   const c = boot(MAP3);
   colOf(c, 'b').click(ev());
-  colOf(c, 'a').dividerDown(ev({ clientX: 0 }));
-  colOf(c, 'a').dividerMove(ev({ clientX: 10 }));
-  assert.equal(nodeOf(c, 'a').importance, 10);
-  assert.ok(nodeOf(c, 'b').importance < 30);
+  assert.equal(c.state.focus, 'b');
 });
 
-test('trade drag moves importance only between chosen columns', () => {
+test('a locked column keeps its size and the unlocked ones absorb the resize', () => {
   const c = boot(MAP3);
-  chartOf(c).modes.find((x) => x.id === 'trade').pick();
-  colOf(c, 'c').click(ev({ metaKey: true }));
-  assert.equal(c.state.selectedFact, null);
-  assert.ok(colOf(c, 'c').inPool);
-  colOf(c, 'a').dividerDown(ev({ clientX: 0 }));
-  colOf(c, 'a').dividerMove(ev({ clientX: 100 })); // a tenth of the width, 10 of 100 total
-  colOf(c, 'a').dividerUp(ev());
-  assert.deepEqual(['a', 'b', 'c'].map((s) => nodeOf(c, s).importance), [20, 30, 50]);
+  lock(c, 'c');
+  assert.ok(colOf(c, 'c').isLocked);
+  dragDivider(c, 'a', 100);
+  assert.deepEqual(imps(c), [20, 20, 60]);
+});
+
+test('with only the left column locked, the divider resizes the right one', () => {
+  const c = boot(MAP3);
+  lock(c, 'a');
+  dragDivider(c, 'a', 100);
+  assert.deepEqual(imps(c), [10, 20, 70]);
+});
+
+test('a divider between two locked columns does nothing, and neither does one with no unlocked column left', () => {
+  const c = boot(MAP3);
+  lock(c, 'a'); lock(c, 'b');
+  dragDivider(c, 'a', 100);
+  assert.deepEqual(imps(c), [10, 30, 60]);
+  const d = boot(MAP3);
+  lock(d, 'b'); lock(d, 'c');
+  dragDivider(d, 'a', 100);
+  assert.deepEqual(imps(d), [10, 30, 60]);
+  colOf(d, 'a').dividerKey(ev({ key: 'ArrowRight' }));
+  assert.deepEqual(imps(d), [10, 30, 60]);
+});
+
+test('with nothing locked, a drag changes only the resized fact', () => {
+  const c = boot(MAP3);
+  dragDivider(c, 'a', 500);
+  assert.equal(nodeOf(c, 'b').importance, 30);
+  assert.equal(nodeOf(c, 'c').importance, 60);
+});
+
+test('Clear removes locks, and moving level clears them too', () => {
+  const c = boot(MAP3);
+  lock(c, 'a');
+  assert.equal(chartOf(c).lockCount, 1);
+  chartOf(c).clearLocks();
+  assert.equal(chartOf(c).lockCount, 0);
+  lock(c, 'a');
+  c.setFocus('b');
+  assert.deepEqual(c.state.lockedFacts, []);
+});
+
+test('a lock on a point that no longer exists is ignored', () => {
+  const c = boot(MAP3);
+  c.setState({ lockedFacts: ['gone'] });
+  assert.equal(chartOf(c).lockCount, 0);
+  dragDivider(c, 'a', 500);
+  assert.equal(nodeOf(c, 'b').importance, 30);
+});
+
+test('all-zero siblings resize to nothing, with no NaN', () => {
+  const raws = [0, 0, 0];
+  assert.deepEqual(Component.resizeImportance(raws, { divider: 0, resized: 0, move: 0.1, mode: 'trade', pool: [1, 2] }), raws);
+});
+
+test('premises can be opened but not locked', () => {
+  const c = boot(PREMISE_MAP);
+  chartOf(c).cols[0].down(ev({ metaKey: true }));
+  assert.deepEqual(c.state.lockedFacts, []);
+});
+
+test('L toggles a lock from the keyboard, and Ctrl-click stays out of the context menu', () => {
+  const c = boot(MAP3);
+  colOf(c, 'c').key(ev({ key: 'l' }));
+  assert.deepEqual(c.state.lockedFacts, ['c']);
+  colOf(c, 'c').key(ev({ key: 'L' }));
+  assert.deepEqual(c.state.lockedFacts, []);
+  let prevented = false;
+  colOf(c, 'a').menu({ ctrlKey: true, preventDefault() { prevented = true; } });
+  assert.ok(prevented);
+});
+
+test('a lock gesture doesn\'t open the column', () => {
+  const c = boot(MAP3);
+  lock(c, 'a');
+  colOf(c, 'a').click(ev({ metaKey: true }));
+  assert.equal(c.state.focus, 'r');
 });
 
 test('vertical drag changes impact, and re-sorts only on release', () => {
@@ -296,14 +375,13 @@ test('vertical drag changes impact, and re-sorts only on release', () => {
   colOf(c, 'a').down(ev({ clientY: 200 }));
   colOf(c, 'a').move(ev({ clientY: 200 - 118 })); // up by one unit: −0.5 to +0.5, past b
   assert.equal(nodeOf(c, 'a').impact, 0.5);
-  assert.equal(c.state.selectedFact, 'a');
   assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['a', 'b', 'c']);
   assert.ok(chartOf(c).thermo.has);
   colOf(c, 'a').up(ev());
   assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['b', 'a', 'c']);
   assert.equal(chartOf(c).thermo.has, false);
-  colOf(c, 'a').click(ev()); // the click that ends a drag doesn't toggle selection
-  assert.equal(c.state.selectedFact, 'a');
+  colOf(c, 'a').click(ev()); // the click that ends a drag doesn't open it
+  assert.equal(c.state.focus, 'r');
 });
 
 test('impact stays within range when dragged far', () => {
@@ -311,15 +389,6 @@ test('impact stays within range when dragged far', () => {
   colOf(c, 'a').down(ev({ clientY: 0 }));
   colOf(c, 'a').move(ev({ clientY: 5000 }));
   assert.equal(nodeOf(c, 'a').impact, -1);
-});
-
-test('clicking selects, and clicking again deselects', () => {
-  const c = boot(MAP3);
-  colOf(c, 'b').click(ev());
-  assert.equal(c.state.selectedFact, 'b');
-  assert.ok(colOf(c, 'b').selected);
-  colOf(c, 'b').click(ev());
-  assert.equal(c.state.selectedFact, null);
 });
 
 test('keyboard impact holds the order until the column loses focus', () => {
@@ -330,7 +399,7 @@ test('keyboard impact holds the order until the column loses focus', () => {
   colOf(c, 'a').blur(ev());
   assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['b', 'a', 'c']);
   colOf(c, 'b').key(ev({ key: 'Enter' }));
-  assert.equal(c.state.selectedFact, 'b');
+  assert.equal(c.state.focus, 'b');
 });
 
 test('keyboard on a divider changes importance', () => {
@@ -350,7 +419,7 @@ test('touch doesn\'t start drags', () => {
   assert.equal(nodeOf(c, 'a').importance, 10);
 });
 
-test('premise columns can be selected but not dragged', () => {
+test('premise columns can be opened but not dragged', () => {
   const src = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n\n## Q\nslug: q\nkind: premise\n`;
   const c = boot(src);
   const before = c.state.src;
@@ -363,9 +432,9 @@ test('premise columns can be selected but not dragged', () => {
   colOf(c, 'q').dividerKey(ev({ key: 'ArrowRight' }));
   assert.equal(c.state.src, before);
   assert.equal(chartOf(c).thermo.has, false);
-  colOf(c, 'q').click(ev());
-  assert.equal(c.state.selectedFact, 'q');
   assert.equal(c.renderVals().score.has, false);
+  colOf(c, 'q').click(ev());
+  assert.equal(c.state.focus, 'q');
 });
 
 test('a filter dims columns and keeps shares', () => {
@@ -425,26 +494,22 @@ const panelOf = (c) => c.renderVals().pn;
 const reloaded = (c) => assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
 const NESTED = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 10\nimpact: -0.5\n\n### Kid\nslug: kid\nimportance: 1\nimpact: 1\n\n## B\nslug: b\nimportance: 30\nimpact: 0.5\n`;
 
-test('panelSlug and safeFocus fall back to what exists', () => {
+test('safeFocus falls back to what exists', () => {
   const t2 = rootOf([fact('a', 1, 0, [fact('b', 1, 0)])]);
-  assert.equal(Component.panelSlug(t2, 'a', 'b'), 'b');
-  assert.equal(Component.panelSlug(t2, 'a', 'gone'), 'a');
-  assert.equal(Component.panelSlug(t2, 'gone', 'gone'), 'r');
-  assert.equal(Component.panelSlug(t2, 'a', null), 'a');
+  assert.equal(Component.safeFocus(t2, 'b'), 'b');
   assert.equal(Component.safeFocus(t2, 'gone'), 'r');
 });
 
-test('the panel shows the selected fact, else the focused claim', () => {
+test('the panel shows the point in focus', () => {
   const c = boot(NESTED);
   assert.equal(panelOf(c).slug, 'r');
   colOf(c, 'a').click(ev());
   assert.equal(panelOf(c).slug, 'a');
   assert.equal(panelOf(c).text, 'A');
-  assert.equal(c.renderVals().fc.text, 'R');
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
-test('the panel edits the selected fact and saves it', () => {
+test('the panel edits the point in focus and saves it', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
   panelOf(c).onText({ target: { value: 'A edited' } });
@@ -484,7 +549,7 @@ test('text can hold braces but not end in a slug block', () => {
   assert.ok(c.state.notice);
 });
 
-test('evidence attaches to the selected fact', () => {
+test('evidence attaches to the point in focus', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
   c.renderVals().ev.openAdd();
@@ -494,35 +559,30 @@ test('evidence attaches to the selected fact', () => {
   reloaded(c);
 });
 
-test('add puts a child under the panel target and keeps the selection', () => {
+test('add puts a child under the point in focus', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
   c.renderVals().add.open();
   c.renderVals().add.onDraftText({ target: { value: 'New kid' } });
   c.renderVals().add.save();
   assert.deepEqual(nodeOf(c, 'a').children.map((k) => k.slug), ['kid', 'new-kid']);
-  assert.equal(c.state.selectedFact, 'a');
-  assert.equal(panelOf(c).kids.length, 2);
+  assert.equal(c.state.focus, 'a');
   reloaded(c);
 });
 
-test('Open focuses the fact and its children become the chart', () => {
+test('opening a point makes its children the chart', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
-  panelOf(c).open();
-  assert.equal(c.state.focus, 'a');
-  assert.equal(c.state.selectedFact, null);
   assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['kid']);
 });
 
-test('delete removes the selected fact and keeps the focus', () => {
+test('delete removes the point in focus and moves up to its parent', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
   panelOf(c).askDel();
   panelOf(c).doDel();
   assert.equal(nodeOf(c, 'a'), undefined);
   assert.equal(c.state.focus, 'r');
-  assert.equal(c.state.selectedFact, null);
   assert.equal(panelOf(c).slug, 'r');
 });
 
@@ -546,22 +606,21 @@ test('the root and premises offer only what they can hold', () => {
   reloaded(c);
 });
 
-test('a selected fact removed from the source falls back cleanly', () => {
+test('a focused point removed from the source falls back cleanly', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
   c.onSrc(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## B\nslug: b\nimportance: 30\nimpact: 0.5\n`);
-  assert.equal(c.state.selectedFact, null);
   assert.equal(panelOf(c).slug, 'r');
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
 test('a stale focus never crashes the render', () => {
   const c = boot(NESTED);
-  c.setState({ focus: 'gone', selectedFact: 'gone-too' });
+  c.setState({ focus: 'gone' });
   assert.equal(panelOf(c).slug, 'r');
 });
 
-test('locked maps still select but can\'t edit', () => {
+test('locked maps still open points but can\'t edit', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
   c.onSrc('not a map');
@@ -694,7 +753,7 @@ test('research describes a fact by the sign of its impact', () => {
   c.setState({ orKeySaved: 'k' });
   colOf(c, 'a').click(ev());
   assert.ok(capturingFetch(() => c.renderVals().ev.research()).includes('against'));
-  colOf(c, 'a').click(ev());
+  c.setFocus('r');
   colOf(c, 'c').click(ev());
   assert.ok(capturingFetch(() => c.renderVals().ev.research()).includes('for'));
 });
@@ -838,12 +897,11 @@ test('opening a diff row goes through the normal focus change', () => {
   const c = boot(LEGACY_A, LEGACY_B);
   c.setState({ view: 'map' });
   colOf(c, 'pay-tax').click(ev());
-  c.setState({ view: 'diff', diffTab: 'table', tradePool: ['pay-tax'] });
+  c.setState({ view: 'diff', diffTab: 'table', lockedFacts: ['pay-tax'] });
   c.renderVals().diff.rows.find((r) => r.text.startsWith('Teenagers don')).open();
   assert.equal(c.state.view, 'map');
   assert.equal(c.state.focus, 'inexperience');
-  assert.equal(c.state.selectedFact, null);
-  assert.deepEqual(c.state.tradePool, []);
+  assert.deepEqual(c.state.lockedFacts, []);
 });
 
 console.log(`${passed} passed, ${failed} failed`);
