@@ -228,174 +228,56 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   <sc-if value="{{isMap}}" hint-placeholder-val="{{ true }}">
   <div style="display: flex; flex-direction: column; gap: 16px">
 
-    <section aria-label="Overview" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
-        <h2 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em">Overview · block width is importance share, colour is impact</h2>
-        <span style="font-size: 12px; color: var(--ink2)">Click a block to focus it</span>
-      </div>
-      <div style="position: relative; height: {{ice.height}}px">
-        <sc-for list="{{ice.boxes}}" as="b" hint-placeholder-count="8">
-          <button type="button" aria-label="{{b.aria}}" title="{{b.aria}}" onClick="{{b.pick}}" style="position: absolute; left: {{b.left}}%; width: {{b.width}}%; top: {{b.top}}px; height: 24px; box-sizing: border-box; border: {{b.border}}; border-radius: 6px; padding: 0; cursor: pointer; background: {{b.bg}}; box-shadow: {{b.shadow}}; opacity: {{b.op}}"></button>
-        </sc-for>
-      </div>
-    </section>
-
     <sc-if value="{{hasParent}}" hint-placeholder-val="{{ true }}">
-      <section aria-label="Parent claim" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; margin: 0 4%">
-        <nav aria-label="Path" style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--ink2)">
+      <nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 12px; min-height: 34px; padding: 0 8px; font-size: 14px; color: var(--ink2)">
+        <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px">
           <sc-for list="{{crumbs}}" as="c" hint-placeholder-count="2">
-            <button type="button" onClick="{{c.go}}" style="border: 0; background: none; padding: 4px 2px; font: inherit; font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline">{{c.label}}</button>
-            <span aria-hidden="true">{{c.sep}}</span>
+            <button type="button" class="tb" title="{{c.title}}" onClick="{{c.go}}" style="flex: 0 1 auto; min-width: 4ch; max-width: 36ch; border: 0; border-radius: 6px; padding: 5px 6px; font: inherit; color: var(--ink2); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.label}}</button>
+            <span aria-hidden="true" style="flex: none; color: var(--ink3)">›</span>
           </sc-for>
-        </nav>
-        <div style="display: flex; align-items: flex-start; gap: 12px">
-          <span style="font-weight: 700; color: {{parentCard.fg}}; font-size: 14px; padding-top: 2px">{{parentCard.glyph}}</span>
-          <p style="margin: 0; flex: 1; font-size: 16px; line-height: 1.45">{{parentCard.text}}</p>
-          <button type="button" onClick="{{goUp}}" aria-label="Go up to the parent claim" style="width: 44px; height: 44px; flex: none; border: 1px solid var(--control); border-radius: 50%; background: var(--card); color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
-          </button>
+          <span aria-current="page" title="{{crumbCurrent}}" style="flex: 0 1 auto; min-width: 4ch; max-width: 36ch; padding: 5px 6px; font-weight: 500; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{crumbCurrent}}</span>
         </div>
-      </section>
+        <span style="flex: none; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink3); white-space: nowrap">{{crumbMeta}}</span>
+      </nav>
     </sc-if>
 
-    <section aria-label="Focused claim" style="background: var(--card); border: 2px solid {{fc.border}}; border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px">
-        <span style="background: {{fc.tint}}; color: {{fc.fg}}; font-weight: 700; padding: 4px 10px; border-radius: 999px">{{fc.kind}}</span>
-        <sc-if value="{{fc.hasBy}}" hint-placeholder-val="{{ true }}"><span style="color: var(--ink2)">by {{fc.by}}</span></sc-if>
-        <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{fc.slug}}</code>
-        <span style="flex: 1"></span>
+    <section aria-label="Current point" style="padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+      <textarea aria-label="Title" rows="1" value="{{pn.text}}" onChange="{{pn.onText}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); resize: none"></textarea>
+      <textarea aria-label="Description" rows="1" placeholder="Add a description (optional)" value="{{pn.details}}" onChange="{{pn.onDetails}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 1.1rem; color: var(--ink2); resize: none"></textarea>
+      <sc-if value="{{pn.isFact}}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 28px; max-width: 800px">
+          <label style="display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; font-weight: 600; color: var(--ink2)">
+            <span>Importance <span style="font-weight: 400; color: var(--ink3)">bar width</span></span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; font-weight: 500; color: var(--ink)">{{pn.pct}}%</span>
+            <input type="range" min="2" max="90" step="1" value="{{pn.shareSlider}}" onChange="{{pn.onShare}}" disabled="{{pn.shareDisabled}}" style="grid-column: 1 / -1; width: 100%; accent-color: var(--ink)">
+          </label>
+          <label style="display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; font-weight: 600; color: var(--ink2)">
+            <span>Impact <span style="font-weight: 400; color: var(--ink3)">colour depth</span></span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; font-weight: 500; color: var(--ink)">{{pn.signed}}</span>
+            <input type="range" min="-1" max="1" step="0.01" value="{{pn.impact}}" onChange="{{pn.onImpact}}" disabled="{{locked}}" style="grid-column: 1 / -1; width: 100%; accent-color: {{pn.impactFill}}">
+          </label>
+        </div>
+      </sc-if>
+      <sc-if value="{{pn.calculated}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; font-size: 14px; color: var(--ink3)">Importance and impact are calculated from this option’s points.</p>
+      </sc-if>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px">
+        <div role="img" aria-label="{{health.aria}}" style="position: relative; flex: 1 1 240px; height: 12px; border-radius: 6px; background: var(--rule-soft); overflow: hidden">
+          <span style="position: absolute; top: 0; bottom: 0; left: {{health.left}}%; width: {{health.width}}%; background: {{health.fill}}"></span>
+          <span style="position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--ink3)"></span>
+        </div>
+        <span style="font-size: 14px; color: var(--ink2)">{{health.label}} <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; font-weight: 500; color: var(--ink); margin-left: 4px">{{health.signed}}</span></span>
       </div>
-      <p style="margin: 0; font-size: 26px; line-height: 1.3; font-weight: 500">{{fc.text}}</p>
-      <sc-if value="{{score.has}}" hint-placeholder-val="{{ true }}">
-        <div style="display: flex; flex-direction: column; gap: 8px">
-          <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; flex-wrap: wrap">
-            <span style="color: var(--ink2)">Overall score</span>
-            <span style="font-weight: 700; font-variant-numeric: tabular-nums">{{score.signed}}</span>
-          </div>
-          <div role="img" aria-label="Overall score {{score.signed}}, on a scale from −1 to +1" style="position: relative; height: 10px; border-radius: 5px; background: linear-gradient(to right, var(--con), var(--sunk), var(--pro))">
-            <span style="position: absolute; left: {{score.left}}%; top: -4px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--ink)"></span>
-          </div>
-        </div>
-      </sc-if>
-      <sc-if value="{{score.none}}" hint-placeholder-val="{{ false }}">
-        <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{score.noneText}}</p>
-      </sc-if>
-    </section>
-
-    <section aria-label="Contributing factors" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
-        <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{chart.title}} <span style="font-size: 13px; font-weight: 500; color: var(--ink2)">{{chart.countLabel}}</span></h2>
-        <span style="flex: 1"></span>
-        <div role="group" aria-label="Chart view" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
-          <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
-            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
-          </sc-for>
-        </div>
-      </div>
-
-      <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
-        <div data-chart="1" style="position: relative; display: flex; align-items: {{chart.align}}; height: 260px; user-select: none; -webkit-user-select: none">
-          <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
-            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
-          </sc-if>
-          <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
-            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
-              <sc-if value="{{c.isLocked}}" hint-placeholder-val="{{ false }}">
-                <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></div>
-              </sc-if>
-              <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
-                <div style="height: 100%; display: grid; grid-template-rows: 1fr 1fr">
-                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
-                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
-                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
-                  </div>
-                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column">
-                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
-                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
-                  </div>
-                </div>
-              </sc-if>
-              <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
-                <div style="height: 100%; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px">
-                  <span style="overflow: hidden; min-height: 0; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.text}}</span>
-                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
-                </div>
-              </sc-if>
-            </div>
-            <sc-if value="{{c.hasDivider}}" hint-placeholder-val="{{ true }}">
-              <button type="button" class="am-divider" disabled="{{c.dividerDisabled}}" aria-label="{{c.dividerLabel}}" title="{{c.dividerTitle}}" onPointerDown="{{c.dividerDown}}" onPointerMove="{{c.dividerMove}}" onPointerUp="{{c.dividerUp}}" onPointerCancel="{{c.dividerUp}}" onKeyDown="{{c.dividerKey}}" style="flex: none; width: 8px; align-self: stretch; padding: 0; border: 0; background: transparent; cursor: {{c.dividerCursor}}; touch-action: pan-y"></button>
-            </sc-if>
-          </sc-for>
-          <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
-            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: 236px; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
-              <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
-              <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--on-ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
-            </div>
-          </sc-if>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; min-height: 26px; font-size: 13px; color: var(--ink3)">
-          <sc-if value="{{chart.hasLocks}}" hint-placeholder-val="{{ false }}">
-            <span role="status">{{chart.lockText}}</span>
-            <button type="button" onClick="{{chart.clearLocks}}" style="min-height: 26px; padding: 0 10px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer">Clear</button>
-          </sc-if>
-          <sc-if value="{{chart.noLocks}}" hint-placeholder-val="{{ true }}"><span>{{chart.hint}}</span></sc-if>
-        </div>
-      </sc-if>
-      <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
-        <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
-      </sc-if>
-    </section>
-
-    <section aria-label="Details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px">
-        <span style="background: var(--sunk); font-weight: 700; padding: 4px 10px; border-radius: 999px">{{pn.kind}}</span>
-        <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{pn.slug}}</code>
-        <span style="flex: 1"></span>
-        <sc-if value="{{pn.canDelete}}" hint-placeholder-val="{{ true }}">
-          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
-            <sc-if value="{{pn.askDelete}}" hint-placeholder-val="{{ true }}">
-              <button type="button" onClick="{{pn.askDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; color: var(--con)">Delete</button>
-            </sc-if>
-            <sc-if value="{{pn.confirming}}" hint-placeholder-val="{{ false }}">
-              <button type="button" onClick="{{pn.cancelDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Keep</button>
-              <button type="button" onClick="{{pn.doDel}}" style="min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--con); color: var(--on-fill); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{pn.deleteLabel}}</button>
-            </sc-if>
-          </div>
-        </sc-if>
-      </div>
-      <textarea aria-label="Text" rows="2" value="{{pn.text}}" onChange="{{pn.onText}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 18px; line-height: 1.35; font-weight: 500; color: var(--ink); resize: vertical"></textarea>
-      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; font-size: 13px">
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 0 1 180px; min-width: 120px">By
+      <details style="font-size: 14px; color: var(--ink2)">
+        <summary style="cursor: pointer; width: max-content">More</summary>
+        <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px; color: var(--ink)">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; font-size: 13px">
+            <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 0 1 180px; min-width: 120px">By
           <input type="text" value="{{pn.by}}" onChange="{{pn.onBy}}" readOnly="{{locked}}" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
         </label>
-        <sc-if value="{{pn.isFact}}" hint-placeholder-val="{{ true }}">
-          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 0 1 130px; min-width: 100px">Importance
-            <input type="number" min="0" step="1" value="{{pn.importance}}" onChange="{{pn.onImportance}}" readOnly="{{locked}}" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
-          </label>
-          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 1 1 220px; min-width: 160px">Impact
-            <span style="display: flex; align-items: center; gap: 10px; min-height: 38px">
-              <input type="range" min="-1" max="1" step="0.01" value="{{pn.impact}}" onChange="{{pn.onImpact}}" disabled="{{locked}}" style="flex: 1; min-width: 80px">
-              <span style="font-variant-numeric: tabular-nums; font-weight: 600; min-width: 44px; text-align: right">{{pn.signed}}</span>
-            </span>
-          </label>
-        </sc-if>
-        <sc-if value="{{pn.hasValues}}" hint-placeholder-val="{{ true }}">
-          <dl style="display: flex; flex-wrap: wrap; gap: 8px; margin: 0">
-            <sc-if value="{{pn.calculated}}" hint-placeholder-val="{{ false }}">
-              <div style="background: var(--sunk); border-radius: 8px; padding: 6px 10px"><dt style="font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em">Impact</dt><dd style="margin: 0; font-weight: 600; font-variant-numeric: tabular-nums">{{pn.signed}}</dd></div>
-            </sc-if>
-            <div style="background: var(--sunk); border-radius: 8px; padding: 6px 10px"><dt style="font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em">Share</dt><dd style="margin: 0; font-weight: 600; font-variant-numeric: tabular-nums">{{pn.pct}}%</dd></div>
-            <div style="background: var(--sunk); border-radius: 8px; padding: 6px 10px"><dt style="font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em">Contribution</dt><dd style="margin: 0; font-weight: 600; font-variant-numeric: tabular-nums">{{pn.contribution}}</dd></div>
-          </dl>
-        </sc-if>
-      </div>
-      <sc-if value="{{pn.calculated}}" hint-placeholder-val="{{ false }}">
-        <p style="margin: 0; font-size: 13px; color: var(--ink2)">Calculated from its child factors, relative to the other premises.</p>
-      </sc-if>
-      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Details <span style="font-weight: 400; color: var(--ink2)">optional</span>
-        <textarea rows="3" value="{{pn.details}}" onChange="{{pn.onDetails}}" readOnly="{{locked}}" style="box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 400; resize: vertical"></textarea>
-      </label>
-      <sc-if value="{{rat.show}}" hint-placeholder-val="{{ false }}">
+            <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{pn.slug}}</code>
+          </div>
+          <sc-if value="{{rat.show}}" hint-placeholder-val="{{ false }}">
         <div aria-label="Rationale check" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
           <button type="button" onClick="{{rat.run}}" disabled="{{rat.busy}}" title="Ask Jev how well each side makes its case" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap"><span aria-hidden="true">✦</span>{{rat.label}}</button>
           <sc-if value="{{rat.has}}" hint-placeholder-val="{{ false }}">
@@ -412,8 +294,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           <sc-if value="{{rat.hasError}}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size: 13px; color: var(--con)">{{rat.error}}</span></sc-if>
         </div>
       </sc-if>
-
-      <sc-if value="{{bc.show}}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{bc.show}}" hint-placeholder-val="{{ false }}">
         <div style="border-top: 1px solid var(--rule-soft); padding-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 24px">
           <div style="display: flex; flex-direction: column; gap: 6px">
             <label for="basis-input" style="display: flex; flex-direction: column; gap: 2px">
@@ -440,8 +321,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           </div>
         </div>
       </sc-if>
-
-      <sc-if value="{{ev.show}}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{ev.show}}" hint-placeholder-val="{{ false }}">
         <div aria-label="Evidence" style="border-top: 1px solid var(--rule-soft); padding-top: 12px; display: flex; flex-direction: column; gap: 10px">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
             <h3 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px">
@@ -527,7 +407,87 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           </sc-if>
         </div>
       </sc-if>
-      <div style="border-top: 1px solid var(--rule-soft); padding-top: 12px; display: flex; flex-direction: column; gap: 10px">
+          <sc-if value="{{pn.canDelete}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <sc-if value="{{pn.askDelete}}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{pn.askDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; color: var(--con)">Delete</button>
+            </sc-if>
+            <sc-if value="{{pn.confirming}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{pn.cancelDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Keep</button>
+              <button type="button" onClick="{{pn.doDel}}" style="min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--con); color: var(--on-fill); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{pn.deleteLabel}}</button>
+            </sc-if>
+          </div>
+        </sc-if>
+        </div>
+      </details>
+    </section>
+
+    <section aria-label="Contributing factors" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{chart.title}} <span style="font-size: 13px; font-weight: 500; color: var(--ink2)">{{chart.countLabel}}</span></h2>
+        <span style="flex: 1"></span>
+        <div role="group" aria-label="Chart view" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
+          <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
+        <div data-chart="1" style="position: relative; display: flex; align-items: {{chart.align}}; height: 260px; user-select: none; -webkit-user-select: none">
+          <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
+          </sc-if>
+          <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
+            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
+              <sc-if value="{{c.isLocked}}" hint-placeholder-val="{{ false }}">
+                <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></div>
+              </sc-if>
+              <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
+                <div style="height: 100%; display: grid; grid-template-rows: 1fr 1fr">
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
+                  </div>
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column">
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
+                <div style="height: 100%; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px">
+                  <span style="overflow: hidden; min-height: 0; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.text}}</span>
+                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
+                </div>
+              </sc-if>
+            </div>
+            <sc-if value="{{c.hasDivider}}" hint-placeholder-val="{{ true }}">
+              <button type="button" class="am-divider" disabled="{{c.dividerDisabled}}" aria-label="{{c.dividerLabel}}" title="{{c.dividerTitle}}" onPointerDown="{{c.dividerDown}}" onPointerMove="{{c.dividerMove}}" onPointerUp="{{c.dividerUp}}" onPointerCancel="{{c.dividerUp}}" onKeyDown="{{c.dividerKey}}" style="flex: none; width: 8px; align-self: stretch; padding: 0; border: 0; background: transparent; cursor: {{c.dividerCursor}}; touch-action: pan-y"></button>
+            </sc-if>
+          </sc-for>
+          <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: 236px; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
+              <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
+              <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--on-ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; min-height: 26px; font-size: 13px; color: var(--ink3)">
+          <sc-if value="{{chart.hasLocks}}" hint-placeholder-val="{{ false }}">
+            <span role="status">{{chart.lockText}}</span>
+            <button type="button" onClick="{{chart.clearLocks}}" style="min-height: 26px; padding: 0 10px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer">Clear</button>
+          </sc-if>
+          <sc-if value="{{chart.noLocks}}" hint-placeholder-val="{{ true }}"><span>{{chart.hint}}</span></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
+      </sc-if>
+    </section>
+
+    <section aria-label="Add" style="display: flex; flex-direction: column; gap: 14px; min-width: 0">
+      <div style="display: flex; flex-direction: column; gap: 10px">
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
           <h3 style="margin: 0; font-size: 14px; font-weight: 600">{{pn.kidsTitle}} <span style="font-weight: 500; color: var(--ink2)">{{pn.kidsCount}}</span></h3>
           <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
@@ -537,13 +497,6 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             </button>
           </sc-if>
         </div>
-        <sc-if value="{{pn.showKids}}" hint-placeholder-val="{{ false }}">
-          <div aria-hidden="true" style="display: flex; height: 28px; gap: 2px; border-radius: 4px; overflow: hidden">
-            <sc-for list="{{pn.kids}}" as="k" hint-placeholder-count="2">
-              <span title="{{k.title}}" style="flex: {{k.grow}} 1 0px; min-width: 2px; background: {{k.fill}}"></span>
-            </sc-for>
-          </div>
-        </sc-if>
         <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
           <div style="border: 1.5px dashed var(--ink2); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
             <textarea autoFocus="{{ true }}" aria-label="{{add.aria}}" placeholder="{{add.aria}}" rows="2" value="{{add.draftText}}" onChange="{{add.onDraftText}}" onKeyDown="{{add.onDraftKey}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; resize: vertical"></textarea>
@@ -603,15 +556,9 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         </nav>
       </sc-if>
       <div style="display: flex; gap: 10px; align-items: flex-start">
-        <span style="font-weight: 700; color: {{fc.fg}}; padding-top: 2px">{{fc.glyphOnly}}</span>
-        <p style="margin: 0; font-size: 18px; line-height: 1.4; font-weight: 500">{{fc.text}}</p>
+        <span style="font-weight: 700; color: var(--ink); padding-top: 2px"></span>
+        <p style="margin: 0; font-size: 18px; line-height: 1.4; font-weight: 500">{{pn.text}}</p>
       </div>
-      <sc-if value="{{score.has}}" hint-placeholder-val="{{ true }}">
-        <div style="display: flex; flex-direction: column; gap: 6px">
-          <div style="display: flex; justify-content: space-between; font-size: 12px"><span style="color: var(--ink2)">Overall score</span><span style="font-weight: 700; font-variant-numeric: tabular-nums">{{score.signed}}</span></div>
-          <div style="position: relative; height: 8px; border-radius: 4px; background: linear-gradient(to right, var(--con), var(--sunk), var(--pro))"><span style="position: absolute; left: {{score.left}}%; top: -3px; width: 4px; height: 14px; margin-left: -2px; border-radius: 2px; background: var(--ink)"></span></div>
-        </div>
-      </sc-if>
       <div style="display: flex; flex-direction: column">
         <sc-for list="{{pie.legend}}" as="l" hint-placeholder-count="4">
           <div style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 4px 10px; padding: 10px 0; border-top: 1px solid var(--rule-soft)">
@@ -1780,6 +1727,19 @@ class Component extends DCLogic {
     return [...listed, ...byImpact(rows.filter((r) => !listed.includes(r)))];
   }
 
+  // The stored importance that gives raws[index] this share of its siblings. Only that one number changes.
+  static importanceForShare(raws, index, share) {
+    const others = raws.reduce((t, r, j) => t + (j === index ? 0 : r), 0);
+    if (others === 0) return raws[index];
+    const g = Math.max(0.02, Math.min(0.9, share));
+    return (g / (1 - g)) * others;
+  }
+
+  static healthLabel(score) {
+    if (Math.abs(score) <= 0.1) return 'Balanced';
+    return score > 0 ? 'Mostly supported' : 'Mostly contrary';
+  }
+
   // The resizeImportance plan for the divider right of rows[i], given the locked slugs. null means this divider can't move.
   static lockPlan(i, rows, lockedFacts) {
     const isLocked = (r) => lockedFacts.includes(r.node.slug);
@@ -2139,7 +2099,11 @@ class Component extends DCLogic {
     if (Component.endsInSlugBlock(t)) { this.setState({ notice: SLUG_BLOCK_NOTICE }); return; }
     if (t.trim() === '') { this.setState({ notice: 'A fact needs some text. Use Delete to remove it instead.' }); return; }
     const slug = this.panelTarget();
-    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => ({ ...n, text: t })) }));
+    this.edit((m) => ({
+      ...m,
+      title: slug === m.root.slug && m.title === m.root.text ? t : m.title,
+      root: Component.mapNode(m.root, slug, (n) => ({ ...n, text: t })),
+    }));
   }
 
   onDraftText(v) {
@@ -2427,10 +2391,14 @@ class Component extends DCLogic {
     this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, details: v.trim() === '' ? null : v })) }));
   }
 
-  onImportanceInput(v) {
-    if (!/^\d*\.?\d+$/.test(v)) return;
-    const importance = Math.round(Number(v) * 10) / 10;
-    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, importance })) }));
+  onShareInput(v) {
+    if (v.trim() === '' || !Number.isFinite(Number(v))) return;
+    const slug = this.panelTarget();
+    const path = Component.findPath(this.state.map.root, slug);
+    const sibs = path[path.length - 2].children;
+    const i = sibs.findIndex((n) => n.slug === slug);
+    const raws = sibs.map((n) => n.importance);
+    this.setImportances([slug], [raws[i]], [Component.importanceForShare(raws, i, Number(v) / 100)]);
   }
 
   onImpactInput(v) {
@@ -2601,17 +2569,11 @@ class Component extends DCLogic {
     }));
 
     const crumbs = path.slice(0, -1).map((n, k, arr) => ({
-      label: Component.truncate(n.text, 36), sep: k < arr.length - 1 ? '›' : '', go: () => this.setFocus(n.slug),
+      label: n.text, title: n.text, sep: k < arr.length - 1 ? '›' : '', go: () => this.setFocus(n.slug),
     }));
 
     const rootHasFacts = map.root.children.some((c) => c.kind === 'fact');
     const isProposition = focus.children.some((c) => c.kind === 'premise');
-    const fst = sideOf(focus);
-    const fc = {
-      slug: focus.slug, text: focus.text, by: focus.by === null ? '' : focus.by, hasBy: focus.by !== null,
-      kind: focus.kind === 'fact' ? 'Fact' : focus.kind === 'premise' ? '◇ Premise' : isProposition ? '◆ Proposition' : '◆ Thesis', glyphOnly: fst.glyph,
-      fg: fst.fg, tint: fst.tint, border: fst.fg,
-    };
     // filter
     const flt = Component.makeFilter(s.q, s.fConf, s.fEv);
     const filterActive = flt.active;
@@ -2727,14 +2689,15 @@ class Component extends DCLogic {
         side: thermoLeft > 0.85 ? 'right' : 'left',
       },
     };
-    const focusScore = values.get(focus.slug).score;
     const leading = rows.length && rows[0].calculated ? rows[rows.length - 1] : null;
-    const score = {
-      has: focusScore !== null && rows.length > 0, none: focusScore === null || rows.length === 0,
-      signed: Component.signed(focusScore ?? 0), left: (((focusScore ?? 0) + 1) * 50).toFixed(1),
-      noneText: leading !== null
-        ? `Leading premise: “${Component.truncate(leading.node.text, 90)}”, at ${Component.signed(leading.impact)}.`
-        : 'No contributing factors yet.',
+    const healthScore = leading !== null ? leading.impact : (values.get(focus.slug).score ?? 0);
+    const healthLabel = rows.length === 0 ? 'No points yet'
+      : leading !== null ? `Leading: ${Component.truncate(leading.node.text, 48)}` : Component.healthLabel(healthScore);
+    const health = {
+      has: rows.length > 0, label: healthLabel, signed: rows.length ? Component.signed(healthScore) : '',
+      left: (healthScore >= 0 ? 50 : 50 + healthScore * 50).toFixed(1), width: (Math.abs(healthScore) * 50).toFixed(1),
+      fill: healthScore >= 0 ? 'var(--pro-fill)' : 'var(--con-fill)',
+      aria: rows.length ? `${healthLabel}, ${Component.signed(healthScore)} on a scale from −1 to +1` : healthLabel,
     };
 
     // pie (sunburst of the focused claim): one ring per level below the centre, all levels, sharing radii 72–250
@@ -3149,10 +3112,10 @@ class Component extends DCLogic {
     const pn = {
       slug: panelNode.slug, text: panelNode.text, by: panelNode.by === null ? '' : panelNode.by, details: panelNode.details === null ? '' : panelNode.details,
       kind: targetIsFact ? 'Fact' : targetIsPremise ? '◇ Premise' : panelNode.children.some((c) => c.kind === 'premise') ? '◆ Proposition' : '◆ Thesis',
-      isFact: targetIsFact, calculated: targetIsPremise, hasValues: targetIsFact || targetIsPremise,
-      importance: targetIsFact ? panelNode.importance : 0, impact: targetIsFact ? panelNode.impact : 0,
+      isFact: targetIsFact, calculated: targetIsPremise,
+      impact: targetIsFact ? panelNode.impact : 0, impactFill: Component.impactFill(targetIsFact ? panelNode.impact : 0),
+      shareSlider: Math.round((targetValues.share ?? 0) * 100), shareDisabled: !editable || !targetIsFact || path[path.length - 2].children.length < 2,
       signed: Component.signed(targetValues.impact ?? 0), pct: String(Math.round((targetValues.share ?? 0) * 100)),
-      contribution: Component.signed((targetValues.share ?? 0) * (targetValues.impact ?? 0)),
       canDelete: editable && panelNode.kind !== 'root', askDelete: !s.confirmDelete, confirming: s.confirmDelete,
       askDel: () => this.setState({ confirmDelete: true }), cancelDel: () => this.setState({ confirmDelete: false }),
       deleteLabel: nDesc ? `Delete with ${nDesc} child factor${nDesc === 1 ? '' : 's'}` : 'Delete',
@@ -3160,10 +3123,8 @@ class Component extends DCLogic {
       onText: (e) => this.onFocusText(e.target.value),
       onTextKey: (e) => { if (e.key === 'Enter') e.preventDefault(); },
       onBy: (e) => this.setBy(e.target.value), onDetails: (e) => this.setDetails(e.target.value),
-      onImportance: (e) => this.onImportanceInput(e.target.value), onImpact: (e) => this.onImpactInput(e.target.value),
+      onShare: (e) => this.onShareInput(e.target.value), onImpact: (e) => this.onImpactInput(e.target.value),
       kidsTitle: panelNode.children.some((c) => c.kind === 'premise') ? 'Premises' : 'Contributing factors', kidsCount: targetKids.length ? String(targetKids.length) : '',
-      showKids: panelNode.slug !== focus.slug && targetKids.length > 0,
-      kids: targetKids.map((r) => ({ title: `${r.node.text} (${Math.round(r.share * 100)}%, ${Component.signed(r.impact)})`, grow: r.share.toFixed(5), fill: Component.impactFill(r.impact) })),
     };
 
     const confWords = ['Not set', 'Very unsure', 'Unsure', 'Fairly sure', 'Confident', 'Certain'];
@@ -3324,9 +3285,9 @@ class Component extends DCLogic {
       locked,
       lockedText: `The markdown has ${s.srcErrors.length} error${s.srcErrors.length === 1 ? '' : 's'}. The views show the last version that parsed, and visual editing is paused until the source is fixed.`,
       ice, hasParent: parent !== null, crumbs,
-      parentCard: parent === null ? { text: '', glyph: '', fg: P.ink } : { text: parent.text, glyph: sideOf(parent).glyph, fg: sideOf(parent).fg },
-      goUp: () => { if (!parent) throw new Error('bug: up pressed on the thesis'); this.setFocus(parent.slug); },
-      fc, pn, score, chart, add, pie, diff,
+      crumbCurrent: focus.text,
+      crumbMeta: `${pn.signed} · ${pn.pct}% of this level`,
+      pn, health, chart, add, pie, diff,
       isMd: s.sourceTab === 'md', isJson: s.sourceTab === 'json',
       srcTabs: [['md', 'Markdown'], ['json', 'JSON']].map(([id, label]) => ({
         label, pressed: String(s.sourceTab === id),

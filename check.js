@@ -432,7 +432,7 @@ test('premise columns can be opened but not dragged', () => {
   colOf(c, 'q').dividerKey(ev({ key: 'ArrowRight' }));
   assert.equal(c.state.src, before);
   assert.equal(chartOf(c).thermo.has, false);
-  assert.equal(c.renderVals().score.has, false);
+  assert.match(c.renderVals().health.label, /^Leading: /);
   colOf(c, 'q').click(ev());
   assert.equal(c.state.focus, 'q');
 });
@@ -494,6 +494,83 @@ const panelOf = (c) => c.renderVals().pn;
 const reloaded = (c) => assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
 const NESTED = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 10\nimpact: -0.5\n\n### Kid\nslug: kid\nimportance: 1\nimpact: 1\n\n## B\nslug: b\nimportance: 30\nimpact: 0.5\n`;
 
+test('the share slider changes only this fact, and clamps', () => {
+  near(Component.importanceForShare([10, 30, 60], 0, 0.5), 90);
+  near(Component.importanceForShare([10, 30, 60], 0, 0.99), 810); // clamped to 90%
+  near(Component.importanceForShare([10, 30, 60], 0, 0), 90 * 0.02 / 0.98);
+  assert.equal(Component.importanceForShare([10, 0, 0], 0, 0.5), 10); // no siblings with weight to scale against
+});
+
+test('the slider on the open point writes only its own importance', () => {
+  const c = boot(MAP3);
+  c.setFocus('a');
+  panelOf(c).onShare({ target: { value: '50' } });
+  assert.deepEqual(['a', 'b', 'c'].map((sl) => nodeOf(c, sl).importance), [90, 30, 60]);
+  assert.equal(panelOf(c).pct, '50');
+});
+
+test('an only child can\'t change its share', () => {
+  const c = boot(DEEP_MAP);
+  c.setFocus('level-2');
+  assert.equal(panelOf(c).shareDisabled, true);
+  c.setFocus('r');
+});
+
+test('the health label follows the score, ignoring small values', () => {
+  const label = (n) => Component.healthLabel(n);
+  assert.equal(label(0.05), 'Balanced');
+  assert.equal(label(-0.1), 'Balanced');
+  assert.equal(label(0.4), 'Mostly supported');
+  assert.equal(label(-0.4), 'Mostly contrary');
+});
+
+test('a point with no children reads No points yet, and options show the leader', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
+  assert.equal(c.renderVals().health.label, 'No points yet');
+  assert.equal(c.renderVals().health.has, false);
+  const p = boot(PREMISE_MAP);
+  assert.equal(p.renderVals().health.label, 'Leading: P');
+  assert.equal(p.renderVals().health.signed, '+1.00');
+});
+
+test('the health bar grows from the centre on the side of the score', () => {
+  const c = boot(MAP3); // score is (10 × -0.5 + 60 × 0.5) ÷ 100 = 0.25
+  const h = c.renderVals().health;
+  assert.equal(h.signed, '+0.25');
+  assert.equal(h.left, '50.0');
+  assert.equal(h.width, '12.5');
+  assert.equal(h.fill, 'var(--pro-fill)');
+});
+
+test('editing the root title follows the file title only if they matched', () => {
+  const c = boot(`---\ntitle: R\n---\n\n# R\nslug: r\n`);
+  c.renderVals().pn.onText({ target: { value: 'New' } });
+  assert.equal(c.state.map.title, 'New');
+  const d = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
+  d.renderVals().pn.onText({ target: { value: 'New' } });
+  assert.equal(d.state.map.title, 'T');
+});
+
+test('a slug never changes when text is edited', () => {
+  const c = boot(MAP3);
+  c.setFocus('a');
+  c.renderVals().pn.onText({ target: { value: 'Different' } });
+  assert.equal(nodeOf(c, 'a').slug, 'a');
+});
+
+test('breadcrumbs list every level above, with the whole title and the point\'s values', () => {
+  const c = boot(DEEP_MAP);
+  c.setFocus('level-6');
+  const v = c.renderVals();
+  assert.equal(v.crumbs.length, 6);
+  assert.equal(v.crumbs[0].title, 'R');
+  assert.equal(v.crumbCurrent, 'L6');
+  assert.equal(v.crumbMeta, '+0.50 · 100% of this level');
+  v.crumbs[2].go();
+  assert.equal(c.state.focus, 'level-2');
+  assert.equal(boot(DEEP_MAP).renderVals().hasParent, false);
+});
+
 test('safeFocus falls back to what exists', () => {
   const t2 = rootOf([fact('a', 1, 0, [fact('b', 1, 0)])]);
   assert.equal(Component.safeFocus(t2, 'b'), 'b');
@@ -515,12 +592,11 @@ test('the panel edits the point in focus and saves it', () => {
   panelOf(c).onText({ target: { value: 'A edited' } });
   panelOf(c).onBy({ target: { value: 'Sam' } });
   panelOf(c).onDetails({ target: { value: 'Some detail\n\n# hash line' } });
-  panelOf(c).onImportance({ target: { value: '25.5' } });
   panelOf(c).onImpact({ target: { value: '0.75' } });
   c.renderVals().bc.onBasis({ target: { value: 'Because' } });
   c.renderVals().bc.stars[2].pick();
   const n = nodeOf(c, 'a');
-  assert.deepEqual([n.text, n.by, n.details, n.importance, n.impact, n.basis, n.confidence], ['A edited', 'Sam', 'Some detail\n\n# hash line', 25.5, 0.75, 'Because', 3]);
+  assert.deepEqual([n.text, n.by, n.details, n.impact, n.basis, n.confidence], ['A edited', 'Sam', 'Some detail\n\n# hash line', 0.75, 'Because', 3]);
   assert.equal(c.state.map.root.text, 'R');
   reloaded(c);
   panelOf(c).onBy({ target: { value: '' } });
@@ -532,7 +608,7 @@ test('the panel edits the point in focus and saves it', () => {
 test('bad number input is ignored', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
-  for (const value of ['', '-3', 'abc']) panelOf(c).onImportance({ target: { value } });
+  for (const value of ['', 'abc']) panelOf(c).onShare({ target: { value } });
   panelOf(c).onImpact({ target: { value: '' } });
   assert.deepEqual([nodeOf(c, 'a').importance, nodeOf(c, 'a').impact], [10, -0.5]);
   panelOf(c).onImpact({ target: { value: '7' } });
