@@ -267,19 +267,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <sc-if value="{{fc.hasBy}}" hint-placeholder-val="{{ true }}"><span style="color: var(--ink2)">by {{fc.by}}</span></sc-if>
         <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{fc.slug}}</code>
         <span style="flex: 1"></span>
-        <sc-if value="{{fc.anyEdit}}" hint-placeholder-val="{{ true }}">
-          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
-            <sc-if value="{{fc.askDelete}}" hint-placeholder-val="{{ true }}">
-              <button type="button" onClick="{{fc.askDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; color: var(--con)">Delete</button>
-            </sc-if>
-            <sc-if value="{{fc.confirming}}" hint-placeholder-val="{{ false }}">
-              <button type="button" onClick="{{fc.cancelDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Keep</button>
-              <button type="button" onClick="{{fc.doDel}}" style="min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--con); color: var(--on-fill); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{fc.deleteLabel}}</button>
-            </sc-if>
-          </div>
-        </sc-if>
       </div>
-      <textarea aria-label="Claim text" rows="2" value="{{fc.text}}" onChange="{{fc.onText}}" onKeyDown="{{fc.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 1px solid transparent; border-radius: 8px; padding: 4px 6px; margin: -4px -6px; font: inherit; font-size: 26px; line-height: 1.3; font-weight: 500; color: var(--ink); background: transparent; resize: vertical"></textarea>
+      <p style="margin: 0; font-size: 26px; line-height: 1.3; font-weight: 500">{{fc.text}}</p>
       <sc-if value="{{score.has}}" hint-placeholder-val="{{ true }}">
         <div style="display: flex; flex-direction: column; gap: 8px">
           <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; flex-wrap: wrap">
@@ -294,6 +283,120 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       <sc-if value="{{score.none}}" hint-placeholder-val="{{ false }}">
         <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{score.noneText}}</p>
       </sc-if>
+    </section>
+
+    <section aria-label="Contributing factors" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{chart.title}} <span style="font-size: 13px; font-weight: 500; color: var(--ink2)">{{chart.countLabel}}</span></h2>
+        <span style="flex: 1"></span>
+        <div role="group" aria-label="Chart view" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
+          <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
+          </sc-for>
+        </div>
+        <div role="group" aria-label="When resizing" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
+          <sc-for list="{{chart.modes}}" as="t" hint-placeholder-count="2">
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
+        <div data-chart="1" style="position: relative; display: flex; align-items: {{chart.align}}; height: 260px; user-select: none; -webkit-user-select: none">
+          <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
+          </sc-if>
+          <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
+            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.selected}}" title="{{c.text}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; box-shadow: {{c.ring}}; outline: {{c.poolOutline}}; outline-offset: -5px; font-size: 13px; line-height: 1.3">
+              <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
+                <div style="height: 100%; display: grid; grid-template-rows: 1fr 1fr">
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
+                  </div>
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column">
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
+                <div style="height: 100%; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px">
+                  <span style="overflow: hidden; min-height: 0">{{c.text}}</span>
+                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
+                </div>
+              </sc-if>
+            </div>
+            <sc-if value="{{c.hasDivider}}" hint-placeholder-val="{{ true }}">
+              <button type="button" class="am-divider" disabled="{{c.dividerDisabled}}" aria-label="{{c.dividerLabel}}" title="{{c.dividerTitle}}" onPointerDown="{{c.dividerDown}}" onPointerMove="{{c.dividerMove}}" onPointerUp="{{c.dividerUp}}" onPointerCancel="{{c.dividerUp}}" onKeyDown="{{c.dividerKey}}" style="flex: none; width: 8px; align-self: stretch; padding: 0; border: 0; background: transparent; cursor: {{c.dividerCursor}}; touch-action: pan-y"></button>
+            </sc-if>
+          </sc-for>
+          <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: 236px; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
+              <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
+              <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--on-ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
+            </div>
+          </sc-if>
+        </div>
+        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink2)">{{chart.hint}}</p>
+      </sc-if>
+      <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
+      </sc-if>
+    </section>
+
+    <section aria-label="Details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px">
+        <span style="background: var(--sunk); font-weight: 700; padding: 4px 10px; border-radius: 999px">{{pn.kind}}</span>
+        <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{pn.slug}}</code>
+        <span style="flex: 1"></span>
+        <sc-if value="{{pn.canOpen}}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{pn.open}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">Open</button>
+        </sc-if>
+        <sc-if value="{{pn.canDelete}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <sc-if value="{{pn.askDelete}}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{pn.askDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; color: var(--con)">Delete</button>
+            </sc-if>
+            <sc-if value="{{pn.confirming}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{pn.cancelDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Keep</button>
+              <button type="button" onClick="{{pn.doDel}}" style="min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--con); color: var(--on-fill); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{pn.deleteLabel}}</button>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+      <textarea aria-label="Text" rows="2" value="{{pn.text}}" onChange="{{pn.onText}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 18px; line-height: 1.35; font-weight: 500; color: var(--ink); resize: vertical"></textarea>
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; font-size: 13px">
+        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 0 1 180px; min-width: 120px">By
+          <input type="text" value="{{pn.by}}" onChange="{{pn.onBy}}" readOnly="{{locked}}" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
+        </label>
+        <sc-if value="{{pn.isFact}}" hint-placeholder-val="{{ true }}">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 0 1 130px; min-width: 100px">Importance
+            <input type="number" min="0" step="1" value="{{pn.importance}}" onChange="{{pn.onImportance}}" readOnly="{{locked}}" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 1 1 220px; min-width: 160px">Impact
+            <span style="display: flex; align-items: center; gap: 10px; min-height: 38px">
+              <input type="range" min="-1" max="1" step="0.01" value="{{pn.impact}}" onChange="{{pn.onImpact}}" disabled="{{locked}}" style="flex: 1; min-width: 80px">
+              <span style="font-variant-numeric: tabular-nums; font-weight: 600; min-width: 44px; text-align: right">{{pn.signed}}</span>
+            </span>
+          </label>
+        </sc-if>
+        <sc-if value="{{pn.hasValues}}" hint-placeholder-val="{{ true }}">
+          <dl style="display: flex; flex-wrap: wrap; gap: 8px; margin: 0">
+            <sc-if value="{{pn.calculated}}" hint-placeholder-val="{{ false }}">
+              <div style="background: var(--sunk); border-radius: 8px; padding: 6px 10px"><dt style="font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em">Impact</dt><dd style="margin: 0; font-weight: 600; font-variant-numeric: tabular-nums">{{pn.signed}}</dd></div>
+            </sc-if>
+            <div style="background: var(--sunk); border-radius: 8px; padding: 6px 10px"><dt style="font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em">Share</dt><dd style="margin: 0; font-weight: 600; font-variant-numeric: tabular-nums">{{pn.pct}}%</dd></div>
+            <div style="background: var(--sunk); border-radius: 8px; padding: 6px 10px"><dt style="font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em">Contribution</dt><dd style="margin: 0; font-weight: 600; font-variant-numeric: tabular-nums">{{pn.contribution}}</dd></div>
+          </dl>
+        </sc-if>
+      </div>
+      <sc-if value="{{pn.calculated}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; font-size: 13px; color: var(--ink2)">Calculated from its child factors, relative to the other premises.</p>
+      </sc-if>
+      <label style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600">Details <span style="font-weight: 400; color: var(--ink2)">optional</span>
+        <textarea rows="3" value="{{pn.details}}" onChange="{{pn.onDetails}}" readOnly="{{locked}}" style="box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 400; resize: vertical"></textarea>
+      </label>
       <sc-if value="{{rat.show}}" hint-placeholder-val="{{ false }}">
         <div aria-label="Rationale check" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
           <button type="button" onClick="{{rat.run}}" disabled="{{rat.busy}}" title="Ask Jev how well each side makes its case" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap"><span aria-hidden="true">✦</span>{{rat.label}}</button>
@@ -426,93 +529,44 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           </sc-if>
         </div>
       </sc-if>
-    </section>
-
-    <section aria-label="Contributing factors" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
-        <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{chart.title}} <span style="font-size: 13px; font-weight: 500; color: var(--ink2)">{{chart.countLabel}}</span></h2>
-        <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
-          <button type="button" onClick="{{add.open}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-            {{add.label}}
-          </button>
+      <div style="border-top: 1px solid var(--rule-soft); padding-top: 12px; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600">{{pn.kidsTitle}} <span style="font-weight: 500; color: var(--ink2)">{{pn.kidsCount}}</span></h3>
+          <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{add.open}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              {{add.label}}
+            </button>
+          </sc-if>
+        </div>
+        <sc-if value="{{pn.showKids}}" hint-placeholder-val="{{ false }}">
+          <div aria-hidden="true" style="display: flex; height: 28px; gap: 2px; border-radius: 4px; overflow: hidden">
+            <sc-for list="{{pn.kids}}" as="k" hint-placeholder-count="2">
+              <span title="{{k.title}}" style="flex: {{k.grow}} 1 0px; min-width: 2px; background: {{k.fill}}"></span>
+            </sc-for>
+          </div>
         </sc-if>
-        <span style="flex: 1"></span>
-        <div role="group" aria-label="Chart view" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
-          <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
-            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
-          </sc-for>
-        </div>
-        <div role="group" aria-label="When resizing" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
-          <sc-for list="{{chart.modes}}" as="t" hint-placeholder-count="2">
-            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
-          </sc-for>
-        </div>
+        <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
+          <div style="border: 1.5px dashed var(--ink2); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+            <textarea autoFocus="{{ true }}" aria-label="{{add.aria}}" placeholder="{{add.aria}}" rows="2" value="{{add.draftText}}" onChange="{{add.onDraftText}}" onKeyDown="{{add.onDraftKey}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; resize: vertical"></textarea>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--ink2)">
+              <label style="flex: 1 1 160px; min-width: 0; display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px">slug
+                <input type="text" spellcheck="false" value="{{add.draftSlugValue}}" onChange="{{add.onDraftSlug}}" placeholder="auto from text" style="flex: 1; min-width: 0; min-height: 32px; box-sizing: border-box; border: 1px solid {{add.slugBorder}}; border-radius: 6px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--ink)">
+              </label>
+              <sc-if value="{{add.slugCustom}}" hint-placeholder-val="{{ false }}">
+                <button type="button" onClick="{{add.slugAuto}}" style="min-height: 32px; padding: 0 8px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); font: inherit; font-size: 12px; cursor: pointer">Auto</button>
+              </sc-if>
+            </div>
+            <sc-if value="{{add.hasSlugError}}" hint-placeholder-val="{{ false }}">
+              <span role="status" style="font-size: 12px; color: var(--con)">{{add.slugErrorText}}</span>
+            </sc-if>
+            <div style="display: flex; justify-content: flex-end; gap: 8px">
+              <button type="button" onClick="{{add.cancel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap">Cancel</button>
+              <button type="button" onClick="{{add.save}}" disabled="{{add.saveDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; opacity: {{add.saveOpacity}}">Add</button>
+            </div>
+          </div>
+        </sc-if>
       </div>
-
-      <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
-        <div style="border: 1.5px dashed var(--ink2); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
-          <textarea autoFocus="{{ true }}" aria-label="{{add.aria}}" placeholder="{{add.aria}}" rows="2" value="{{add.draftText}}" onChange="{{add.onDraftText}}" onKeyDown="{{add.onDraftKey}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; resize: vertical"></textarea>
-          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--ink2)">
-            <label style="flex: 1 1 160px; min-width: 0; display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px">slug
-              <input type="text" spellcheck="false" value="{{add.draftSlugValue}}" onChange="{{add.onDraftSlug}}" placeholder="auto from text" style="flex: 1; min-width: 0; min-height: 32px; box-sizing: border-box; border: 1px solid {{add.slugBorder}}; border-radius: 6px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--ink)">
-            </label>
-            <sc-if value="{{add.slugCustom}}" hint-placeholder-val="{{ false }}">
-              <button type="button" onClick="{{add.slugAuto}}" style="min-height: 32px; padding: 0 8px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); font: inherit; font-size: 12px; cursor: pointer">Auto</button>
-            </sc-if>
-          </div>
-          <sc-if value="{{add.hasSlugError}}" hint-placeholder-val="{{ false }}">
-            <span role="status" style="font-size: 12px; color: var(--con)">{{add.slugErrorText}}</span>
-          </sc-if>
-          <div style="display: flex; justify-content: flex-end; gap: 8px">
-            <button type="button" onClick="{{add.cancel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap">Cancel</button>
-            <button type="button" onClick="{{add.save}}" disabled="{{add.saveDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; opacity: {{add.saveOpacity}}">Add</button>
-          </div>
-        </div>
-      </sc-if>
-
-      <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
-        <div data-chart="1" style="position: relative; display: flex; align-items: {{chart.align}}; height: 260px; user-select: none; -webkit-user-select: none">
-          <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
-            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
-          </sc-if>
-          <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
-            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.selected}}" title="{{c.text}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; box-shadow: {{c.ring}}; outline: {{c.poolOutline}}; outline-offset: -5px; font-size: 13px; line-height: 1.3">
-              <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
-                <div style="height: 100%; display: grid; grid-template-rows: 1fr 1fr">
-                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
-                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
-                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
-                  </div>
-                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column">
-                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
-                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
-                  </div>
-                </div>
-              </sc-if>
-              <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
-                <div style="height: 100%; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px">
-                  <span style="overflow: hidden; min-height: 0">{{c.text}}</span>
-                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
-                </div>
-              </sc-if>
-            </div>
-            <sc-if value="{{c.hasDivider}}" hint-placeholder-val="{{ true }}">
-              <button type="button" class="am-divider" disabled="{{c.dividerDisabled}}" aria-label="{{c.dividerLabel}}" title="{{c.dividerTitle}}" onPointerDown="{{c.dividerDown}}" onPointerMove="{{c.dividerMove}}" onPointerUp="{{c.dividerUp}}" onPointerCancel="{{c.dividerUp}}" onKeyDown="{{c.dividerKey}}" style="flex: none; width: 8px; align-self: stretch; padding: 0; border: 0; background: transparent; cursor: {{c.dividerCursor}}; touch-action: pan-y"></button>
-            </sc-if>
-          </sc-for>
-          <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
-            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: 236px; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
-              <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
-              <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--on-ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
-            </div>
-          </sc-if>
-        </div>
-        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink2)">{{chart.hint}}</p>
-      </sc-if>
-      <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
-        <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
-      </sc-if>
     </section>
   </div>
   </sc-if>
@@ -1181,6 +1235,8 @@ async function checkRationale(key, claim, parent, pros, cons) {
 }
 
 // ---------------------------------------------------------------- OpenRouter: Research (evidence with web search)
+const PANEL_RESET = Object.freeze({ adding: null, confirmDelete: false, evOpen: false, evEdit: null });
+const SLUG_BLOCK_NOTICE = 'Text can’t end in a {slug: …} block, because that’s how old map files are recognised.';
 const CHART_VIEW_STORE = 'argmap.chartView';
 const RESIZE_MODE_STORE = 'argmap.resizeMode';
 const OR_KEY_STORE = 'argmap.openRouterApiKey';
@@ -1335,7 +1391,7 @@ class Component extends DCLogic {
       err(Math.min(i, lines.length - 1), 'expected the thesis as a "# " heading after the front matter');
       return { map: null, errors };
     }
-    const legacy = /\{[^{}]*slug:[^{}]*\}\s*$/.test(lines[i]);
+    const legacy = Component.endsInSlugBlock(lines[i]);
     const root = legacy ? Component.parseLegacy(lines, i, err) : Component.parseHeadings(lines, i, err);
     if (errors.length) return { map: null, errors };
     return { map: { title, display, root }, errors: [] };
@@ -1678,6 +1734,20 @@ class Component extends DCLogic {
     return Math.abs(impact) > 0.5 ? 'var(--on-fill)' : 'var(--ink)';
   }
 
+  static panelSlug(root, focus, selectedFact) {
+    if (selectedFact !== null && Component.findPath(root, selectedFact) !== null) return selectedFact;
+    return Component.safeFocus(root, focus);
+  }
+
+  static safeFocus(root, focus) {
+    return Component.findPath(root, focus) !== null ? focus : root.slug;
+  }
+
+  // The old format is recognised by a root heading ending in such a block, so text can't end in one.
+  static endsInSlugBlock(text) {
+    return /\{[^{}]*slug:[^{}]*\}\s*$/.test(text);
+  }
+
   // Per slug: { score, importance, impact, share }. score is the importance-weighted mean of direct children's impact.
   // A fact's own importance and impact are as written; a premise's are calculated, since its children are all that define it.
   static allValues(root) {
@@ -2013,7 +2083,7 @@ class Component extends DCLogic {
   }
 
   setBasis(v) {
-    const slug = this.state.focus;
+    const slug = this.panelTarget();
     const t = v.replace(/\s*\n\s*/g, ' ');
     this.edit((m) => ({
       ...m,
@@ -2040,7 +2110,7 @@ class Component extends DCLogic {
     const draft = Component.refDraft(s.evName, s.evText, s.evUrl);
     const problem = Component.refProblem(draft);
     if (problem !== null) throw new Error(`bug: Save pressed with an invalid reference: ${problem}`);
-    const slug = s.focus;
+    const slug = this.panelTarget();
     const at = s.evEdit;
     this.edit((m) => ({
       ...m,
@@ -2054,7 +2124,7 @@ class Component extends DCLogic {
   }
 
   removeRef(at) {
-    const slug = this.state.focus;
+    const slug = this.panelTarget();
     this.edit((m) => ({
       ...m,
       root: Component.mapNode(m.root, slug, (n) => {
@@ -2084,15 +2154,15 @@ class Component extends DCLogic {
   }
 
   onFocusText(v) {
-    if (/[{}]/.test(v)) { this.setState({ notice: 'Curly braces are reserved for the {slug: …} block in the markdown, so claim text can’t contain them.' }); return; }
     const t = v.replace(/\s*\n\s*/g, ' ');
-    if (t.trim() === '') { this.setState({ notice: 'A claim needs some text. Use Delete to remove the argument instead.' }); return; }
-    const slug = this.state.focus;
+    if (Component.endsInSlugBlock(t)) { this.setState({ notice: SLUG_BLOCK_NOTICE }); return; }
+    if (t.trim() === '') { this.setState({ notice: 'A fact needs some text. Use Delete to remove it instead.' }); return; }
+    const slug = this.panelTarget();
     this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => ({ ...n, text: t })) }));
   }
 
   onDraftText(v) {
-    if (/[{}]/.test(v)) { this.setState({ notice: 'Curly braces are reserved for the {slug: …} block in the markdown, so claim text can’t contain them.' }); return; }
+    if (Component.endsInSlugBlock(v)) { this.setState({ notice: SLUG_BLOCK_NOTICE }); return; }
     this.setState({ draftText: v.replace(/\s*\n\s*/g, ' ') });
   }
 
@@ -2269,7 +2339,7 @@ class Component extends DCLogic {
   /** Research: sources for the focused pro or con, offered as evidence to add. */
   research() {
     const s = this.state;
-    const path = Component.findPath(s.map.root, s.focus);
+    const path = Component.findPath(s.map.root, this.panelTarget());
     const arg = path[path.length - 1];
     const parent = path[path.length - 2];
     if (s.orKeySaved === '' || parent === undefined) throw new Error('bug: Research pressed without a key or on the thesis');
@@ -2282,7 +2352,7 @@ class Component extends DCLogic {
   }
 
   addResearched(ref) {
-    const slug = this.state.focus;
+    const slug = this.panelTarget();
     this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => ({ ...n, refs: [...n.refs, ref] })) }));
     this.setState((st) => ({ research: { ...st.research, items: st.research.items.filter((r) => r !== ref) } }));
   }
@@ -2290,7 +2360,7 @@ class Component extends DCLogic {
   /** Check rationale: Jev's confidence that each side's arguments, taken together, make their case for the focused claim. */
   checkRationale() {
     const s = this.state;
-    const path = Component.findPath(s.map.root, s.focus);
+    const path = Component.findPath(s.map.root, this.panelTarget());
     const claim = path[path.length - 1];
     const parent = path.length > 1 ? path[path.length - 2].text : null;
     const texts = (side) => claim.children.filter((c) => c.side === side).map((c) => c.text);
@@ -2330,7 +2400,8 @@ class Component extends DCLogic {
   addArg(side) {
     this.setState((s) => {
       if (s.srcErrors.length) throw new Error('bug: add attempted while the markdown source has errors');
-      if (side === 'premise' && (s.focus !== s.map.root.slug || s.map.root.children.some((c) => c.kind !== 'premise'))) {
+      const parentSlug = Component.panelSlug(s.map.root, s.focus, s.selectedFact);
+      if (side === 'premise' && (parentSlug !== s.map.root.slug || s.map.root.children.some((c) => c.kind !== 'premise'))) {
         throw new Error('bug: premise added somewhere other than a root without pros/cons');
       }
       const text = s.draftText.trim().replace(/\s+/g, ' ');
@@ -2341,15 +2412,43 @@ class Component extends DCLogic {
       if (problem !== null) throw new Error(`bug: Add pressed with an unusable slug: ${problem}`);
       const isPremise = side === 'premise';
       const node = { slug, text, kind: isPremise ? 'premise' : 'fact', importance: isPremise ? null : 50, impact: isPremise ? null : 0, by: null, basis: null, confidence: null, details: null, refs: [], children: [] };
-      const map = { ...s.map, root: Component.mapNode(s.map.root, s.focus, (n) => ({ ...n, children: [...n.children, node] })) };
+      const map = { ...s.map, root: Component.mapNode(s.map.root, parentSlug, (n) => ({ ...n, children: [...n.children, node] })) };
       return { map, src: Component.serialize(map), adding: null, draftText: '', draftSlugCustom: null };
     });
   }
 
-  deleteFocus(parentSlug) {
-    const slug = this.state.focus;
+  deleteTarget() {
+    const s = this.state;
+    const slug = this.panelTarget();
+    const path = Component.findPath(s.map.root, slug);
+    if (path.length < 2) throw new Error('bug: delete offered on the thesis');
     this.edit((m) => ({ ...m, root: Component.removeNode(m.root, slug) }));
-    this.setState({ focus: parentSlug, confirmDelete: false });
+    this.setState({ ...PANEL_RESET, selectedFact: null, focus: slug === s.focus ? path[path.length - 2].slug : s.focus });
+  }
+
+  panelTarget() {
+    const s = this.state;
+    return Component.panelSlug(s.map.root, s.focus, s.selectedFact);
+  }
+
+  setBy(v) {
+    const by = v.replace(/\s*\n\s*/g, ' ');
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, by: by.trim() === '' ? null : by })) }));
+  }
+
+  setDetails(v) {
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, details: v.trim() === '' ? null : v })) }));
+  }
+
+  onImportanceInput(v) {
+    if (!/^\d*\.?\d+$/.test(v)) return;
+    const importance = Math.round(Number(v) * 10) / 10;
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, importance })) }));
+  }
+
+  onImpactInput(v) {
+    if (v.trim() === '' || !Number.isFinite(Number(v))) return;
+    this.setImpact(this.panelTarget(), Number(v));
   }
 
   // ---------------------------------------------------------------- chart gestures
@@ -2423,7 +2522,7 @@ class Component extends DCLogic {
     if (!d.moved) {
       if (Math.abs(dy) <= 5) return;
       d.moved = true;
-      this.setState({ frozenOrder: d.order, selectedFact: d.slug, thermoSlug: d.slug });
+      this.setState((s) => ({ ...(s.selectedFact === d.slug ? {} : PANEL_RESET), frozenOrder: d.order, selectedFact: d.slug, thermoSlug: d.slug }));
     }
     this.setImpact(d.slug, d.start - dy / 118); // 236px of thermometer spans the whole range
   }
@@ -2438,7 +2537,7 @@ class Component extends DCLogic {
   }
 
   toggleFact(slug) {
-    this.setState((s) => ({ selectedFact: s.selectedFact === slug ? null : slug }));
+    this.setState((s) => ({ ...PANEL_RESET, selectedFact: s.selectedFact === slug ? null : slug }));
   }
 
   onColumnClick(slug, e) {
@@ -2484,10 +2583,11 @@ class Component extends DCLogic {
     const locked = s.srcErrors.length > 0;
     const editable = !locked;
     const scores = Component.scoreAll(map.root);
-    const path = Component.findPath(map.root, s.focus);
-    if (!path) throw new Error(`bug: focused slug "${s.focus}" is not in the map`);
+    const path = Component.findPath(map.root, Component.safeFocus(s.map.root, s.focus));
     const focus = path[path.length - 1];
     const parent = path.length > 1 ? path[path.length - 2] : null;
+    const targetPath = Component.findPath(map.root, Component.panelSlug(s.map.root, s.focus, s.selectedFact));
+    const panelNode = targetPath[targetPath.length - 1];
     const pathSlugs = new Set(path.map((n) => n.slug));
 
     const sideOf = (n) => {
@@ -2520,19 +2620,10 @@ class Component extends DCLogic {
     const premises = focus.children.filter((c) => c.side === 'premise');
     const isProposition = premises.length > 0;
     const fst = sideOf(focus);
-    const nDesc = Component.countDescendants(focus);
-    const isArg = focus.side === 'pro' || focus.side === 'con';
     const fc = {
       slug: focus.slug, text: focus.text, by: focus.by === null ? '' : focus.by, hasBy: focus.by !== null,
-      kind: focus.side === null ? (isProposition ? '◆ Proposition' : '◆ Thesis') : `${fst.glyph} ${fst.label}`, glyphOnly: fst.glyph,
+      kind: focus.kind === 'fact' ? 'Fact' : focus.kind === 'premise' ? '◇ Premise' : isProposition ? '◆ Proposition' : '◆ Thesis', glyphOnly: fst.glyph,
       fg: fst.fg, tint: fst.tint, border: fst.fg,
-      anyEdit: editable && focus.side !== null,
-      askDelete: !s.confirmDelete, confirming: s.confirmDelete,
-      askDel: () => this.setState({ confirmDelete: true }), cancelDel: () => this.setState({ confirmDelete: false }),
-      deleteLabel: nDesc ? `Delete with ${nDesc} sub-argument${nDesc === 1 ? '' : 's'}` : 'Delete argument',
-      doDel: () => { if (!parent) throw new Error('bug: delete offered on the thesis'); this.deleteFocus(parent.slug); },
-      onText: (e) => this.onFocusText(e.target.value),
-      onTextKey: (e) => { if (e.key === 'Enter') e.preventDefault(); },
     };
     const values = Component.allValues(s.map.root);
     const best = premises.reduce((b, c) => (b === null || scores.get(c.slug).strength > scores.get(b.slug).strength ? c : b), null);
@@ -2574,7 +2665,7 @@ class Component extends DCLogic {
     const slugProblem = Component.slugProblem(draftSlugValue, taken);
     const showSlugProblem = slugProblem !== null && (s.draftSlugCustom !== null || s.draftText.trim() !== '');
     const canAdd = s.draftText.trim() !== '' && slugProblem === null;
-    const addKind = focus.side === null && (isProposition || s.adding === 'premise') ? 'premise' : 'fact';
+    const addKind = panelNode.side === null && (panelNode.children.some((c) => c.side === 'premise') || s.adding === 'premise') ? 'premise' : 'fact';
     const add = {
       canOpen: editable && s.adding === null, adding: editable && s.adding !== null,
       label: addKind === 'premise' ? 'Add a premise' : 'Add a contributing factor',
@@ -3061,11 +3152,37 @@ class Component extends DCLogic {
       create: () => this.createMap(), createDisabled, createOpacity: createDisabled ? 0.45 : 1,
     };
 
+    const targetValues = values.get(panelNode.slug);
+    const targetKids = Component.factRows(panelNode, values);
+    const nDesc = Component.countDescendants(panelNode);
+    const targetIsFact = panelNode.kind === 'fact';
+    const targetIsPremise = panelNode.kind === 'premise';
+    const pn = {
+      slug: panelNode.slug, text: panelNode.text, by: panelNode.by === null ? '' : panelNode.by, details: panelNode.details === null ? '' : panelNode.details,
+      kind: targetIsFact ? 'Fact' : targetIsPremise ? '◇ Premise' : panelNode.children.some((c) => c.kind === 'premise') ? '◆ Proposition' : '◆ Thesis',
+      isFact: targetIsFact, calculated: targetIsPremise, hasValues: targetIsFact || targetIsPremise,
+      importance: targetIsFact ? panelNode.importance : 0, impact: targetIsFact ? panelNode.impact : 0,
+      signed: Component.signed(targetValues.impact ?? 0), pct: String(Math.round((targetValues.share ?? 0) * 100)),
+      contribution: Component.signed((targetValues.share ?? 0) * (targetValues.impact ?? 0)),
+      canOpen: panelNode.slug !== focus.slug, open: () => this.setFocus(panelNode.slug),
+      canDelete: editable && panelNode.kind !== 'root', askDelete: !s.confirmDelete, confirming: s.confirmDelete,
+      askDel: () => this.setState({ confirmDelete: true }), cancelDel: () => this.setState({ confirmDelete: false }),
+      deleteLabel: nDesc ? `Delete with ${nDesc} child factor${nDesc === 1 ? '' : 's'}` : 'Delete',
+      doDel: () => this.deleteTarget(),
+      onText: (e) => this.onFocusText(e.target.value),
+      onTextKey: (e) => { if (e.key === 'Enter') e.preventDefault(); },
+      onBy: (e) => this.setBy(e.target.value), onDetails: (e) => this.setDetails(e.target.value),
+      onImportance: (e) => this.onImportanceInput(e.target.value), onImpact: (e) => this.onImpactInput(e.target.value),
+      kidsTitle: panelNode.children.some((c) => c.kind === 'premise') ? 'Premises' : 'Contributing factors', kidsCount: targetKids.length ? String(targetKids.length) : '',
+      showKids: panelNode.slug !== focus.slug && targetKids.length > 0,
+      kids: targetKids.map((r) => ({ title: `${r.node.text} (${Math.round(r.share * 100)}%, ${Component.signed(r.impact)})`, grow: r.share.toFixed(5), fill: Component.impactFill(r.impact) })),
+    };
+
     const confWords = ['Not set', 'Very unsure', 'Unsure', 'Fairly sure', 'Confident', 'Certain'];
-    const fConf = focus.confidence;
+    const fConf = panelNode.confidence;
     const bc = {
-      show: isArg,
-      basis: focus.basis === null ? '' : focus.basis,
+      show: panelNode.kind === 'fact',
+      basis: panelNode.basis === null ? '' : panelNode.basis,
       onBasis: (e) => this.setBasis(e.target.value),
       hasConf: fConf !== null && editable,
       confCaption: fConf === null ? 'Not set' : `${fConf} of 5 · ${confWords[fConf]}`,
@@ -3074,21 +3191,21 @@ class Component extends DCLogic {
         return {
           label: `Confidence ${k} of 5 (${confWords[k]})`, pressed: String(fConf === k),
           fill: on ? 'var(--star)' : 'none', stroke: on ? 'var(--star-line)' : 'var(--ink3)',
-          pick: () => this.setConfidence(focus.slug, k),
+          pick: () => this.setConfidence(panelNode.slug, k),
         };
       }),
-      clearConf: () => this.setConfidence(focus.slug, null),
+      clearConf: () => this.setConfidence(panelNode.slug, null),
     };
 
     const evDraft = Component.refDraft(s.evName, s.evText, s.evUrl);
-    const rs = s.research !== null && s.research.slug === focus.slug ? s.research : null;
+    const rs = s.research !== null && s.research.slug === panelNode.slug ? s.research : null;
     const evProblem = Component.refProblem(evDraft);
     const evTouched = s.evName.trim() !== '' || s.evText.trim() !== '' || s.evUrl.trim() !== '';
     const ev = {
-      show: isArg, canAdd: editable && !s.evOpen,
-      countLabel: focus.refs.length ? String(focus.refs.length) : '',
+      show: panelNode.kind === 'fact', canAdd: editable && !s.evOpen,
+      countLabel: panelNode.refs.length ? String(panelNode.refs.length) : '',
       openAdd: () => this.setState({ evOpen: true, evEdit: null, evName: '', evText: '', evUrl: '' }),
-      items: focus.refs.map((r, j) => ({
+      items: panelNode.refs.map((r, j) => ({
         name: r.name, text: r.text === null ? '' : r.text, hasText: r.text !== null,
         url: r.url === null ? '' : r.url, hasUrl: r.url !== null, noUrl: r.url === null,
         host: r.url === null ? '' : new URL(r.url).host,
@@ -3097,7 +3214,7 @@ class Component extends DCLogic {
         edit: () => this.setState({ evOpen: true, evEdit: j, evName: r.name, evText: r.text === null ? '' : r.text, evUrl: r.url === null ? '' : r.url }),
         remove: () => this.removeRef(j),
       })),
-      empty: focus.refs.length === 0 && !s.evOpen,
+      empty: panelNode.refs.length === 0 && !s.evOpen,
       formOpen: editable && s.evOpen, formTitle: s.evEdit === null ? 'Add evidence' : 'Edit evidence',
       name: s.evName, text: s.evText, url: s.evUrl,
       onName: (e) => this.setState({ evName: e.target.value }),
@@ -3119,10 +3236,10 @@ class Component extends DCLogic {
     };
 
     /* Check rationale (Jev): shown on a claim that has pros or cons, once a typesafe.ai key is saved. */
-    const rt = s.rationale !== null && s.rationale.slug === focus.slug ? s.rationale : null;
+    const rt = s.rationale !== null && s.rationale.slug === panelNode.slug ? s.rationale : null;
     const pct = (p) => (p === null ? '—' : `${Math.round(p * 100)}%`);
     const rat = {
-      show: s.apiKeySaved !== '' && focus.children.some((c) => c.side === 'pro' || c.side === 'con'),
+      show: s.apiKeySaved !== '' && panelNode.children.some((c) => c.kind === 'fact'),
       busy: rt !== null && rt.busy, label: rt !== null && rt.busy ? 'Checking…' : 'Check rationale',
       run: () => this.checkRationale(),
       has: rt !== null && !rt.busy && rt.error === '', pro: rt === null ? '' : pct(rt.pro), con: rt === null ? '' : pct(rt.con),
@@ -3210,7 +3327,7 @@ class Component extends DCLogic {
       ice, hasParent: parent !== null, crumbs,
       parentCard: parent === null ? { text: '', glyph: '', fg: P.ink } : { text: parent.text, glyph: sideOf(parent).glyph, fg: sideOf(parent).fg },
       goUp: () => { if (!parent) throw new Error('bug: up pressed on the thesis'); this.setFocus(parent.slug); },
-      fc, lean, score, chart, add, pie, diff,
+      fc, pn, lean, score, chart, add, pie, diff,
       isMd: s.sourceTab === 'md', isJson: s.sourceTab === 'json',
       srcTabs: [['md', 'Markdown'], ['json', 'JSON']].map(([id, label]) => ({
         label, pressed: String(s.sourceTab === id),

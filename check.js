@@ -407,5 +407,162 @@ test('adding a fact defaults to impact 0 and importance 50', () => {
   assert.deepEqual([n.importance, n.impact, n.kind], [50, 0, 'fact']);
 });
 
+// ---------------------------------------------------------------- the details panel
+const panelOf = (c) => c.renderVals().pn;
+const reloaded = (c) => assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
+const NESTED = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 10\nimpact: -0.5\n\n### Kid\nslug: kid\nimportance: 1\nimpact: 1\n\n## B\nslug: b\nimportance: 30\nimpact: 0.5\n`;
+
+test('panelSlug and safeFocus fall back to what exists', () => {
+  const t2 = rootOf([fact('a', 1, 0, [fact('b', 1, 0)])]);
+  assert.equal(Component.panelSlug(t2, 'a', 'b'), 'b');
+  assert.equal(Component.panelSlug(t2, 'a', 'gone'), 'a');
+  assert.equal(Component.panelSlug(t2, 'gone', 'gone'), 'r');
+  assert.equal(Component.panelSlug(t2, 'a', null), 'a');
+  assert.equal(Component.safeFocus(t2, 'gone'), 'r');
+});
+
+test('the panel shows the selected fact, else the focused claim', () => {
+  const c = boot(NESTED);
+  assert.equal(panelOf(c).slug, 'r');
+  colOf(c, 'a').click(ev());
+  assert.equal(panelOf(c).slug, 'a');
+  assert.equal(panelOf(c).text, 'A');
+  assert.equal(c.renderVals().fc.text, 'R');
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
+test('the panel edits the selected fact and saves it', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  panelOf(c).onText({ target: { value: 'A edited' } });
+  panelOf(c).onBy({ target: { value: 'Sam' } });
+  panelOf(c).onDetails({ target: { value: 'Some detail\n\n# hash line' } });
+  panelOf(c).onImportance({ target: { value: '25.5' } });
+  panelOf(c).onImpact({ target: { value: '0.75' } });
+  c.renderVals().bc.onBasis({ target: { value: 'Because' } });
+  c.renderVals().bc.stars[2].pick();
+  const n = nodeOf(c, 'a');
+  assert.deepEqual([n.text, n.by, n.details, n.importance, n.impact, n.basis, n.confidence], ['A edited', 'Sam', 'Some detail\n\n# hash line', 25.5, 0.75, 'Because', 3]);
+  assert.equal(c.state.map.root.text, 'R');
+  reloaded(c);
+  panelOf(c).onBy({ target: { value: '' } });
+  panelOf(c).onDetails({ target: { value: '' } });
+  assert.deepEqual([nodeOf(c, 'a').by, nodeOf(c, 'a').details], [null, null]);
+  reloaded(c);
+});
+
+test('bad number input is ignored', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  for (const value of ['', '-3', 'abc']) panelOf(c).onImportance({ target: { value } });
+  panelOf(c).onImpact({ target: { value: '' } });
+  assert.deepEqual([nodeOf(c, 'a').importance, nodeOf(c, 'a').impact], [10, -0.5]);
+  panelOf(c).onImpact({ target: { value: '7' } });
+  assert.equal(nodeOf(c, 'a').impact, 1);
+});
+
+test('text can hold braces but not end in a slug block', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  panelOf(c).onText({ target: { value: 'Uses {braces} fine' } });
+  assert.equal(nodeOf(c, 'a').text, 'Uses {braces} fine');
+  panelOf(c).onText({ target: { value: 'Bad {slug: x}' } });
+  assert.equal(nodeOf(c, 'a').text, 'Uses {braces} fine');
+  assert.ok(c.state.notice);
+});
+
+test('evidence attaches to the selected fact', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  c.renderVals().ev.openAdd();
+  c.renderVals().ev.onName({ target: { value: 'Src' } });
+  c.renderVals().ev.save();
+  assert.equal(nodeOf(c, 'a').refs[0].name, 'Src');
+  reloaded(c);
+});
+
+test('add puts a child under the panel target and keeps the selection', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  c.renderVals().add.open();
+  c.renderVals().add.onDraftText({ target: { value: 'New kid' } });
+  c.renderVals().add.save();
+  assert.deepEqual(nodeOf(c, 'a').children.map((k) => k.slug), ['kid', 'new-kid']);
+  assert.equal(c.state.selectedFact, 'a');
+  assert.equal(panelOf(c).kids.length, 2);
+  reloaded(c);
+});
+
+test('Open focuses the fact and its children become the chart', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  panelOf(c).open();
+  assert.equal(c.state.focus, 'a');
+  assert.equal(c.state.selectedFact, null);
+  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['kid']);
+});
+
+test('delete removes the selected fact and keeps the focus', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  panelOf(c).askDel();
+  panelOf(c).doDel();
+  assert.equal(nodeOf(c, 'a'), undefined);
+  assert.equal(c.state.focus, 'r');
+  assert.equal(c.state.selectedFact, null);
+  assert.equal(panelOf(c).slug, 'r');
+});
+
+test('deleting the focused claim moves up to its parent', () => {
+  const c = boot(NESTED);
+  c.setFocus('a');
+  panelOf(c).doDel();
+  assert.equal(c.state.focus, 'r');
+});
+
+test('the root and premises offer only what they can hold', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n`);
+  let v = c.renderVals();
+  assert.deepEqual([v.pn.canDelete, v.pn.isFact, v.bc.show, v.ev.show], [false, false, false, false]);
+  colOf(c, 'p').click(ev());
+  v = c.renderVals();
+  assert.deepEqual([v.pn.canDelete, v.pn.isFact, v.pn.calculated, v.bc.show, v.ev.show], [true, false, true, false, false]);
+  assert.equal(v.pn.signed, '+1.00');
+  v.pn.onDetails({ target: { value: 'About the premise' } });
+  assert.equal(c.state.map.root.children[0].details, 'About the premise');
+  reloaded(c);
+});
+
+test('a selected fact removed from the source falls back cleanly', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  c.onSrc(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## B\nslug: b\nimportance: 30\nimpact: 0.5\n`);
+  assert.equal(c.state.selectedFact, null);
+  assert.equal(panelOf(c).slug, 'r');
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
+test('a stale focus never crashes the render', () => {
+  const c = boot(NESTED);
+  c.setState({ focus: 'gone', selectedFact: 'gone-too' });
+  assert.equal(panelOf(c).slug, 'r');
+});
+
+test('locked maps still select but can\'t edit', () => {
+  const c = boot(NESTED);
+  colOf(c, 'a').click(ev());
+  c.onSrc('not a map');
+  assert.ok(c.state.srcErrors.length > 0);
+  const v = c.renderVals();
+  assert.equal(v.add.canOpen, false);
+});
+
+test('a new map\'s root text can\'t end in a slug block', () => {
+  const c = boot(NESTED);
+  c.renderVals().nm.onText({ target: { value: 'Fine' } });
+  c.renderVals().nm.onText({ target: { value: 'Bad {slug: x}' } });
+  assert.equal(c.state.newText, 'Fine');
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
