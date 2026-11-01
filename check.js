@@ -395,6 +395,21 @@ test('views and resize behaviours switch and show bindings', () => {
   }
 });
 
+test('the chart view switch only shows on the bar view', () => {
+  const c = boot(MAP3);
+  assert.equal(c.renderVals().chartViewsShown, true);
+  for (const view of ['pie', 'source', 'diff']) { c.setState({ view }); assert.equal(c.renderVals().chartViewsShown, false, view); }
+});
+
+test('the header menu opens, and closes after a choice', () => {
+  const c = boot(MAP3);
+  c.renderVals().menu.toggle();
+  assert.equal(c.renderVals().menu.open, true);
+  c.renderVals().menu.fresh();
+  assert.equal(c.renderVals().menu.open, false);
+  assert.equal(c.state.newOpen, true);
+});
+
 test('adding a fact defaults to impact 0 and importance 50', () => {
   const c = boot(MAP3);
   const a0 = c.renderVals().add;
