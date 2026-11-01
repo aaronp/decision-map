@@ -35,6 +35,10 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px soli
 label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
 [role=button]:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important}
+.am-plus:hover{border-color:var(--ink)!important;background:var(--card)!important;color:var(--ink)!important}
+.am-col[data-born="true"]{animation:am-born .6s ease-out}
+@keyframes am-born{from{opacity:0;box-shadow:inset 0 0 0 3px var(--ink)}}
+@media (prefers-reduced-motion:reduce){.am-col[data-born="true"]{animation:none}}
 .am-col[data-can="true"]:hover::after{content:'↕';position:absolute;top:6px;right:8px;z-index:2;font-size:14px;color:var(--ink);pointer-events:none}
 </style>
 </helmet>
@@ -422,24 +426,18 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </details>
     </section>
 
-    <section aria-label="Contributing factors" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
-        <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{chart.title}} <span style="font-size: 13px; font-weight: 500; color: var(--ink2)">{{chart.countLabel}}</span></h2>
-        <span style="flex: 1"></span>
-        <div role="group" aria-label="Chart view" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
-          <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
-            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
-          </sc-for>
-        </div>
-      </div>
-
+    <section aria-label="Points" style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
       <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
-        <div data-chart="1" style="position: relative; display: flex; align-items: {{chart.align}}; height: 260px; user-select: none; -webkit-user-select: none">
+        <div style="display: flex; gap: 8px; min-width: 0">
+          <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
+            <button type="button" title="{{add.leftTitle}}" aria-label="{{add.leftTitle}}" onClick="{{add.left}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--control); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
+          </sc-if>
+        <div data-chart="1" style="position: relative; flex: 1; min-width: 0; display: flex; align-items: {{chart.align}}; height: min(46vh, 420px); min-height: 240px; box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; user-select: none; -webkit-user-select: none">
           <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
             <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
           </sc-if>
           <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
-            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
+            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" data-born="{{c.born}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
               <sc-if value="{{c.isLocked}}" hint-placeholder-val="{{ false }}">
                 <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></div>
               </sc-if>
@@ -467,10 +465,14 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             </sc-if>
           </sc-for>
           <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
-            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: 236px; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
+            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: calc(100% - 24px); width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
               <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
               <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--on-ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
             </div>
+          </sc-if>
+        </div>
+        <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
+            <button type="button" title="{{add.rightTitle}}" aria-label="{{add.rightTitle}}" onClick="{{add.right}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--control); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
           </sc-if>
         </div>
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; min-height: 26px; font-size: 13px; color: var(--ink3)">
@@ -482,43 +484,35 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         </div>
       </sc-if>
       <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
-        <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
+        <button type="button" onClick="{{add.wide}}" class="am-plus" style="height: min(46vh, 420px); min-height: 200px; border: 1.5px dashed var(--control); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 17px; font-weight: 500; cursor: pointer">
+          <span aria-hidden="true" style="display: block; font-size: 44px; font-weight: 300; line-height: 1.1">+</span>{{add.wideLabel}}
+        </button>
+      </sc-if>
+      <sc-if value="{{chart.emptyReadOnly}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">No points yet.</p>
       </sc-if>
     </section>
 
-    <section aria-label="Add" style="display: flex; flex-direction: column; gap: 14px; min-width: 0">
-      <div style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
-          <h3 style="margin: 0; font-size: 14px; font-weight: 600">{{pn.kidsTitle}} <span style="font-weight: 500; color: var(--ink2)">{{pn.kidsCount}}</span></h3>
-          <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
-            <button type="button" onClick="{{add.open}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-              {{add.label}}
-            </button>
+    <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{add.backdrop}}" onKeyDown="{{add.onDialogKey}}" style="position: fixed; inset: 0; z-index: 50; background: rgba(27, 31, 36, 0.35); display: flex; align-items: center; justify-content: center; padding: 16px">
+        <div role="dialog" aria-modal="true" aria-label="{{add.placeholder}}" style="width: min(560px, 100%); box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+          <input type="text" autoFocus="{{ true }}" autocomplete="off" aria-label="Title" placeholder="{{add.placeholder}}" value="{{add.text}}" onChange="{{add.onText}}" onKeyDown="{{add.onKey}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; font: inherit; font-size: 1.5rem; font-weight: 600">
+          <textarea rows="2" aria-label="Description" placeholder="Description (optional)" value="{{add.details}}" onChange="{{add.onDetails}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; font: inherit; color: var(--ink2); resize: none"></textarea>
+          <sc-if value="{{add.isFact}}" hint-placeholder-val="{{ true }}">
+            <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: center; padding-top: 8px; font-size: 13px; color: var(--ink2)">
+              <span>Contrary</span>
+              <input type="range" aria-label="Impact" min="-1" max="1" step="0.05" value="{{add.impact}}" onChange="{{add.onImpact}}" style="width: 100%; accent-color: var(--ink)">
+              <span>Supporting</span>
+              <span style="grid-column: 2; text-align: center; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; font-weight: 500; color: var(--ink)">{{add.signed}}</span>
+            </div>
           </sc-if>
-        </div>
-        <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
-          <div style="border: 1.5px dashed var(--ink2); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
-            <textarea autoFocus="{{ true }}" aria-label="{{add.aria}}" placeholder="{{add.aria}}" rows="2" value="{{add.draftText}}" onChange="{{add.onDraftText}}" onKeyDown="{{add.onDraftKey}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; resize: vertical"></textarea>
-            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--ink2)">
-              <label style="flex: 1 1 160px; min-width: 0; display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px">slug
-                <input type="text" spellcheck="false" value="{{add.draftSlugValue}}" onChange="{{add.onDraftSlug}}" placeholder="auto from text" style="flex: 1; min-width: 0; min-height: 32px; box-sizing: border-box; border: 1px solid {{add.slugBorder}}; border-radius: 6px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--ink)">
-              </label>
-              <sc-if value="{{add.slugCustom}}" hint-placeholder-val="{{ false }}">
-                <button type="button" onClick="{{add.slugAuto}}" style="min-height: 32px; padding: 0 8px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); font: inherit; font-size: 12px; cursor: pointer">Auto</button>
-              </sc-if>
-            </div>
-            <sc-if value="{{add.hasSlugError}}" hint-placeholder-val="{{ false }}">
-              <span role="status" style="font-size: 12px; color: var(--con)">{{add.slugErrorText}}</span>
-            </sc-if>
-            <div style="display: flex; justify-content: flex-end; gap: 8px">
-              <button type="button" onClick="{{add.cancel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap">Cancel</button>
-              <button type="button" onClick="{{add.save}}" disabled="{{add.saveDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; opacity: {{add.saveOpacity}}">Add</button>
-            </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px">
+            <button type="button" onClick="{{add.cancel}}" style="min-height: 48px; padding: 0 16px; border: 0; background: transparent; color: var(--ink2); font: inherit; cursor: pointer">Cancel</button>
+            <button type="button" onClick="{{add.commit}}" disabled="{{add.commitDisabled}}" style="min-height: 48px; padding: 0 24px; border: 0; border-radius: 10px; background: var(--ink); color: var(--on-ink); font: inherit; font-weight: 600; cursor: pointer; opacity: {{add.commitOpacity}}">Add</button>
           </div>
-        </sc-if>
+        </div>
       </div>
-    </section>
+    </sc-if>
   </div>
   </sc-if>
 
@@ -1283,10 +1277,10 @@ class Component extends DCLogic {
       view: a.errors.length ? 'source' : VIEWS.includes(qView) ? qView : window.AM_B ? 'diff' : props.startView ?? 'map',
       focus: qFocus !== null && Component.findPath(map.root, qFocus) !== null ? qFocus : map.root.slug,
       sourceTab: 'md',
-      adding: null, draftText: '',
+      adding: null, draftText: '', draftDetails: '', draftImpact: 0, bornSlug: null,
       lockedFacts: [], frozenOrder: null, thermoSlug: null,
       chartView: ['width', 'tall', 'area'].includes(loadSetting(CHART_VIEW_STORE)) ? loadSetting(CHART_VIEW_STORE) : 'width',
-      draftSlugCustom: null, pinned: null,
+      pinned: null,
       evOpen: false, evEdit: null, evName: '', evText: '', evUrl: '',
       q: '', filtOpen: false, fConf: 'any', fEv: 'any',
       menuOpen: false, settingsOpen: false, settingsTab: 'display', apiKey: '', apiKeySaved: '', apiShow: false, apiStatus: '',
@@ -1874,13 +1868,6 @@ class Component extends DCLogic {
   }
 
   // null when the slug is usable, else a message saying why not.
-  static slugProblem(slug, taken) {
-    if (slug === '') return 'Slug is empty.';
-    if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return 'Use lower-case letters, digits and single hyphens.';
-    if (taken.has(slug)) return `“${slug}” is already used in this map.`;
-    return null;
-  }
-
   // Share of the whole map per slug: root = 1, child = parent × layoutWeight / Σ sibling layoutWeights.
   static shares(map, values) {
     const v = new Map();
@@ -2020,7 +2007,7 @@ class Component extends DCLogic {
   }
 
   setFocus(slug) {
-    this.setState({ focus: slug, adding: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null, evOpen: false, evEdit: null });
+    this.setState({ focus: slug, adding: null, bornSlug: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null, evOpen: false, evEdit: null });
   }
 
   setBasis(v) {
@@ -2344,28 +2331,31 @@ class Component extends DCLogic {
       map, src: Component.serialize(map), srcErrors: [], focus: slug, view: 'map',
       fileName: `${slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
-      adding: null, draftText: '', draftSlugCustom: null, lockedFacts: [], frozenOrder: null, pinned: null,
+      adding: null, draftText: '', lockedFacts: [], frozenOrder: null, pinned: null,
       confirmDelete: false, hover: null, notice: null, fileStatus: `New map · ${title}`,
     });
   }
 
-  addArg(side) {
+  openAdd(parent, impact, isPremise = false) {
+    this.setState({ adding: { parent, impact, isPremise }, draftText: '', draftDetails: '', draftImpact: impact, confirmDelete: false });
+  }
+
+  cancelAdd() {
+    this.setState({ adding: null });
+  }
+
+  commitAdd() {
     this.setState((s) => {
       if (s.srcErrors.length) throw new Error('bug: add attempted while the markdown source has errors');
-      const parentSlug = Component.safeFocus(s.map.root, s.focus);
-      if (side === 'premise' && (parentSlug !== s.map.root.slug || s.map.root.children.some((c) => c.kind !== 'premise'))) {
-        throw new Error('bug: premise added somewhere other than a root without facts');
-      }
+      if (s.adding === null) throw new Error('bug: commit with no dialog open');
       const text = s.draftText.trim().replace(/\s+/g, ' ');
-      if (text === '') throw new Error('bug: Add pressed with empty text');
-      const taken = Component.allSlugs(s.map.root);
-      const slug = s.draftSlugCustom === null ? Component.slugify(text, taken) : s.draftSlugCustom;
-      const problem = Component.slugProblem(slug, taken);
-      if (problem !== null) throw new Error(`bug: Add pressed with an unusable slug: ${problem}`);
-      const isPremise = side === 'premise';
-      const node = { slug, text, kind: isPremise ? 'premise' : 'fact', importance: isPremise ? null : 50, impact: isPremise ? null : 0, by: null, basis: null, confidence: null, details: null, refs: [], children: [] };
-      const map = { ...s.map, root: Component.mapNode(s.map.root, parentSlug, (n) => ({ ...n, children: [...n.children, node] })) };
-      return { map, src: Component.serialize(map), adding: null, draftText: '', draftSlugCustom: null };
+      if (Component.slugBase(text) === '') throw new Error('bug: Add pressed with no usable title');
+      const { parent, isPremise } = s.adding;
+      const details = s.draftDetails.trim();
+      const slug = Component.slugify(text, Component.allSlugs(s.map.root));
+      const node = { slug, text, kind: isPremise ? 'premise' : 'fact', importance: isPremise ? null : 50, impact: isPremise ? null : Math.round(Math.max(-1, Math.min(1, s.draftImpact)) * 100) / 100, by: null, basis: null, confidence: null, details: details === '' ? null : details, refs: [], children: [] };
+      const map = { ...s.map, root: Component.mapNode(s.map.root, parent, (n) => ({ ...n, children: [...n.children, node] })) };
+      return { map, src: Component.serialize(map), adding: null, draftText: '', draftDetails: '', bornSlug: slug };
     });
   }
 
@@ -2573,7 +2563,6 @@ class Component extends DCLogic {
     }));
 
     const rootHasFacts = map.root.children.some((c) => c.kind === 'fact');
-    const isProposition = focus.children.some((c) => c.kind === 'premise');
     // filter
     const flt = Component.makeFilter(s.q, s.fConf, s.fEv);
     const filterActive = flt.active;
@@ -2603,27 +2592,27 @@ class Component extends DCLogic {
     }, values);
 
     // the chart of contributing factors
-    const taken = Component.allSlugs(map.root);
-    const autoSlug = Component.slugBase(s.draftText) === '' ? '' : Component.slugify(s.draftText, taken);
-    const draftSlugValue = s.draftSlugCustom === null ? autoSlug : s.draftSlugCustom;
-    const slugProblem = Component.slugProblem(draftSlugValue, taken);
-    const showSlugProblem = slugProblem !== null && (s.draftSlugCustom !== null || s.draftText.trim() !== '');
-    const canAdd = s.draftText.trim() !== '' && slugProblem === null;
-    const addKind = panelNode.kind === 'root' && (panelNode.children.some((c) => c.kind === 'premise') || s.adding === 'premise') ? 'premise' : 'fact';
+    const focusHasPremises = focus.children.some((c) => c.kind === 'premise');
+    const addIsPremise = s.adding !== null && s.adding.isPremise;
+    const canCommit = Component.slugBase(s.draftText) !== '';
     const add = {
-      canOpen: editable && s.adding === null, adding: editable && s.adding !== null,
-      label: addKind === 'premise' ? 'Add a premise' : 'Add a contributing factor',
-      aria: addKind === 'premise' ? 'New premise' : 'New contributing factor',
-      open: () => this.setState({ adding: addKind, draftText: '', draftSlugCustom: null }),
-      draftText: s.draftText, draftSlugValue,
-      onDraftSlug: (e) => this.setState({ draftSlugCustom: e.target.value.toLowerCase().replace(/\s+/g, '-') }),
-      slugCustom: s.draftSlugCustom !== null, slugAuto: () => this.setState({ draftSlugCustom: null }),
-      hasSlugError: showSlugProblem, slugErrorText: slugProblem === null ? '' : slugProblem,
-      slugBorder: showSlugProblem ? P.con : P.line,
-      onDraftText: (e) => this.onDraftText(e.target.value),
-      onDraftKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (canAdd) this.addArg(addKind); } },
-      cancel: () => this.setState({ adding: null, draftSlugCustom: null }),
-      save: () => this.addArg(addKind), saveDisabled: !canAdd, saveOpacity: canAdd ? 1 : 0.45,
+      canOpen: editable, adding: editable && s.adding !== null, isFact: !addIsPremise,
+      left: () => this.openAdd(focus.slug, focusHasPremises ? 0 : -0.5, focusHasPremises),
+      right: () => this.openAdd(focus.slug, focusHasPremises ? 0 : 0.5, focusHasPremises),
+      wide: () => this.openAdd(focus.slug, 0),
+      wideLabel: 'Add the first point',
+      leftTitle: focusHasPremises ? 'Add an option' : 'Add a contrary point',
+      rightTitle: focusHasPremises ? 'Add an option' : 'Add a supporting point',
+      placeholder: addIsPremise ? 'Your option' : 'Your point',
+      text: s.draftText, details: s.draftDetails, impact: s.draftImpact, signed: Component.signed(s.draftImpact),
+      onText: (e) => this.onDraftText(e.target.value),
+      onDetails: (e) => this.setState({ draftDetails: e.target.value }),
+      onImpact: (e) => this.setState({ draftImpact: Number(e.target.value) }),
+      onKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (canCommit) this.commitAdd(); } },
+      onDialogKey: (e) => { if (e.key === 'Escape') this.cancelAdd(); },
+      backdrop: (e) => { if (e.target === e.currentTarget) this.cancelAdd(); },
+      cancel: () => this.cancelAdd(), commit: () => this.commitAdd(),
+      commitDisabled: !canCommit, commitOpacity: canCommit ? 1 : 0.45,
     };
     const rows = Component.factRows(focus, values, s.frozenOrder);
     const order = rows.map((r) => r.node.slug);
@@ -2648,7 +2637,8 @@ class Component extends DCLogic {
         isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
         fill: Component.impactFill(r.impact),
         bg: isArea ? 'transparent' : Component.impactFill(r.impact), ink: 'var(--ink)',
-        height: s.chartView === 'tall' ? `${70 + 190 * (biggest === 0 ? 1 : r.importance / biggest)}px` : '100%',
+        height: s.chartView === 'tall' ? `${28 + 72 * (biggest === 0 ? 1 : r.importance / biggest)}%` : '100%',
+        born: String(c.slug === s.bornSlug),
         cursor: draggable ? 'ns-resize' : 'pointer',
         hasMarks: marks !== '', marks,
         click: () => this.onColumnClick(c.slug),
@@ -2670,10 +2660,7 @@ class Component extends DCLogic {
     const thermoLeft = thermoAt < 0 ? 0 : rows.slice(0, thermoAt).reduce((t, r) => t + r.share, 0) + rows[thermoAt].share / 2;
     const lockCount = rows.filter((r) => s.lockedFacts.includes(r.node.slug)).length;
     const chart = {
-      title: isProposition ? 'Premises' : 'Contributing factors',
-      countLabel: rows.length ? String(rows.length) : '',
-      hasCols: rows.length > 0, empty: rows.length === 0 && s.adding === null,
-      emptyText: 'Nothing here yet.',
+      hasCols: rows.length > 0, empty: rows.length === 0 && editable, emptyReadOnly: rows.length === 0 && !editable,
       cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
       views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
         id, label, ...pressed(s.chartView === id), isWidth: id === 'width', isTall: id === 'tall', isArea: id === 'area',
@@ -3028,7 +3015,7 @@ class Component extends DCLogic {
     const target = this.openTarget();
     const tb = {
       toggleNew: () => this.setState({ newOpen: !s.newOpen, openOpen: false }), newExpanded: String(s.newOpen),
-      addPremise: () => this.setState({ view: 'map', focus: map.root.slug, adding: 'premise', draftText: '', draftSlugCustom: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null }),
+      addPremise: () => { this.setFocus(map.root.slug); this.setState({ view: 'map' }); this.openAdd(map.root.slug, 0, true); },
       premiseDisabled, premiseOpacity: premiseDisabled ? 0.45 : 1,
       premiseTitle: locked ? 'Fix the markdown errors first'
         : rootHasFacts ? 'This root already has contributing factors. Premises go under a root that has none (start a new map, or remove them).'
@@ -3105,7 +3092,6 @@ class Component extends DCLogic {
     const pageDisplay = nm.open ? 'none' : 'flex';
 
     const targetValues = values.get(panelNode.slug);
-    const targetKids = Component.factRows(panelNode, values);
     const nDesc = Component.countDescendants(panelNode);
     const targetIsFact = panelNode.kind === 'fact';
     const targetIsPremise = panelNode.kind === 'premise';
@@ -3124,7 +3110,6 @@ class Component extends DCLogic {
       onTextKey: (e) => { if (e.key === 'Enter') e.preventDefault(); },
       onBy: (e) => this.setBy(e.target.value), onDetails: (e) => this.setDetails(e.target.value),
       onShare: (e) => this.onShareInput(e.target.value), onImpact: (e) => this.onImpactInput(e.target.value),
-      kidsTitle: panelNode.children.some((c) => c.kind === 'premise') ? 'Premises' : 'Contributing factors', kidsCount: targetKids.length ? String(targetKids.length) : '',
     };
 
     const confWords = ['Not set', 'Very unsure', 'Unsure', 'Fairly sure', 'Confident', 'Certain'];

@@ -479,14 +479,77 @@ test('the header menu opens, and closes after a choice', () => {
   assert.equal(c.state.newOpen, true);
 });
 
-test('adding a fact defaults to impact 0 and importance 50', () => {
+test('the "+" buttons start at the agreed impacts, with importance 50', () => {
+  const start = (pick) => { const c = boot(MAP3); pick(c.renderVals().add); return c.state.adding.impact; };
+  assert.equal(start((a) => a.left()), -0.5);
+  assert.equal(start((a) => a.right()), 0.5);
   const c = boot(MAP3);
-  const a0 = c.renderVals().add;
-  a0.open();
-  c.renderVals().add.onDraftText({ target: { value: 'New one' } });
-  c.renderVals().add.save();
-  const n = nodeOf(c, 'new-one');
-  assert.deepEqual([n.importance, n.impact, n.kind], [50, 0, 'fact']);
+  c.renderVals().add.left();
+  c.setState({ draftText: 'New point', draftImpact: -0.25 });
+  c.commitAdd();
+  const n = nodeOf(c, 'new-point');
+  assert.equal(n.importance, 50);
+  assert.equal(n.impact, -0.25);
+  assert.equal(chartOf(c).cols[1].slug, 'new-point'); // between a (-0.5) and b (0)
+  assert.equal(c.state.adding, null);
+  assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
+});
+
+test('an empty point offers one wide "+", starting at 0', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
+  assert.equal(chartOf(c).hasCols, false);
+  assert.equal(chartOf(c).empty, true);
+  assert.equal(c.renderVals().add.wideLabel, 'Add the first point');
+  c.renderVals().add.wide();
+  assert.equal(c.state.adding.impact, 0);
+});
+
+test('on premises every "+" adds an option, with no impact', () => {
+  const c = boot(PREMISE_MAP);
+  c.renderVals().add.left();
+  assert.equal(c.state.adding.isPremise, true);
+  assert.equal(c.renderVals().add.isFact, false);
+  c.setState({ draftText: 'Another' });
+  c.commitAdd();
+  const n = c.state.map.root.children.find((k) => k.text === 'Another');
+  assert.deepEqual([n.kind, n.importance, n.impact], ['premise', null, null]);
+  assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
+});
+
+test('Add option starts the first option on an empty root', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
+  c.renderVals().tb.addPremise();
+  assert.equal(c.state.adding.isPremise, true);
+  c.setState({ draftText: 'One' });
+  c.commitAdd();
+  assert.equal(c.state.map.root.children[0].kind, 'premise');
+});
+
+test('a description is kept, a blank title cannot be added, and read-only maps offer no "+"', () => {
+  const c = boot(MAP3);
+  c.renderVals().add.right();
+  c.setState({ draftText: 'X1', draftDetails: 'Why' });
+  c.commitAdd();
+  assert.equal(nodeOf(c, 'x1').details, 'Why');
+  c.renderVals().add.right();
+  c.setState({ draftText: '   ' });
+  assert.equal(c.renderVals().add.commitDisabled, true);
+  c.setState({ draftText: '?!' });
+  assert.equal(c.renderVals().add.commitDisabled, true);
+  const bad = boot(MAP3);
+  bad.onSrc('not a map');
+  assert.equal(bad.renderVals().add.canOpen, false);
+});
+
+test('Escape cancels the dialog, and Enter in the title commits it', () => {
+  const c = boot(MAP3);
+  c.renderVals().add.right();
+  c.renderVals().add.onDialogKey(ev({ key: 'Escape' }));
+  assert.equal(c.state.adding, null);
+  c.renderVals().add.right();
+  c.renderVals().add.onText({ target: { value: 'Kept' } });
+  c.renderVals().add.onKey(ev({ key: 'Enter' }));
+  assert.ok(nodeOf(c, 'kept'));
 });
 
 // ---------------------------------------------------------------- the details panel
@@ -638,9 +701,9 @@ test('evidence attaches to the point in focus', () => {
 test('add puts a child under the point in focus', () => {
   const c = boot(NESTED);
   colOf(c, 'a').click(ev());
-  c.renderVals().add.open();
-  c.renderVals().add.onDraftText({ target: { value: 'New kid' } });
-  c.renderVals().add.save();
+  c.renderVals().add.right();
+  c.renderVals().add.onText({ target: { value: 'New kid' } });
+  c.renderVals().add.commit();
   assert.deepEqual(nodeOf(c, 'a').children.map((k) => k.slug), ['kid', 'new-kid']);
   assert.equal(c.state.focus, 'a');
   reloaded(c);
