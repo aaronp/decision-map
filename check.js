@@ -236,7 +236,7 @@ const colOf = (c, slug) => chartOf(c).cols.find((x) => x.slug === slug);
 const nodeOf = (c, slug) => c.state.map.root.children.find((n) => n.slug === slug);
 const ev = (props = {}) => ({
   pointerType: 'mouse', pointerId: 1, clientX: 0, clientY: 0, metaKey: false, shiftKey: false, key: '',
-  preventDefault() {}, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => ({ width: 1016 }) }) }, ...props,
+  preventDefault() {}, currentTarget: { setPointerCapture() {}, blur() {}, closest: () => ({ getBoundingClientRect: () => ({ width: 1016 }) }) }, ...props,
 });
 
 test('impact colour helpers', () => {
@@ -245,8 +245,6 @@ test('impact colour helpers', () => {
   assert.equal(Component.signed(0), '0.00');
   assert.ok(Component.impactFill(-1).includes('--con') && Component.impactFill(-1).includes('100%'));
   assert.ok(Component.impactFill(0).includes('12%'));
-  assert.equal(Component.impactInk(0.2), 'var(--ink)');
-  assert.equal(Component.impactInk(-0.8), 'var(--on-fill)');
 });
 
 test('columns are sorted by impact with widths as shares', () => {
@@ -730,6 +728,60 @@ test('the examples are migrated and keep every fact', () => {
     assert.deepEqual(errors, []);
     assert.deepEqual(map, Component.parse(fixture).map, f);
   }
+});
+
+// ---------------------------------------------------------------- findings from the whole-branch review
+test('deleting a pinned claim falls back instead of crashing', () => {
+  const c = boot(NESTED);
+  c.setFocus('a');
+  c.setState({ pinned: 'a' });
+  panelOf(c).doDel();
+  assert.doesNotThrow(() => c.renderVals());
+  c.setState({ pinned: 'gone' });
+  assert.equal(c.renderVals().pie.pinPressed, 'false');
+});
+
+test('column text stays on a readable backing at every impact', () => {
+  const c = boot(MAP3.replace('impact: 0.5', 'impact: 0.6'));
+  const col = colOf(c, 'c');
+  assert.equal(col.ink, 'var(--ink)');
+  const filled = template.slice(template.indexOf('{{c.isFilled}}'), template.indexOf('{{c.hasDivider}}'));
+  assert.equal((filled.match(/color-mix\(in srgb, var\(--card\) 80%, transparent\)/g) || []).length, 2);
+  const slice = template.slice(template.indexOf('{{pie.labels}}'), template.indexOf('{{pie.centerClick}}'));
+  assert.ok(slice.includes('color-mix(in srgb, var(--card) 80%, transparent)'));
+});
+
+test('ending an impact drag drops keyboard focus, so arrows can\'t edit a neighbour', () => {
+  const c = boot(MAP3);
+  let blurred = 0;
+  const target = { setPointerCapture() {}, blur() { blurred++; } };
+  colOf(c, 'a').down(ev({ clientY: 200, currentTarget: target }));
+  colOf(c, 'a').move(ev({ clientY: 82, currentTarget: target }));
+  colOf(c, 'a').up(ev({ currentTarget: target }));
+  assert.equal(blurred, 1);
+  const plain = boot(MAP3);
+  colOf(plain, 'a').down(ev({ clientY: 200, currentTarget: target }));
+  colOf(plain, 'a').up(ev({ currentTarget: target }));
+  assert.equal(blurred, 1); // a plain click keeps focus
+});
+
+test('scale resize does nothing when nothing past the divider has importance', () => {
+  const scale = (raws, divider, resized, move) => Component.resizeImportance(raws, { divider, resized, move, mode: 'scale' });
+  assert.deepEqual(scale([0, 10, 5], 0, 1, 0), [0, 10, 5]);
+  assert.deepEqual(scale([0, 10, 5], 0, 1, 0.01), [0, 10, 5]);
+  assert.deepEqual(scale([5, 10, 0, 0], 1, 1, 0.01), [5, 10, 0, 0]);
+});
+
+test('opening a diff row goes through the normal focus change', () => {
+  const c = boot(LEGACY_A, LEGACY_B);
+  c.setState({ view: 'map' });
+  colOf(c, 'pay-tax').click(ev());
+  c.setState({ view: 'diff', diffTab: 'table', tradePool: ['pay-tax'] });
+  c.renderVals().diff.rows.find((r) => r.text.startsWith('Teenagers don')).open();
+  assert.equal(c.state.view, 'map');
+  assert.equal(c.state.focus, 'inexperience');
+  assert.equal(c.state.selectedFact, null);
+  assert.deepEqual(c.state.tradePool, []);
 });
 
 console.log(`${passed} passed, ${failed} failed`);

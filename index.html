@@ -322,8 +322,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
               </sc-if>
               <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
                 <div style="height: 100%; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px">
-                  <span style="overflow: hidden; min-height: 0">{{c.text}}</span>
-                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
+                  <span style="overflow: hidden; min-height: 0; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.text}}</span>
+                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
                 </div>
               </sc-if>
             </div>
@@ -585,7 +585,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           </svg>
         </sc-for>
         <sc-for list="{{pie.labels}}" as="l" hint-placeholder-count="4">
-          <span aria-hidden="true" style="position: absolute; left: {{l.x}}%; top: {{l.y}}%; transform: translate(-50%, -50%); font-size: 13px; font-weight: 700; color: {{l.fg}}; pointer-events: none; font-variant-numeric: tabular-nums">{{l.text}}</span>
+          <span aria-hidden="true" style="position: absolute; left: {{l.x}}%; top: {{l.y}}%; transform: translate(-50%, -50%); font-size: 13px; font-weight: 700; color: {{l.fg}}; pointer-events: none; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 0 3px">{{l.text}}</span>
         </sc-for>
         <button type="button" onClick="{{pie.centerClick}}" disabled="{{pie.centerDisabled}}" aria-label="{{pie.centerAria}}" style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 26.9%; aspect-ratio: 1 / 1; border-radius: 50%; border: 0; background: {{pie.centerBg}}; color: var(--on-fill); font: inherit; cursor: {{pie.centerCursor}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px">
           <span style="font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums">{{pie.centerBig}}</span>
@@ -1733,10 +1733,6 @@ class Component extends DCLogic {
     return `color-mix(in srgb, var(${impact < 0 ? '--con' : '--pro'}) ${Math.round(12 + 88 * Math.abs(impact))}%, var(--sunk))`;
   }
 
-  static impactInk(impact) {
-    return Math.abs(impact) > 0.5 ? 'var(--on-fill)' : 'var(--ink)';
-  }
-
   static panelSlug(root, focus, selectedFact) {
     if (selectedFact !== null && Component.findPath(root, selectedFact) !== null) return selectedFact;
     return Component.safeFocus(root, focus);
@@ -1811,6 +1807,7 @@ class Component extends DCLogic {
       const g0 = raws[resized] / T;
       const A = raws.reduce((t, r, j) => t + ((isLeft ? j < resized : j > resized) ? r : 0), 0) / T;
       const B = 1 - g0 - A;
+      if (B < 1e-9) return out;
       const g = clamp(((A + g0 + d) * (A + B) - A) / B, MIN_SHARE, MAX_SHARE);
       out[resized] = (g / (1 - g)) * others;
       return out;
@@ -2516,6 +2513,7 @@ class Component extends DCLogic {
     this.drag = null;
     if (!d.moved) return;
     this.suppressClick = true;
+    e.currentTarget.blur(); // columns are keyed by position, so after the re-sort this element shows another fact
     this.setState({ frozenOrder: null, thermoSlug: null });
   }
 
@@ -2675,7 +2673,7 @@ class Component extends DCLogic {
         op: filterActive && !matchSet.has(c.slug) ? 0.22 : 1,
         isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
         fill: Component.impactFill(r.impact),
-        bg: isArea ? 'transparent' : Component.impactFill(r.impact), ink: isArea ? 'var(--ink)' : Component.impactInk(r.impact),
+        bg: isArea ? 'transparent' : Component.impactFill(r.impact), ink: 'var(--ink)',
         height: s.chartView === 'tall' ? `${70 + 190 * (biggest === 0 ? 1 : r.importance / biggest)}px` : '100%',
         cursor: draggable ? 'ns-resize' : 'pointer',
         hasMarks: marks !== '', marks,
@@ -2731,9 +2729,8 @@ class Component extends DCLogic {
 
     // pie (sunburst of the focused claim): one ring per level below the centre, all levels, sharing radii 72–250
     // Pinned: the pie stays centred on the pinned claim and clicks only select. Unpinned: the pie follows the focus.
-    const isPinned = s.pinned !== null;
-    const pinPath = isPinned ? Component.findPath(map.root, s.pinned) : null;
-    if (isPinned && pinPath === null) throw new Error(`bug: pinned slug "${s.pinned}" is not in the map`);
+    const pinPath = s.pinned === null ? null : Component.findPath(map.root, s.pinned);
+    const isPinned = pinPath !== null;
     const pieRoot = isPinned ? pinPath[pinPath.length - 1] : focus;
     const pieParent = isPinned ? (pinPath.length > 1 ? pinPath[pinPath.length - 2] : null) : parent;
     const pieUp = isPinned ? (focus.slug === pieRoot.slug ? null : pieRoot) : pieParent;
@@ -2767,7 +2764,7 @@ class Component extends DCLogic {
         return {
           x: ((260 + rm * Math.sin(am)) / 520 * 100).toFixed(2), y: ((260 - rm * Math.cos(am)) / 520 * 100).toFixed(2),
           text: Component.signed(values.get(p.node.slug).impact),
-          fg: Component.impactInk(values.get(p.node.slug).impact),
+          fg: 'var(--ink)',
         };
       }),
       centerBg: sideOf(pieRoot).fg, centerDisabled: pieUp === null, centerCursor: pieUp === null ? 'default' : 'pointer',
@@ -3040,7 +3037,7 @@ class Component extends DCLogic {
           glyph: r.flipped ? `${glyph(r.kindA, r.impactA)}→${glyph(r.kindB, r.impactB)}` : r.status === 'onlyB' ? glyph(r.kindB, r.impactB) : glyph(r.kindA, r.impactA),
           glyphFg: r.status === 'onlyB' ? glyphFg(r.kindB, r.impactB) : glyphFg(r.kindA, r.impactA),
           canOpen: r.status !== 'onlyB', cannotOpen: r.status === 'onlyB',
-          open: () => this.setState({ view: 'map', focus: r.slug, adding: null, confirmDelete: false }),
+          open: () => { this.setFocus(r.slug); this.setState({ view: 'map' }); },
           badges, hasBadges: badges.length > 0, notes,
           bg: orphan ? 'var(--warn-bg)' : 'var(--card)',
           border: orphan ? '1.5px dashed var(--warn-dash)' : (match[k] && s.diffFilter !== 'all' ? `1px solid ${P.muted}` : '1px solid transparent'),
