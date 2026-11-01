@@ -18,9 +18,9 @@ input,textarea,select,button{background-color:var(--card);color:var(--ink)}
 input::placeholder,textarea::placeholder{color:var(--ink3)}
 /* Themes and accents: the same ids, surfaces and accents as the risk register (paper, slate, night, contrast). */
 .am-root{color-scheme:light;--bg:#F5F4F0;--card:#FFFFFF;--ink:#1B1D22;--ink2:#4A4F58;--ink3:#7A7F88;--rule:#DEDBD2;--rule-soft:#ECE9E1;--control:#C9C5BA;--on-ink:#FFFFFF;--on-fill:#FFFFFF;--sunk:color-mix(in srgb,var(--ink) 4%,var(--card));--accent-base:#2B5FA8;--accent:var(--accent-base);--accent-tint:color-mix(in srgb,var(--accent) 12%,var(--card));
---pro:#17704F;--pro-fill:#3FA77E;--pro-fill2:#72C3A0;--pro-fill3:#A6DAC3;--pro-deep:#0B3B2A;--pro-tint:color-mix(in srgb,var(--pro-fill) 16%,var(--card));
---con:#B42318;--con-fill:#B42318;--con-fill2:#D4513C;--con-fill3:#E8907F;--con-deep:#7A1A10;--con-line:color-mix(in srgb,var(--con) 45%,var(--card));--con-tint:color-mix(in srgb,var(--con) 11%,var(--card));
---prem:#4F3F9E;--prem-fill:#8E80D0;--prem-fill2:#A99EDC;--prem-fill3:#C6BEE8;--prem-deep:#1A1233;--prem-tint:color-mix(in srgb,var(--prem) 10%,var(--card));
+--pro:#17704F;--pro-fill:#3FA77E;--pro-tint:color-mix(in srgb,var(--pro-fill) 16%,var(--card));
+--con:#B42318;--con-fill:#B42318;--con-deep:#7A1A10;--con-line:color-mix(in srgb,var(--con) 45%,var(--card));--con-tint:color-mix(in srgb,var(--con) 11%,var(--card));
+--prem:#4F3F9E;--prem-tint:color-mix(in srgb,var(--prem) 10%,var(--card));
 --orphan:#E8A33D;--orphan-line:#8A5A0B;--warn-fg:#6B4306;--warn-dash:#C98A1B;--warn-bg:color-mix(in srgb,var(--orphan) 12%,var(--card));--warn-line:color-mix(in srgb,var(--orphan) 60%,var(--card));--warn-tint:color-mix(in srgb,var(--orphan) 28%,var(--card));
 --side-b:#C2610C;--side-b-tint:color-mix(in srgb,var(--side-b) 14%,var(--card));--moved:#7D8792;--star:#D99A1E;--star-line:#B07612}
 .am-root[data-theme="slate"]{--bg:#EDF0F4;--ink:#152030;--ink2:#465366;--ink3:#7B8696;--rule:#D3DAE3;--rule-soft:#E4E9EF;--control:#B8C2CF}
@@ -83,8 +83,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   </label>
   <fieldset style="border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px">
     <legend style="font-size: 13px; font-weight: 600; padding: 0; margin-bottom: 6px">Start with</legend>
-    <label style="display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer"><input type="radio" name="new-kind" checked="{{nm.isArgs}}" onChange="{{nm.pickArgs}}"> Pros and cons (a thesis)</label>
-    <label style="display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer"><input type="radio" name="new-kind" checked="{{nm.isPremises}}" onChange="{{nm.pickPremises}}"> Premises, each with its own pros and cons</label>
+    <label style="display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer"><input type="radio" name="new-kind" checked="{{nm.isArgs}}" onChange="{{nm.pickArgs}}"> Contributing factors (a thesis)</label>
+    <label style="display: flex; align-items: center; gap: 8px; min-height: 36px; cursor: pointer"><input type="radio" name="new-kind" checked="{{nm.isPremises}}" onChange="{{nm.pickPremises}}"> Premises, each with its own contributing factors</label>
   </fieldset>
   <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
     <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2)">slug: {{nm.slug}}</code>
@@ -127,7 +127,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   <div style="display: flex; gap: 8px; width: 100%; max-width: 620px">
     <label style="flex: 1; min-width: 0; position: relative; display: flex; align-items: center">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" style="color: var(--ink2); position: absolute; left: 12px; pointer-events: none"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-      <input type="search" aria-label="Filter decisions" placeholder="Filter decisions, authors, evidence…" value="{{fl.q}}" onChange="{{fl.onQ}}" style="width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 10px; padding: 0 12px 0 38px; font: inherit; font-size: 14px; background: var(--card); color: var(--ink)">
+      <input type="search" aria-label="Filter facts" placeholder="Filter facts, authors, evidence…" value="{{fl.q}}" onChange="{{fl.onQ}}" style="width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 10px; padding: 0 12px 0 38px; font: inherit; font-size: 14px; background: var(--card); color: var(--ink)">
     </label>
     <button type="button" aria-expanded="{{fl.expanded}}" aria-controls="filter-panel" onClick="{{fl.toggle}}" style="min-height: 44px; padding: 0 14px; border: 1px solid var(--control); border-radius: 10px; background: {{fl.btnBg}}; color: {{fl.btnFg}}; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"></path></svg>
@@ -845,7 +845,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       <sc-if value="{{diff.isTable}}" hint-placeholder-val="{{ false }}">
       <section aria-label="Differences" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
         <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 260px) 64px; gap: 16px; padding: 4px 14px 8px; font-size: 12px; color: var(--ink2); align-items: end">
-          <span>Argument</span>
+          <span>Fact</span>
           <span style="display: flex; justify-content: space-between"><span>0</span><span>share · <span style="color: var(--accent); font-weight: 700">●</span> A <span style="color: var(--side-b); font-weight: 700">○</span> B</span><span>100</span></span>
           <span style="text-align: right">B − A</span>
         </div>
@@ -927,21 +927,49 @@ show-evidence: false
 show-good-faith: false
 ---
 
-# The thesis {slug: thesis, by: Name}
+# The thesis
+slug: thesis
+by: Name
 
-- [+] A pro {slug: a-pro, weight: 60, confidence: 4}
-  - [basis] What would change my mind about it
-  - [ref] [Source name](https://example.org) — optional note
-  - [ref] A source without a link
-  - [-] A con of that pro {slug: its-con, weight: 40, by: Name}
-- [-] A con of the thesis {slug: a-con, weight: 70}
+Free text under a heading is its details.
 
-# Or a proposition with premises {slug: which-way}
+## A contributing factor
+slug: a-factor
+importance: 60
+impact: 0.8
+confidence: 4
+basis: What would change my mind about it
 
-- [*] First premise {slug: premise-one}
-  - [+] Why it holds {slug: why-one, weight: 60}
-- [*] Second premise {slug: premise-two}</pre>
-        <p style="margin: 0; line-height: 1.5">Two spaces per level. <code>[+]</code> supports its parent, <code>[-]</code> opposes it. A root can instead hold premises, <code>[*]</code> with no indent and no weight, each with its own pros and cons; a root holds either premises or pros/cons, not both. A premise is sized by its rolled-up strength. A pro or con may also carry <code>confidence: 1–5</code> and one <code>[basis]</code> line (what would change your mind). Evidence is a <code>[ref]</code> line one level under a pro or con: a name (as a markdown link when there is a URL), then optionally “ — ” and a note. Every line needs a unique <code>slug</code> (the identity used by Diff) and a <code>weight</code> from 0 to 100; <code>by</code> is optional. Strength rolls up: a claim holds at (1 + Σ pro) ÷ (1 + Σ pro + Σ con), where each child counts as weight ÷ 100 × its own strength.</p>
+- [ref] [Source name](https://example.org) — optional note
+- [ref] A source without a link
+
+### A factor under that one
+slug: its-child
+importance: 40
+impact: -0.5
+by: Name
+
+## Another factor of the thesis
+slug: another
+importance: 70
+impact: -1
+
+# Or a proposition with premises
+slug: which-way
+
+## First premise
+slug: premise-one
+kind: premise
+
+### Why it holds
+slug: why-one
+importance: 60
+impact: 0.6
+
+## Second premise
+slug: premise-two
+kind: premise</pre>
+        <p style="margin: 0; line-height: 1.5">One <code>#</code> more per level, with properties directly under the heading. <code>importance</code> is relative to the fact's siblings, and <code>impact</code> runs from -1.0 (contrary) to 1.0 (supporting). A root can instead hold premises, marked <code>kind: premise</code>, whose values are calculated from their children. Each file has one root; the second one above shows the other kind of map. Older list-style files still open, and are saved in this format.</p>
       </details>
     </div>
   </sc-if>
@@ -1264,7 +1292,7 @@ function sameUrl(a, b) {
 /** Sources for `arg` (a pro or con of `parent`), as evidence refs; only ones the search cited, since a model can make up a plausible URL. */
 async function researchEvidence(key, model, arg, parent) {
   const prompt = 'Search the web for up to five credible sources that bear on this argument: research, official statistics, government or regulator reports, reputable journalism. Prefer sources that test it, for or against. For each give its title, one sentence on what it shows for the argument, and its exact URL as found.\n\n'
-    + JSON.stringify({ argument: arg.text, side: arg.side === 'pro' ? 'for' : 'against', claim: parent.text });
+    + JSON.stringify({ argument: arg.text, side: arg.impact >= 0 ? 'for' : 'against', claim: parent.text });
   const schema = { type: 'object', additionalProperties: false, required: ['rows'], properties: { rows: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['title', 'description', 'url'], properties: { title: { type: 'string' }, description: { type: 'string' }, url: { type: 'string' } } } } } };
   const { data, cited } = await openRouterAsk(key, model, 'You find evidence for an argument map. Never invent sources, figures or URLs. Answer only with JSON matching the schema.', prompt, schema);
   /* Names and notes can't hold the characters the [ref] line uses as syntax. */
@@ -1643,17 +1671,6 @@ class Component extends DCLogic {
     return out.join('\n').replace(/\n+$/, '') + '\n';
   }
 
-  // ponytail: temporary, so the views not yet ported can still read `side` and `weight`. Removed when the last one is.
-  static withLegacyFields(map) {
-    const walk = (n) => ({
-      ...n,
-      side: n.kind === 'root' ? null : n.kind === 'premise' ? 'premise' : n.impact >= 0 ? 'pro' : 'con',
-      weight: n.kind === 'fact' ? Math.min(100, Math.round(n.importance)) : null,
-      children: n.children.map(walk),
-    });
-    return { ...map, root: walk(map.root) };
-  }
-
   static findPath(n, slug) {
     if (n.slug === slug) return [n];
     for (const c of n.children) {
@@ -1919,7 +1936,7 @@ class Component extends DCLogic {
 
   // Hierarchical Sankey diff. Each side is a tree flowing outward from its root (A on the left, B mirrored on the right).
   // A node's value is its share of the whole map: root = 1, child = parent × layoutWeight / Σ sibling layoutWeights,
-  // so pros and cons split their parent and the values of a node's children always add up to the node.
+  // so facts split their parent and the values of a node's children always add up to the node.
   // Both sides share one merged structure (the diff rows); the finest-level entries ("tips") meet in the middle by slug.
   // Where a node is broken down on one side but not the other, a synthetic "#self" tip carries the undivided value.
   static sankeyLayout(rows, a, b, valuesA, valuesB) {
@@ -2160,7 +2177,7 @@ class Component extends DCLogic {
     this.edit((m) => ({ ...m, display: { ...m.display, ...patch } }));
   }
 
-  // Filter: free text over text, slug, author, basis and evidence; plus confidence / evidence facets on pros and cons.
+  // Filter: free text over text, slug, author, basis and evidence; plus confidence / evidence facets on facts.
   static makeFilter(q, conf, ev) {
     if (!['any', 'unset', '1', '2', '3', '4', '5'].includes(conf)) throw new Error(`bug: unknown confidence filter "${conf}"`);
     if (!['any', 'with', 'without'].includes(ev)) throw new Error(`bug: unknown evidence filter "${ev}"`);
@@ -2301,7 +2318,7 @@ class Component extends DCLogic {
       : { srcB: text, mapB: r.map, errorsB: [], fileNameB: name, fileStatus: `Opened ${name} as B` });
   }
 
-  /** Research: sources for the focused pro or con, offered as evidence to add. */
+  /** Research: sources for the selected fact, offered as evidence to add. */
   research() {
     const s = this.state;
     const path = Component.findPath(s.map.root, this.panelTarget());
@@ -2322,16 +2339,17 @@ class Component extends DCLogic {
     this.setState((st) => ({ research: { ...st.research, items: st.research.items.filter((r) => r !== ref) } }));
   }
 
-  /** Check rationale: Jev's confidence that each side's arguments, taken together, make their case for the focused claim. */
+  /** Check rationale: Jev's confidence that the supporting and the contrary facts, each taken together, make their case. */
   checkRationale() {
     const s = this.state;
     const path = Component.findPath(s.map.root, this.panelTarget());
     const claim = path[path.length - 1];
     const parent = path.length > 1 ? path[path.length - 2].text : null;
-    const texts = (side) => claim.children.filter((c) => c.side === side).map((c) => c.text);
+    const facts = claim.children.filter((c) => c.kind === 'fact');
+    const texts = (keep) => facts.filter((c) => keep(c.impact)).map((c) => c.text);
     const run = { slug: claim.slug, src: s.src, busy: true, error: '', pro: null, con: null };
     this.setState({ rationale: run });
-    checkRationale(s.apiKeySaved, claim.text, parent, texts('pro'), texts('con')).then(
+    checkRationale(s.apiKeySaved, claim.text, parent, texts((v) => v > 0), texts((v) => v < 0)).then(
       (r) => this.setState((st) => (st.rationale !== null && st.rationale.slug === claim.slug ? { rationale: { ...run, busy: false, ...r } } : null)),
       (e) => this.setState((st) => (st.rationale !== null && st.rationale.slug === claim.slug ? { rationale: { ...run, busy: false, error: e.message } } : null)),
     );
@@ -2367,7 +2385,7 @@ class Component extends DCLogic {
       if (s.srcErrors.length) throw new Error('bug: add attempted while the markdown source has errors');
       const parentSlug = Component.panelSlug(s.map.root, s.focus, s.selectedFact);
       if (side === 'premise' && (parentSlug !== s.map.root.slug || s.map.root.children.some((c) => c.kind !== 'premise'))) {
-        throw new Error('bug: premise added somewhere other than a root without pros/cons');
+        throw new Error('bug: premise added somewhere other than a root without facts');
       }
       const text = s.draftText.trim().replace(/\s+/g, ' ');
       if (text === '') throw new Error('bug: Add pressed with empty text');
@@ -2534,27 +2552,27 @@ class Component extends DCLogic {
     const s = this.state;
     const P = {
       ink: 'var(--ink)', muted: 'var(--ink2)', line: 'var(--control)',
-      pro: 'var(--pro)', proTint: 'var(--pro-tint)', proFill: ['var(--pro-fill)', 'var(--pro-fill2)', 'var(--pro-fill3)'],
-      con: 'var(--con)', conTint: 'var(--con-tint)', conFill: ['var(--con-fill)', 'var(--con-fill2)', 'var(--con-fill3)'],
+      pro: 'var(--pro)', proTint: 'var(--pro-tint)',
+      con: 'var(--con)', conTint: 'var(--con-tint)',
       thesis: 'var(--accent)', thesisTint: 'var(--accent-tint)', orphan: 'var(--orphan)',
-      prem: 'var(--prem)', premTint: 'var(--prem-tint)', premFill: ['var(--prem-fill)', 'var(--prem-fill2)', 'var(--prem-fill3)'],
+      prem: 'var(--prem)', premTint: 'var(--prem-tint)',
     };
     const thr = this.props.diffThreshold ?? 10;
-    const map = Component.withLegacyFields(s.map);
-    const mapB = s.mapB === null ? null : Component.withLegacyFields(s.mapB);
+    const map = s.map;
+    const mapB = s.mapB;
     /* No map: nothing opened yet (noMap), or a file whose markdown doesn't parse yet (only the source view shows). */
-    const hasMap = s.map !== BLANK;
+    const hasMap = map !== BLANK;
     const noMap = !hasMap && s.src === '';
     const locked = s.srcErrors.length > 0;
     const editable = !locked;
-    const path = Component.findPath(map.root, Component.safeFocus(s.map.root, s.focus));
+    const path = Component.findPath(map.root, Component.safeFocus(map.root, s.focus));
     const focus = path[path.length - 1];
     const parent = path.length > 1 ? path[path.length - 2] : null;
-    const targetPath = Component.findPath(map.root, Component.panelSlug(s.map.root, s.focus, s.selectedFact));
+    const targetPath = Component.findPath(map.root, Component.panelSlug(map.root, s.focus, s.selectedFact));
     const panelNode = targetPath[targetPath.length - 1];
     const pathSlugs = new Set(path.map((n) => n.slug));
 
-    const values = Component.allValues(s.map.root);
+    const values = Component.allValues(map.root);
     const sideOf = (n, vals = values) => {
       if (n.kind === 'root') return { fg: P.thesis, tint: P.thesisTint, glyph: '◆', label: 'Thesis', solid: P.thesis };
       const impact = vals.get(n.slug).impact;
@@ -2618,7 +2636,7 @@ class Component extends DCLogic {
     const slugProblem = Component.slugProblem(draftSlugValue, taken);
     const showSlugProblem = slugProblem !== null && (s.draftSlugCustom !== null || s.draftText.trim() !== '');
     const canAdd = s.draftText.trim() !== '' && slugProblem === null;
-    const addKind = panelNode.side === null && (panelNode.children.some((c) => c.side === 'premise') || s.adding === 'premise') ? 'premise' : 'fact';
+    const addKind = panelNode.kind === 'root' && (panelNode.children.some((c) => c.kind === 'premise') || s.adding === 'premise') ? 'premise' : 'fact';
     const add = {
       canOpen: editable && s.adding === null, adding: editable && s.adding !== null,
       label: addKind === 'premise' ? 'Add a premise' : 'Add a contributing factor',
@@ -2678,7 +2696,7 @@ class Component extends DCLogic {
     const thermoAt = rows.findIndex((r) => r.node.slug === s.thermoSlug);
     const thermoLeft = thermoAt < 0 ? 0 : rows.slice(0, thermoAt).reduce((t, r) => t + r.share, 0) + rows[thermoAt].share / 2;
     const chart = {
-      title: focus.side === null && isProposition ? 'Premises' : 'Contributing factors',
+      title: isProposition ? 'Premises' : 'Contributing factors',
       countLabel: rows.length ? String(rows.length) : '',
       hasCols: rows.length > 0, empty: rows.length === 0 && s.adding === null,
       emptyText: 'Nothing here yet.',
@@ -2780,7 +2798,7 @@ class Component extends DCLogic {
     // diff
     const diff = {
       titleA: map.title, titleB: mapB ? mapB.title : s.srcB === '' ? 'not chosen yet' : '(doesn’t parse)',
-      copyIntoB: () => this.setState({ srcB: Component.serialize(s.map), mapB: s.map, errorsB: [] }),
+      copyIntoB: () => this.setState({ srcB: Component.serialize(map), mapB: map, errorsB: [] }),
       showSrcB: s.showSrcB, showSrcBPressed: String(s.showSrcB),
       srcBToggleLabel: s.showSrcB ? 'Hide B source' : 'Edit B source',
       toggleSrcB: () => this.setState({ showSrcB: !s.showSrcB }),
@@ -2802,7 +2820,7 @@ class Component extends DCLogic {
     };
     if (s.view === 'diff' && mapB !== null) {
       const { rows, ia, ib } = Component.diff(map, mapB, thr);
-      const valuesB = Component.allValues(s.mapB.root);
+      const valuesB = Component.allValues(mapB.root);
       diff.leans = [['A', values, map.root.slug], ['B', valuesB, mapB.root.slug]].map(([label, vals, slug]) => {
         const sc = vals.get(slug).score;
         return { label, signed: sc === null ? '—' : Component.signed(sc), left: ((sc ?? 0) + 1) * 50 };
@@ -2832,7 +2850,7 @@ class Component extends DCLogic {
       // ---- sankey
       if (s.diffTab === 'sankey') {
         const rowBy = new Map(rows.map((r, k) => [r.slug, { r, k }]));
-        const L = Component.sankeyLayout(rows, s.map, s.mapB, values, valuesB);
+        const L = Component.sankeyLayout(rows, map, mapB, values, valuesB);
         // hover wins over the clicked selection for highlighting
         const hov = s.diffHover !== null ? s.diffHover : s.diffSel;
         const hoverSet = hov !== null;
@@ -2880,8 +2898,8 @@ class Component extends DCLogic {
           for (let j = selK - 1, d = rows[selK].depth; j >= 0 && d > 0; j--) {
             if (rows[j].depth < d) { chain.unshift(rows[j]); d = rows[j].depth; }
           }
-          const shA = Component.shares(s.map, values);
-          const shB = Component.shares(s.mapB, valuesB);
+          const shA = Component.shares(map, values);
+          const shB = Component.shares(mapB, valuesB);
           const pctOf = (m, slug) => (m.has(slug) ? m.get(slug) * 100 : 0);
           const fmt = (v) => (v === 0 ? '—' : v >= 10 ? `${v.toFixed(0)}%` : `${v.toFixed(1)}%`);
           const a = pctOf(shA, s.diffSel);
@@ -2900,7 +2918,7 @@ class Component extends DCLogic {
               return {
                 ...head, present: false, missing: true, hasBy: false, by: '', kind: '', fg: P.ink,
                 border: '1.5px dashed var(--warn-dash)', bg: 'var(--warn-bg)', text: '', stats: [], parentText: '', kids: [], hasKids: false, noKids: false, refs: [], hasRefs: false, hasBasis: false, basis: '',
-                absentText: `Not in ${side}. This argument only exists in ${side === 'A' ? 'B' : 'A'}, so it is an orphan there.`,
+                absentText: `Not in ${side}. This fact only exists in ${side === 'A' ? 'B' : 'A'}, so it is an orphan there.`,
               };
             }
             const e = idx.get(s.diffSel);
@@ -3055,7 +3073,7 @@ class Component extends DCLogic {
       /* The panel also stands in for a diff with no B. */
       openOpen: s.openOpen || (s.view === 'diff' && hasMap && s.srcB === ''),
       openTitle: target === 'B' ? 'Choose map B to compare with' : 'Open a map',
-      openNote: target === 'B' ? 'B is compared with the current map, argument by argument (matched by slug). Opening a URL puts it in the address bar as ?theirs=.'
+      openNote: target === 'B' ? 'B is compared with the current map, fact by fact (matched by slug). Opening a URL puts it in the address bar as ?theirs=.'
         : 'The file replaces the current map. A file opened from this computer can be saved back to it. Opening a URL puts it in the address bar as ?src=, so the link opens this map.',
       canCancel: s.openOpen,
       /* An empty page says so, and offers the two ways to get a map. */
@@ -3190,7 +3208,7 @@ class Component extends DCLogic {
       })),
     };
 
-    /* Check rationale (Jev): shown on a claim that has pros or cons, once a typesafe.ai key is saved. */
+    /* Check rationale (Jev): shown on a claim that has contributing factors, once a typesafe.ai key is saved. */
     const rt = s.rationale !== null && s.rationale.slug === panelNode.slug ? s.rationale : null;
     const pct = (p) => (p === null ? '—' : `${Math.round(p * 100)}%`);
     const rat = {
@@ -3221,7 +3239,7 @@ class Component extends DCLogic {
       ev: s.fEv, onEv: (e) => this.setState({ fEv: e.target.value }),
       reset: () => this.setState({ q: '', fConf: 'any', fEv: 'any' }),
       active: filterActive,
-      summary: `${shownArgs} of ${totalArgs} pros and cons match` + (s.view === 'map' ? ' · others are dimmed' : ''),
+      summary: `${shownArgs} of ${totalArgs} facts match` + (s.view === 'map' ? ' · others are dimmed' : ''),
     };
 
     // settings
@@ -3250,7 +3268,7 @@ class Component extends DCLogic {
       toggleShow: () => this.setState({ apiShow: !s.apiShow }),
       saveDisabled: keyTrim === '' || keyTrim === s.apiKeySaved, saveOpacity: keyTrim === '' || keyTrim === s.apiKeySaved ? 0.45 : 1,
       save: () => this.saveApiKey(), hasSaved: s.apiKeySaved !== '', remove: () => { this.removeApiKey(); this.setState({ rationale: null }); },
-      status: s.apiStatus !== '' ? s.apiStatus : s.apiKeySaved !== '' ? 'A key is saved in this browser. It adds Check rationale to claims with pros or cons.' : 'Adds a Check rationale button that scores each side’s case.',
+      status: s.apiStatus !== '' ? s.apiStatus : s.apiKeySaved !== '' ? 'A key is saved in this browser. It adds Check rationale to claims with contributing factors.' : 'Adds a Check rationale button that scores each side’s case.',
       /* A pick is written to the map's front matter (its default look) and replaces any ?theme. */
       themes: THEMES.map((t) => ({
         label: t.label, bg: t.bg, card: t.card, ink: t.ink, rule: t.rule, pressed: String(t.id === themeId), ring: ring(t.id === themeId),
@@ -3263,13 +3281,13 @@ class Component extends DCLogic {
       orSaveDisabled: orTrim === '' || orTrim === s.orKeySaved, orSaveOpacity: orTrim === '' || orTrim === s.orKeySaved ? 0.45 : 1,
       saveOr: () => this.saveOrKey(), orHasSaved: s.orKeySaved !== '',
       removeOr: () => this.setState({ orKey: '', orKeySaved: '', research: null, orStatus: storeSetting(OR_KEY_STORE, '') ? 'Key removed from this browser.' : 'Cleared for this page, but storage refused the removal.' }),
-      orStatusText: s.orStatus !== '' ? s.orStatus : s.orKeySaved !== '' ? 'A key is saved in this browser. It adds Research to the evidence of a pro or con.' : 'Adds a Research button that searches the web for evidence.',
+      orStatusText: s.orStatus !== '' ? s.orStatus : s.orKeySaved !== '' ? 'A key is saved in this browser. It adds Research to the evidence of a fact.' : 'Adds a Research button that searches the web for evidence.',
       orModel: s.orModel,
       onOrModel: (e) => { const m = e.target.value.trim(); storeSetting(OR_MODEL_STORE, m === OR_DEFAULT_MODEL ? '' : m); this.setState({ orModel: m === '' ? OR_DEFAULT_MODEL : e.target.value }); },
       toggles: [
-        ['confidence', 'Confidence', 'Fade each pro and con by its confidence (1★ faint, 5★ solid; unset stays solid).'],
-        ['evidence', 'Evidence', 'Dotted border on pros and cons that have no evidence.'],
-        ['goodFaith', 'Good faith', 'Diagonal lines behind pros and cons that have no basis.'],
+        ['confidence', 'Confidence', 'Show stars on each fact that has a confidence.'],
+        ['evidence', 'Evidence', 'Show a paperclip and evidence count on each fact.'],
+        ['goodFaith', 'Good faith', 'Mark each fact that has no basis.'],
       ].map(([k, label, desc]) => ({ label, desc, on: disp[k], toggle: () => this.setDisplay({ [k]: !disp[k] }) })),
     };
 

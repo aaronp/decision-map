@@ -657,5 +657,80 @@ test('the diff table has no NaN', () => {
   assert.ok(!JSON.stringify(c.renderVals().diff.rows).includes('NaN'));
 });
 
+// ---------------------------------------------------------------- the port is complete
+const HELPERS = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## Bad fact\nslug: a\nimportance: 1\nimpact: -0.5\n\n## Zero fact\nslug: b\nimportance: 1\nimpact: 0\n\n## Good fact\nslug: c\nimportance: 1\nimpact: 0.5\n`;
+function capturingFetch(run) {
+  const bodies = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = (url, o) => { bodies.push(String(o && o.body)); return new Promise(() => {}); };
+  try { run(); } finally { globalThis.fetch = real; }
+  return bodies.join('\n');
+}
+
+test('check rationale splits by the sign of impact and skips zero', () => {
+  const c = boot(HELPERS);
+  c.setState({ apiKeySaved: 'k' });
+  assert.ok(c.renderVals().rat.show);
+  const sent = capturingFetch(() => c.renderVals().rat.run());
+  assert.ok(sent.includes('Bad fact') && sent.includes('Good fact'), sent);
+  assert.ok(!sent.includes('Zero fact'), sent);
+});
+
+test('research describes a fact by the sign of its impact', () => {
+  const c = boot(HELPERS);
+  c.setState({ orKeySaved: 'k' });
+  colOf(c, 'a').click(ev());
+  assert.ok(capturingFetch(() => c.renderVals().ev.research()).includes('against'));
+  colOf(c, 'a').click(ev());
+  colOf(c, 'c').click(ev());
+  assert.ok(capturingFetch(() => c.renderVals().ev.research()).includes('for'));
+});
+
+test('no pro/con model remains outside the old-format reader', () => {
+  const live = m[1].replace(/  static parseLegacy[\s\S]*?  static parseRef/, '  static parseRef').replace(/  static parseAttrs[\s\S]*?  static serialize/, '  static serialize');
+  // l.side and b.side are the Sankey's A/B side of a link or bar, not a node's pro/con.
+  for (const dead of [/(?<!\b[lb])\.side\b/, /\.weight\b/, /withLegacyFields/, /scoreAll/, /orderedKids/, /pros and cons/i]) assert.ok(!dead.test(live), String(dead));
+});
+
+test('the format help describes the current format', () => {
+  const tpl = template;
+  assert.ok(tpl.includes('importance: 60') && tpl.includes('kind: premise'));
+  assert.ok(!tpl.includes('[+]') && !tpl.includes('[*]'));
+  assert.ok(tpl.includes('Contributing factors (a thesis)'));
+});
+
+test('new maps of each kind can be created and reopened', () => {
+  for (const kind of ['args', 'premises']) {
+    const c = boot(MAP3);
+    c.setState({ newKind: kind, newTitle: 'New', newText: 'A claim', newOpen: true });
+    c.renderVals().nm.create();
+    assert.equal(c.state.map.root.kind, 'root');
+    c.renderVals().add.onDraftText({ target: { value: 'First one' } });
+    if (kind === 'args') { c.renderVals().add.open(); c.renderVals().add.onDraftText({ target: { value: 'First one' } }); }
+    c.renderVals().add.save();
+    assert.equal(c.state.map.root.children[0].kind, kind === 'args' ? 'fact' : 'premise');
+    reloaded(c);
+  }
+});
+
+test('an edit turns an old-format source into the new format', () => {
+  const c = boot(LEGACY_A);
+  assert.ok(c.state.src.includes('[+]'));
+  colOf(c, 'pay-tax').click(ev());
+  panelOf(c).onImpact({ target: { value: '0.5' } });
+  assert.ok(!c.state.src.includes('[+]') && c.state.src.includes('impact: 0.5'));
+  reloaded(c);
+});
+
+test('the examples are migrated and keep every fact', () => {
+  for (const [f, fixture] of [['map', LEGACY_A], ['obi', LEGACY_B]]) {
+    const src = fs.readFileSync(`examples/votes-at-16/${f}.md`, 'utf8');
+    assert.ok(!src.includes('[+]') && !src.includes('[-]'), f);
+    const { map, errors } = Component.parse(src);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(map, Component.parse(fixture).map, f);
+  }
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
