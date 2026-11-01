@@ -878,8 +878,6 @@ test('the sunburst colours by impact', () => {
   c.setState({ view: 'pie' });
   const p = c.renderVals();
   assert.ok(p.pie.slices.some((b) => b.fill === Component.impactFill(-0.5)));
-  assert.equal(p.pie.legend.length, 3);
-  assert.equal(p.pie.legend[0].swatch, Component.impactFill(-0.5));
   assert.deepEqual(unresolved(p), []);
 });
 
@@ -1036,14 +1034,119 @@ test('the examples are migrated and keep every fact', () => {
 });
 
 // ---------------------------------------------------------------- findings from the whole-branch review
-test('deleting a pinned claim falls back instead of crashing', () => {
-  const c = boot(NESTED);
-  c.setFocus('a');
-  c.setState({ pinned: 'a' });
-  panelOf(c).doDel();
-  assert.doesNotThrow(() => c.renderVals());
-  c.setState({ pinned: 'gone' });
-  assert.equal(c.renderVals().pie.pinPressed, 'false');
+const pieOf = (c) => { c.setState({ view: 'pie' }); return c.renderVals().pie; };
+
+test('slice edges exist between inner slices only, with none at the wrap', () => {
+  assert.equal(pieOf(boot(MAP3)).edges.length, 2);
+  assert.equal(pieOf(boot(PREMISE_MAP)).edges.length, 0);
+});
+
+test('angleDelta takes the short way around', () => {
+  near(Component.angleDelta(3, -3), 2 * Math.PI - 6);
+  near(Component.angleDelta(-3, 3), 6 - 2 * Math.PI);
+  near(Component.angleDelta(0, 0.5), 0.5);
+});
+
+test('dragging a slice edge respects locks', () => {
+  const c = boot(MAP3);
+  pieOf(c).slices.find((x) => x.slug === 'c').down(ev({ metaKey: true }));
+  assert.deepEqual(c.state.lockedFacts, ['c']);
+  const rect = { left: 0, top: 0, width: 200, height: 200 };
+  const e = (x, y) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) } });
+  pieOf(c).edges[0].down(e(100, 0)); // straight up from the centre
+  pieOf(c).edges[0].move(e(200, 100)); // a quarter turn clockwise, or 0.25 of the total
+  pieOf(c).edges[0].up(e(200, 100));
+  assert.equal(nodeOf(c, 'c').importance, 60);
+  near(nodeOf(c, 'a').importance + nodeOf(c, 'b').importance, 40);
+  assert.ok(nodeOf(c, 'a').importance > 10);
+});
+
+test('with nothing locked, a slice edge changes only the resized fact, and arrows work', () => {
+  const c = boot(MAP3);
+  pieOf(c).edges[0].key(ev({ key: 'ArrowRight' }));
+  assert.ok(nodeOf(c, 'a').importance > 10);
+  assert.equal(nodeOf(c, 'b').importance, 30);
+});
+
+test('only inner slices can be locked, and a locked slice shows it', () => {
+  const c = boot(DEEP_MAP);
+  pieOf(c).slices.find((x) => x.depth > 1).down(ev({ metaKey: true }));
+  assert.deepEqual(c.state.lockedFacts, []);
+  const inner = pieOf(c).slices.find((x) => x.depth === 1);
+  inner.key(ev({ key: 'l' }));
+  assert.deepEqual(c.state.lockedFacts, ['level-1']);
+  assert.equal(pieOf(c).slices.find((x) => x.depth === 1).isLocked, true);
+  assert.equal(pieOf(c).hatches.length, 1);
+});
+
+test('a lock gesture on a slice doesn\'t open it, but a click does', () => {
+  const c = boot(MAP3);
+  const a = pieOf(c).slices.find((x) => x.slug === 'a');
+  a.down(ev({ metaKey: true }));
+  a.pick(ev({ metaKey: true }));
+  assert.equal(c.state.focus, 'r');
+  a.down(ev());
+  a.pick(ev());
+  assert.equal(c.state.focus, 'a');
+});
+
+test('hovering shows a "+" each side, and a leaf gets one more for a first child', () => {
+  const c = boot(MAP3);
+  pieOf(c).slices[0].enter();
+  const ctls = pieOf(c).ctls;
+  assert.equal(ctls.length, 3);
+  ctls[0].add();
+  assert.equal(c.state.adding.parent, 'r');
+  assert.equal(c.state.adding.impact, -0.75);
+  c.setState({ adding: null });
+  pieOf(c).ctls[1].add();
+  assert.equal(c.state.adding.impact, -0.25);
+  c.setState({ adding: null });
+  pieOf(c).ctls[2].add();
+  assert.equal(c.state.adding.parent, 'a');
+  assert.equal(c.state.adding.impact, 0);
+});
+
+test('a slice with children gets no leaf "+"; premise siblings have no impact', () => {
+  const c = boot(DEEP_MAP);
+  pieOf(c).slices.find((x) => x.hasChildren).enter();
+  assert.equal(pieOf(c).ctls.length, 2);
+  const p = boot(PREMISE_MAP);
+  pieOf(p).slices[0].enter();
+  pieOf(p).ctls[0].add();
+  assert.equal(p.state.adding.isPremise, true);
+});
+
+test('read-only maps have no edges or "+" on the pie', () => {
+  const c = boot(MAP3);
+  c.setState({ view: 'pie', srcErrors: [{ line: 1, message: 'x' }] });
+  assert.equal(c.renderVals().pie.edges.length, 0);
+  c.renderVals().pie.slices[0].enter();
+  assert.equal(c.renderVals().pie.ctls.length, 0);
+});
+
+test('zero-share premises draw no NaN', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: -1\n\n## Q\nslug: q\nkind: premise\n\n### G\nslug: g\nimportance: 1\nimpact: -1\n`);
+  for (const x of pieOf(c).slices) assert.ok(!x.d.includes('NaN'));
+});
+
+test('switching between bar and pie keeps locks', () => {
+  const c = boot(MAP3);
+  colOf(c, 'c').down(ev({ metaKey: true }));
+  c.setState({ view: 'pie' });
+  assert.deepEqual(c.state.lockedFacts, ['c']);
+  assert.equal(c.renderVals().pie.slices.find((x) => x.slug === 'c').isLocked, true);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
+test('the pie sits under the current point, and the bar only shows on its view', () => {
+  const c = boot(MAP3);
+  assert.deepEqual([chartOf(c).barShown, chartOf(c).pieShown], [true, false]);
+  c.setState({ view: 'pie' });
+  assert.deepEqual([chartOf(c).barShown, chartOf(c).pieShown], [false, true]);
+  assert.equal(c.renderVals().isFocusView, true);
+  assert.equal(c.renderVals().pie.center, '+0.25');
+  assert.equal(pieOf(boot(PREMISE_MAP)).showCenter, false);
 });
 
 test('column text stays on a readable backing at every impact', () => {
@@ -1052,8 +1155,6 @@ test('column text stays on a readable backing at every impact', () => {
   assert.equal(col.ink, 'var(--ink)');
   const filled = template.slice(template.indexOf('{{c.isFilled}}'), template.indexOf('{{c.hasDivider}}'));
   assert.equal((filled.match(/color-mix\(in srgb, var\(--card\) 80%, transparent\)/g) || []).length, 2);
-  const slice = template.slice(template.indexOf('{{pie.labels}}'), template.indexOf('{{pie.centerClick}}'));
-  assert.ok(slice.includes('color-mix(in srgb, var(--card) 80%, transparent)'));
 });
 
 test('ending an impact drag drops keyboard focus, so arrows can\'t edit a neighbour', () => {
