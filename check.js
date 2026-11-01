@@ -322,6 +322,49 @@ test('with nothing locked, a drag changes only the resized fact', () => {
   assert.equal(nodeOf(c, 'c').importance, 60);
 });
 
+test('depth cells line up under their parent column, at every level', () => {
+  const c = boot(DEEP_MAP);
+  const values = Component.allValues(c.state.map.root);
+  const rows = Component.factRows(c.state.map.root, values);
+  const cells = Component.depthCells(rows, values);
+  assert.equal(Math.max(...cells.map((x) => x.row)), 4); // level-2 to level-6, past the old overview's limit of 5 levels
+  for (const cell of cells) assert.ok(cell.x >= 0 && cell.x + cell.w <= 1 + 1e-9);
+});
+
+test('siblings in a depth row share their parent width, sorted by impact', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 50\nimpact: 0\n\n### P\nslug: p\nimportance: 1\nimpact: 1\n\n### Q\nslug: q\nimportance: 3\nimpact: -1\n\n## B\nslug: b\nimportance: 50\nimpact: 1\n`);
+  const values = Component.allValues(c.state.map.root);
+  const cells = Component.depthCells(Component.factRows(c.state.map.root, values), values);
+  assert.deepEqual(cells.map((x) => x.node.slug), ['q', 'p']);
+  near(cells[0].w, 0.375);
+  near(cells[1].x, 0.375);
+  assert.deepEqual(cells.map((x) => x.topIndex), [0, 0]);
+});
+
+test('zero-importance children produce no NaN', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 50\nimpact: 0\n\n### P\nslug: p\nimportance: 0\nimpact: 1\n\n### Q\nslug: q\nimportance: 0\nimpact: -1\n`);
+  const values = Component.allValues(c.state.map.root);
+  for (const cell of Component.depthCells(Component.factRows(c.state.map.root, values), values)) assert.ok(Number.isFinite(cell.x) && Number.isFinite(cell.w));
+});
+
+test('clicking a depth cell opens it', () => {
+  const c = boot(DEEP_MAP);
+  chartOf(c).depth.cells[0].open();
+  assert.equal(c.state.focus, 'level-2');
+});
+
+test('depth cells line up with the dividers and dim under a filter', () => {
+  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 1\nimpact: -1\n\n## B\nslug: b\nimportance: 1\nimpact: 1\n\n### K\nslug: k\nimportance: 1\nimpact: 1\n`);
+  const d = chartOf(c).depth;
+  assert.equal(d.has, true);
+  assert.equal(d.height, 30);
+  assert.equal(d.cells[0].left, 'calc((100% - 8px) * 0.5 + 8px)');
+  assert.equal(d.cells[0].width, 'calc((100% - 8px) * 0.5 - 1px)');
+  c.setState({ q: 'zzz-no-match' });
+  assert.equal(chartOf(c).depth.cells[0].op, 0.22);
+  assert.equal(chartOf(boot(MAP3)).depth.has, false);
+});
+
 test('Clear removes locks, and moving level clears them too', () => {
   const c = boot(MAP3);
   lock(c, 'a');
@@ -814,6 +857,10 @@ test('rows for a fact only on one side have no deltas', () => {
   assert.equal(rowOf(rows, 'r').changed, false);
 });
 
+test('depth cells colour by impact', () => {
+  assert.equal(chartOf(boot(NESTED)).depth.cells[0].bg, Component.impactFill(1));
+});
+
 test('layout values never collapse', () => {
   const lv = Component.allValues(rootOf([fact('a', 0, 1), fact('b', 10, 1)]));
   near(Component.layoutWeight({ slug: 'a' }, lv), 0.01);
@@ -826,10 +873,8 @@ test('whole-map shares add up', () => {
   near(sh.get('y'), 0.375);
 });
 
-test('the overview and sunburst colour by impact', () => {
+test('the sunburst colours by impact', () => {
   const c = boot(MAP3);
-  const v = c.renderVals();
-  assert.ok(v.ice.boxes.some((b) => b.bg === Component.impactFill(0.5)));
   c.setState({ view: 'pie' });
   const p = c.renderVals();
   assert.ok(p.pie.slices.some((b) => b.fill === Component.impactFill(-0.5)));

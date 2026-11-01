@@ -35,6 +35,7 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px soli
 label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
 [role=button]:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important}
+.am-cell:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
 .am-plus:hover{border-color:var(--ink)!important;background:var(--card)!important;color:var(--ink)!important}
 .am-col[data-born="true"]{animation:am-born .6s ease-out}
 @keyframes am-born{from{opacity:0;box-shadow:inset 0 0 0 3px var(--ink)}}
@@ -475,6 +476,13 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <button type="button" title="{{add.rightTitle}}" aria-label="{{add.rightTitle}}" onClick="{{add.right}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--control); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
           </sc-if>
         </div>
+        <sc-if value="{{chart.depth.has}}" hint-placeholder-val="{{ false }}">
+          <div aria-label="Levels below" style="position: relative; margin: 0 {{chart.depth.gutter}}px; height: {{chart.depth.height}}px">
+            <sc-for list="{{chart.depth.cells}}" as="d" hint-placeholder-count="4">
+              <button type="button" class="am-cell" aria-label="{{d.title}}" title="{{d.title}}" onClick="{{d.open}}" style="position: absolute; left: {{d.left}}; width: {{d.width}}; min-width: 2px; top: {{d.top}}px; height: {{d.height}}px; box-sizing: border-box; border: 0; border-radius: 2px; padding: 0 6px; background: {{d.bg}}; color: var(--ink); opacity: {{d.op}}; font: inherit; font-size: 12px; line-height: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer">{{d.text}}</button>
+            </sc-for>
+          </div>
+        </sc-if>
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; min-height: 26px; font-size: 13px; color: var(--ink3)">
           <sc-if value="{{chart.hasLocks}}" hint-placeholder-val="{{ false }}">
             <span role="status">{{chart.lockText}}</span>
@@ -1721,6 +1729,26 @@ class Component extends DCLogic {
     return [...listed, ...byImpact(rows.filter((r) => !listed.includes(r)))];
   }
 
+  // Every level below the bar's rows, as fractions of the total column width. row 0 is directly under the bar.
+  static depthCells(rows, values) {
+    const out = [];
+    const walk = (node, left, width, row, topIndex) => {
+      let x = left;
+      for (const r of Component.factRows(node, values)) {
+        const w = r.share * width;
+        out.push({ node: r.node, impact: r.impact, row, x, w, topIndex });
+        walk(r.node, x, w, row + 1, topIndex);
+        x += w;
+      }
+    };
+    let x = 0;
+    rows.forEach((r, topIndex) => {
+      walk(r.node, x, r.share, 0, topIndex);
+      x += r.share;
+    });
+    return out;
+  }
+
   // The stored importance that gives raws[index] this share of its siblings. Only that one number changes.
   static importanceForShare(raws, index, share) {
     const others = raws.reduce((t, r, j) => t + (j === index ? 0 : r), 0);
@@ -2539,7 +2567,6 @@ class Component extends DCLogic {
     const parent = path.length > 1 ? path[path.length - 2] : null;
     const targetPath = Component.findPath(map.root, Component.safeFocus(map.root, s.focus));
     const panelNode = targetPath[targetPath.length - 1];
-    const pathSlugs = new Set(path.map((n) => n.slug));
 
     const values = Component.allValues(map.root);
     const sideOf = (n, vals = values) => {
@@ -2570,27 +2597,6 @@ class Component extends DCLogic {
     const disp = map.display;
 
     // overview icicle
-    const ice = Component.icicle(map.root, 5, (n) => {
-      const st = sideOf(n);
-      const isFocus = n.slug === focus.slug;
-      const onPath = pathSlugs.has(n.slug);
-      const v = values.get(n.slug);
-      const isFactN = n.kind === 'fact';
-      const notes = [
-        ...(disp.confidence && isFactN && n.confidence !== null ? [`confidence ${n.confidence} of 5`] : []),
-        ...(disp.evidence && isFactN ? [`${n.refs.length} evidence`] : []),
-        ...(disp.goodFaith && isFactN && n.basis === null ? ['no basis'] : []),
-      ];
-      return {
-        bg: n.kind === 'root' ? st.tint : st.solid,
-        border: '2px solid var(--card)',
-        shadow: isFocus ? `0 0 0 2px ${P.ink}` : onPath ? `inset 0 0 0 2px ${P.ink}` : 'none',
-        aria: `${st.label}${v.impact === null ? '' : `, ${Math.round(v.share * 100)}% share, impact ${Component.signed(v.impact)}`}: ${n.text}${notes.length ? ` (${notes.join(', ')})` : ''}`,
-        op: filterActive && !matchSet.has(n.slug) ? 0.22 : 1,
-        pick: () => this.setFocus(n.slug),
-      };
-    }, values);
-
     // the chart of contributing factors
     const focusHasPremises = focus.children.some((c) => c.kind === 'premise');
     const addIsPremise = s.adding !== null && s.adding.isPremise;
@@ -2658,8 +2664,22 @@ class Component extends DCLogic {
     });
     const thermoAt = rows.findIndex((r) => r.node.slug === s.thermoSlug);
     const thermoLeft = thermoAt < 0 ? 0 : rows.slice(0, thermoAt).reduce((t, r) => t + r.share, 0) + rows[thermoAt].share / 2;
+    const DEPTH_ROW = 30;
+    const dividerPx = 8 * Math.max(rows.length - 1, 0);
+    const depthCells = Component.depthCells(rows, values).map((d) => ({
+      // Matches the flex columns and their 8px dividers.
+      left: `calc((100% - ${dividerPx}px) * ${+d.x.toFixed(5)} + ${8 * d.topIndex}px)`,
+      width: `calc((100% - ${dividerPx}px) * ${+d.w.toFixed(5)} - 1px)`,
+      top: d.row * DEPTH_ROW, height: DEPTH_ROW - 2, bg: Component.impactFill(d.impact),
+      title: `${d.node.text} (${Component.signed(d.impact)})`,
+      text: d.w > 0.05 ? d.node.text : '',
+      op: filterActive && !matchSet.has(d.node.slug) ? 0.22 : 1,
+      open: () => this.setFocus(d.node.slug),
+    }));
+    const depthRows = depthCells.reduce((n, d) => Math.max(n, d.top / DEPTH_ROW + 1), 0);
     const lockCount = rows.filter((r) => s.lockedFacts.includes(r.node.slug)).length;
     const chart = {
+      depth: { has: depthCells.length > 0, gutter: editable ? 56 : 0, height: depthRows * DEPTH_ROW, cells: depthCells },
       hasCols: rows.length > 0, empty: rows.length === 0 && editable, emptyReadOnly: rows.length === 0 && !editable,
       cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
       views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
@@ -3269,7 +3289,7 @@ class Component extends DCLogic {
       hasNotice: s.notice !== null, notice: s.notice === null ? '' : s.notice, clearNotice: () => this.setState({ notice: null }),
       locked,
       lockedText: `The markdown has ${s.srcErrors.length} error${s.srcErrors.length === 1 ? '' : 's'}. The views show the last version that parsed, and visual editing is paused until the source is fixed.`,
-      ice, hasParent: parent !== null, crumbs,
+      hasParent: parent !== null, crumbs,
       crumbCurrent: focus.text,
       crumbMeta: `${pn.signed} · ${pn.pct}% of this level`,
       pn, health, chart, add, pie, diff,
