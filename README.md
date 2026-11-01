@@ -64,15 +64,34 @@ impact: -0.6
 
 Older files in the `- [+] text {slug: …, weight: …}` list format still open, and are saved in this format once edited. `[+]` becomes impact 1.0 and `[-]` becomes -1.0.
 
-## The chart
+## Creating a map
 
-The Map view shows the focused claim's facts as columns, sorted from most contrary to most supporting. Colour is impact, and width is share of importance. There are three views: *Width only*, *Wide and tall*, and *Area is the score*.
+**New** starts from a full-size card: a title, an optional description, and optional options when the discussion is "choose from options" and not a single thesis. The slug comes from the title.
 
-- **Change importance** by dragging a divider. *Scale all the others* lets you drag as far as you like, and the rest scale to fit. *Trade with chosen columns* is zero-sum: ⌘-click or Shift-click columns to mark them, or it trades with the column across the divider.
-- **Change impact** by dragging a column up or down.
-- **Click a column** to see and edit it in the details panel, add child factors, or **Open** it as its own chart.
+## The focus view
 
-Dividers also take the left and right arrow keys, and columns the up and down keys. On touch screens, edit importance and impact in the details panel.
+The screen is built around one point at a time: its title and description, a health bar for the overall result of its children, and the children themselves. Breadcrumbs jump to any level above, and the **Bar** and **Pie** icons in the header switch how the children are drawn. A point with no children shows one wide **+**. Otherwise there's a **+** on each side, the left starting a contrary point and the right a supporting one, and new points sort into place by impact.
+
+Click a title or description to edit it. **More** holds by, basis, confidence, evidence, Research, Check rationale, the slug and delete.
+
+### The bar
+
+Columns are sorted from most contrary to most supporting. Colour is impact, and width is share of importance. There are three chart views, switched from the header: *Width only*, *Wide and tall*, and *Area is the score*. Rows under the bar show every level below, lined up under their parent column.
+
+- **Click a column** or any cell in the rows below to open it.
+- **Change importance** by dragging a divider, or with the slider on an open point.
+- **Change impact** by dragging a column up or down, or with the slider on an open point.
+- **Lock a column** with Ctrl-click, ⌘-click or Shift-click, or **L** on the keyboard. A resize leaves locked columns alone and takes from or adds to the unlocked ones. **Clear** removes all locks. With nothing locked, you can drag as far as you like and the rest scale to fit.
+
+Dividers also take the left and right arrow keys, and columns the up and down keys. On touch screens, use the sliders.
+
+### The pie
+
+The same points as rings around the current point, sorted clockwise from the top.
+
+- **Drag the edge** between two inner slices to change importance.
+- **Lock an inner slice** the same way as a column.
+- **Hover a slice** for a **+** on each side, which adds a point beside it. A slice with no children also gets a **+** outside it for its first child.
 
 ## Run it
 
@@ -93,7 +112,7 @@ GitHub Actions).
 
 | Query | Effect |
 |---|---|
-| _(none)_ | The Open panel (drop, choose, URL or recent file), or start a new map |
+| _(none)_ | The new-map card, with Open… for a file, URL or recent file |
 | `?src=<url>` (alias `?ours=`) | Opens that markdown file as the map |
 | `?theirs=<url>` | Opens a second map as B and starts on the diff view; without it the diff view offers the Open panel for B |
 | `?view=map\|pie\|source\|diff` | The view (default `map`) |
