@@ -1035,6 +1035,7 @@ test('the examples are migrated and keep every fact', () => {
 
 // ---------------------------------------------------------------- findings from the whole-branch review
 const pieOf = (c) => { c.setState({ view: 'pie' }); return c.renderVals().pie; };
+const ctlsOf = (c) => pieOf(c).slices.flatMap((x) => x.ctls);
 
 test('slice edges exist between inner slices only, with none at the wrap', () => {
   assert.equal(pieOf(boot(MAP3)).edges.length, 2);
@@ -1093,16 +1094,16 @@ test('a lock gesture on a slice doesn\'t open it, but a click does', () => {
 test('hovering shows a "+" each side, and a leaf gets one more for a first child', () => {
   const c = boot(MAP3);
   pieOf(c).slices[0].enter();
-  const ctls = pieOf(c).ctls;
+  const ctls = ctlsOf(c);
   assert.equal(ctls.length, 3);
   ctls[0].add();
   assert.equal(c.state.adding.parent, 'r');
   assert.equal(c.state.adding.impact, -0.75);
   c.setState({ adding: null });
-  pieOf(c).ctls[1].add();
+  ctlsOf(c)[1].add();
   assert.equal(c.state.adding.impact, -0.25);
   c.setState({ adding: null });
-  pieOf(c).ctls[2].add();
+  ctlsOf(c)[2].add();
   assert.equal(c.state.adding.parent, 'a');
   assert.equal(c.state.adding.impact, 0);
 });
@@ -1110,10 +1111,10 @@ test('hovering shows a "+" each side, and a leaf gets one more for a first child
 test('a slice with children gets no leaf "+"; premise siblings have no impact', () => {
   const c = boot(DEEP_MAP);
   pieOf(c).slices.find((x) => x.hasChildren).enter();
-  assert.equal(pieOf(c).ctls.length, 2);
+  assert.equal(ctlsOf(c).length, 2);
   const p = boot(PREMISE_MAP);
   pieOf(p).slices[0].enter();
-  pieOf(p).ctls[0].add();
+  ctlsOf(p)[0].add();
   assert.equal(p.state.adding.isPremise, true);
 });
 
@@ -1122,12 +1123,50 @@ test('read-only maps have no edges or "+" on the pie', () => {
   c.setState({ view: 'pie', srcErrors: [{ line: 1, message: 'x' }] });
   assert.equal(c.renderVals().pie.edges.length, 0);
   c.renderVals().pie.slices[0].enter();
-  assert.equal(c.renderVals().pie.ctls.length, 0);
+  assert.equal(c.renderVals().pie.slices.flatMap((x) => x.ctls).length, 0);
 });
 
 test('zero-share premises draw no NaN', () => {
   const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: -1\n\n## Q\nslug: q\nkind: premise\n\n### G\nslug: g\nimportance: 1\nimpact: -1\n`);
   for (const x of pieOf(c).slices) assert.ok(!x.d.includes('NaN'));
+});
+
+test('a slice\'s "+" buttons come right after it in Tab order, above the later slices', () => {
+  const slices = template.indexOf('{{pie.slices}}');
+  const buttons = template.indexOf('{{s.ctls}}');
+  assert.ok(slices < buttons && buttons < template.indexOf('{{pie.hatches}}'));
+  const c = boot(MAP3);
+  pieOf(c).slices[1].enter();
+  assert.deepEqual(pieOf(c).slices.map((x) => x.ctls.length), [0, 3, 0]);
+  c.setState({ hover: 'a' });
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
+test('a right-button press starts no drag', () => {
+  const c = boot(MAP3);
+  colOf(c, 'a').down(ev({ button: 2, clientY: 200 }));
+  colOf(c, 'a').move(ev({ clientY: 100 }));
+  assert.equal(nodeOf(c, 'a').impact, -0.5);
+  colOf(c, 'a').dividerDown(ev({ button: 2, clientX: 0 }));
+  colOf(c, 'a').dividerMove(ev({ clientX: 100 }));
+  assert.equal(nodeOf(c, 'a').importance, 10);
+  const rect = { left: 0, top: 0, width: 200, height: 200 };
+  const e = (x, y, extra = {}) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) }, ...extra });
+  pieOf(c).edges[0].down(e(100, 0, { button: 2 }));
+  pieOf(c).edges[0].move(e(200, 100));
+  assert.equal(nodeOf(c, 'a').importance, 10);
+});
+
+test('title and description get enough rows without field-sizing', () => {
+  assert.equal(Component.textRows('', 48), 1);
+  assert.equal(Component.textRows('short', 48), 1);
+  assert.equal(Component.textRows('x'.repeat(100), 48), 3);
+  assert.equal(Component.textRows('one\ntwo\nthree', 90), 3);
+  const c = boot(MAP3);
+  c.setFocus('a');
+  c.renderVals().pn.onDetails({ target: { value: 'x'.repeat(200) } });
+  assert.equal(c.renderVals().pn.detailsRows, 3);
+  assert.equal(c.renderVals().pn.titleRows, 1);
 });
 
 test('switching between bar and pie keeps locks', () => {

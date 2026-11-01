@@ -252,8 +252,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
     </sc-if>
 
     <section aria-label="Current point" style="padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
-      <textarea aria-label="Title" rows="1" value="{{pn.text}}" onChange="{{pn.onText}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); resize: none"></textarea>
-      <textarea aria-label="Description" rows="1" placeholder="Add a description (optional)" value="{{pn.details}}" onChange="{{pn.onDetails}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 1.1rem; color: var(--ink2); resize: none"></textarea>
+      <textarea aria-label="Title" rows="{{pn.titleRows}}" value="{{pn.text}}" onChange="{{pn.onText}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); resize: none"></textarea>
+      <textarea aria-label="Description" rows="{{pn.detailsRows}}" placeholder="Add a description (optional)" value="{{pn.details}}" onChange="{{pn.onDetails}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 1.1rem; color: var(--ink2); resize: none"></textarea>
       <sc-if value="{{pn.isFact}}" hint-placeholder-val="{{ true }}">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 28px; max-width: 800px">
           <label style="display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; font-weight: 600; color: var(--ink2)">
@@ -501,6 +501,15 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
                 <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible">
                   <path d="{{s.d}}" role="button" tabIndex="0" aria-label="{{s.info}}" stroke-width="{{s.sw}}" onContextMenu="{{s.menu}}" onPointerDown="{{s.down}}" onClick="{{s.pick}}" onKeyDown="{{s.key}}" onMouseEnter="{{s.enter}}" onMouseLeave="{{s.leave}}" onFocus="{{s.enter}}" onBlur="{{s.leave}}" style="pointer-events: auto; cursor: pointer; opacity: {{s.op}}; fill: {{s.fill}}; fill-opacity: {{s.fillOpacity}}; stroke: {{s.stroke}}; stroke-dasharray: {{s.dash}}"><title>{{s.info}}</title></path>
                 </svg>
+                <sc-for list="{{s.ctls}}" as="k" hint-placeholder-count="3">
+                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; overflow: visible">
+                  <g class="am-ctl" role="button" tabIndex="0" aria-label="{{k.label}}" transform="translate({{k.x}} {{k.y}})" onClick="{{k.add}}" onKeyDown="{{k.key}}" onMouseEnter="{{pie.keep}}" onMouseLeave="{{pie.leave}}" onFocus="{{pie.keep}}" onBlur="{{pie.leave}}" style="pointer-events: auto; cursor: pointer">
+                    <title>{{k.label}}</title>
+                    <circle r="13"></circle>
+                    <path d="M-6 0H6M0-6V6"></path>
+                  </g>
+                </svg>
+              </sc-for>
               </sc-for>
               <sc-for list="{{pie.hatches}}" as="h" hint-placeholder-count="1">
                 <svg viewBox="0 0 520 520" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible"><path d="{{h.d}}" style="fill: url(#am-lock-hatch); pointer-events: none"></path></svg>
@@ -513,15 +522,6 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
               <sc-if value="{{pie.showCenter}}" hint-placeholder-val="{{ true }}">
                 <span style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; pointer-events: none">{{pie.center}}</span>
               </sc-if>
-              <sc-for list="{{pie.ctls}}" as="k" hint-placeholder-count="3">
-                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible">
-                  <g class="am-ctl" role="button" tabIndex="0" aria-label="{{k.label}}" transform="translate({{k.x}} {{k.y}})" onClick="{{k.add}}" onKeyDown="{{k.key}}" onMouseEnter="{{pie.keep}}" onMouseLeave="{{pie.leave}}" onFocus="{{pie.keep}}" onBlur="{{pie.leave}}" style="pointer-events: auto; cursor: pointer">
-                    <title>{{k.label}}</title>
-                    <circle r="13"></circle>
-                    <path d="M-6 0H6M0-6V6"></path>
-                  </g>
-                </svg>
-              </sc-for>
             </div>
           </div>
           <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
@@ -1739,6 +1739,11 @@ class Component extends DCLogic {
     return out;
   }
 
+  // Rows for a textarea on browsers without field-sizing, which ignore these where they have it.
+  static textRows(text, perLine) {
+    return text.split('\n').reduce((n, line) => n + Math.max(1, Math.ceil(line.length / perLine)), 0);
+  }
+
   // Signed change between two angles, the short way around.
   static angleDelta(prev, now) {
     let d = now - prev;
@@ -2450,7 +2455,7 @@ class Component extends DCLogic {
   }
 
   startDivider(i, rows, e) {
-    if (e.pointerType === 'touch') return;
+    if (e.pointerType === 'touch' || e.button) return;
     const plan = this.dividerPlan(i, rows);
     if (plan === null) return;
     const chart = e.currentTarget.closest('[data-chart]');
@@ -2475,7 +2480,7 @@ class Component extends DCLogic {
   }
 
   startPieEdge(i, rows, e) {
-    if (e.pointerType === 'touch') return;
+    if (e.pointerType === 'touch' || e.button) return;
     const plan = this.dividerPlan(i, rows);
     if (plan === null) return;
     const box = e.currentTarget.closest('[data-pie]');
@@ -2535,7 +2540,7 @@ class Component extends DCLogic {
       this.suppressClick = true;
       return;
     }
-    if (!draggable || e.pointerType === 'touch') return;
+    if (!draggable || e.pointerType === 'touch' || e.button) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     this.drag = { type: 'column', pointerId: e.pointerId, slug, y0: e.clientY, start: impact, order, moved: false };
   }
@@ -2757,7 +2762,7 @@ class Component extends DCLogic {
     const piePoint = (r, a) => ({ x: (PIE_C + r * Math.sin(a)).toFixed(2), y: (PIE_C - r * Math.cos(a)).toFixed(2) });
     const canLock = (n, depth) => editable && depth === 1 && n.kind === 'fact';
     const hoverPart = parts.find((p) => p.node.slug === s.hover) ?? null;
-    const pieCtls = [];
+    const hoverCtls = [];
     if (hoverPart !== null && editable) {
       const [r0, r1] = ringOf(hoverPart.depth);
       const a0 = hoverPart.x0 * 2 * Math.PI;
@@ -2779,10 +2784,10 @@ class Component extends DCLogic {
         isOption ? 0 : Math.round(Math.max(-1, Math.min(1, values.get(hn.slug).impact + delta)) * 100) / 100,
         isOption,
       ));
-      pieCtls.push(sibling(full ? a0 + 0.2 : a0 - pad, 'Add a more contrary point beside this', -0.25));
-      pieCtls.push(sibling(full ? a1 - 0.2 : a1 + pad, 'Add a more supporting point beside this', 0.25));
+      hoverCtls.push(sibling(full ? a0 + 0.2 : a0 - pad, 'Add a more contrary point beside this', -0.25));
+      hoverCtls.push(sibling(full ? a1 - 0.2 : a1 + pad, 'Add a more supporting point beside this', 0.25));
       if (hn.children.length === 0) {
-        pieCtls.push(ctl(piePoint(r1 + 18, (a0 + a1) / 2), `Add a point under: ${Component.truncate(hn.text, 60)}`, () => this.openAdd(hn.slug, 0)));
+        hoverCtls.push(ctl(piePoint(r1 + 18, (a0 + a1) / 2), `Add a point under: ${Component.truncate(hn.text, 60)}`, () => this.openAdd(hn.slug, 0)));
       }
     }
     const pieEdges = !editable || rows.length < 2 || rows[0].calculated ? [] : rows.slice(0, -1).map((r, i) => {
@@ -2806,6 +2811,7 @@ class Component extends DCLogic {
       const info = `${n.text}: ${Math.round(v.share * 100)}% share, impact ${Component.signed(v.impact)}`;
       return {
         slug: n.slug, depth: p.depth, hasChildren: n.children.length > 0, isLocked, info,
+        ctls: hoverPart !== null && hoverPart.node.slug === n.slug ? hoverCtls : [],
         d: Component.arc(PIE_C, PIE_C, r0, r1, p.x0 * 2 * Math.PI, p.x1 * 2 * Math.PI),
         fill: Component.impactFill(v.impact),
         fillOpacity: isLocked ? 0.65 : 1,
@@ -2826,7 +2832,7 @@ class Component extends DCLogic {
       };
     });
     const pie = {
-      slices: pieSlices, edges: pieEdges, ctls: pieCtls,
+      slices: pieSlices, edges: pieEdges,
       hatches: pieSlices.filter((x) => x.isLocked).map((x) => ({ d: x.d })),
       showCenter: !focusHasPremises, center: Component.signed(values.get(focus.slug).score ?? 0),
       keep: () => clearTimeout(this.pieHoverTimer), leave: () => this.pieLeave(),
@@ -3182,6 +3188,7 @@ class Component extends DCLogic {
     const pn = {
       slug: panelNode.slug, text: panelNode.text, by: panelNode.by === null ? '' : panelNode.by, details: panelNode.details === null ? '' : panelNode.details,
       kind: targetIsFact ? 'Fact' : targetIsPremise ? '◇ Premise' : panelNode.children.some((c) => c.kind === 'premise') ? '◆ Proposition' : '◆ Thesis',
+      titleRows: Component.textRows(panelNode.text, 48), detailsRows: Component.textRows(panelNode.details ?? '', 90),
       isFact: targetIsFact, calculated: targetIsPremise,
       impact: targetIsFact ? panelNode.impact : 0, impactFill: Component.impactFill(targetIsFact ? panelNode.impact : 0),
       shareSlider: Math.round((targetValues.share ?? 0) * 100), shareDisabled: !editable || !targetIsFact || path[path.length - 2].children.length < 2,
