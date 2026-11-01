@@ -229,5 +229,183 @@ test('every view renders with no unresolved bindings', () => {
   }
 });
 
+// ---------------------------------------------------------------- the chart
+const MAP3 = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 10\nimpact: -0.5\n\n## B\nslug: b\nimportance: 30\nimpact: 0\n\n## C\nslug: c\nimportance: 60\nimpact: 0.5\n`;
+const chartOf = (c) => c.renderVals().chart;
+const colOf = (c, slug) => chartOf(c).cols.find((x) => x.slug === slug);
+const nodeOf = (c, slug) => c.state.map.root.children.find((n) => n.slug === slug);
+const ev = (props = {}) => ({
+  pointerType: 'mouse', pointerId: 1, clientX: 0, clientY: 0, metaKey: false, shiftKey: false, key: '',
+  preventDefault() {}, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => ({ width: 1016 }) }) }, ...props,
+});
+
+test('impact colour helpers', () => {
+  assert.equal(Component.signed(0.8), '+0.80');
+  assert.equal(Component.signed(-0.6), '−0.60');
+  assert.equal(Component.signed(0), '0.00');
+  assert.ok(Component.impactFill(-1).includes('--con') && Component.impactFill(-1).includes('100%'));
+  assert.ok(Component.impactFill(0).includes('12%'));
+  assert.equal(Component.impactInk(0.2), 'var(--ink)');
+  assert.equal(Component.impactInk(-0.8), 'var(--on-fill)');
+});
+
+test('columns are sorted by impact with widths as shares', () => {
+  const cols = chartOf(boot(MAP3)).cols;
+  assert.deepEqual(cols.map((x) => x.slug), ['a', 'b', 'c']);
+  near(cols[2].share, 0.6);
+  assert.deepEqual(cols.map((x) => x.hasDivider), [true, true, false]);
+});
+
+test('scale drag changes only the resized fact, even past its neighbour', () => {
+  const c = boot(MAP3);
+  const before = Component.serialize(c.state.map);
+  // Width 1016 less two 8px dividers leaves 1000px of columns, so 500px is half.
+  const d = colOf(c, 'a');
+  d.dividerDown(ev({ clientX: 100 }));
+  colOf(c, 'a').dividerMove(ev({ clientX: 600 }));
+  colOf(c, 'a').dividerUp(ev());
+  assert.equal(nodeOf(c, 'b').importance, 30);
+  assert.equal(nodeOf(c, 'c').importance, 60);
+  assert.ok(nodeOf(c, 'a').importance > 100, 'grew past both neighbours');
+  const changed = Component.serialize(c.state.map).split('\n').filter((l, i) => l !== before.split('\n')[i]);
+  assert.equal(changed.length, 1);
+  assert.ok(changed[0].startsWith('importance: '));
+});
+
+test('a divider resizes the selected column when it touches it', () => {
+  const c = boot(MAP3);
+  colOf(c, 'b').click(ev());
+  colOf(c, 'a').dividerDown(ev({ clientX: 0 }));
+  colOf(c, 'a').dividerMove(ev({ clientX: 10 }));
+  assert.equal(nodeOf(c, 'a').importance, 10);
+  assert.ok(nodeOf(c, 'b').importance < 30);
+});
+
+test('trade drag moves importance only between chosen columns', () => {
+  const c = boot(MAP3);
+  chartOf(c).modes.find((x) => x.id === 'trade').pick();
+  colOf(c, 'c').click(ev({ metaKey: true }));
+  assert.equal(c.state.selectedFact, null);
+  assert.ok(colOf(c, 'c').inPool);
+  colOf(c, 'a').dividerDown(ev({ clientX: 0 }));
+  colOf(c, 'a').dividerMove(ev({ clientX: 100 })); // a tenth of the width, 10 of 100 total
+  colOf(c, 'a').dividerUp(ev());
+  assert.deepEqual(['a', 'b', 'c'].map((s) => nodeOf(c, s).importance), [20, 30, 50]);
+});
+
+test('vertical drag changes impact, and re-sorts only on release', () => {
+  const c = boot(MAP3);
+  colOf(c, 'a').down(ev({ clientY: 200 }));
+  colOf(c, 'a').move(ev({ clientY: 200 - 118 })); // up by one unit: −0.5 to +0.5, past b
+  assert.equal(nodeOf(c, 'a').impact, 0.5);
+  assert.equal(c.state.selectedFact, 'a');
+  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['a', 'b', 'c']);
+  assert.ok(chartOf(c).thermo.has);
+  colOf(c, 'a').up(ev());
+  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['b', 'a', 'c']);
+  assert.equal(chartOf(c).thermo.has, false);
+  colOf(c, 'a').click(ev()); // the click that ends a drag doesn't toggle selection
+  assert.equal(c.state.selectedFact, 'a');
+});
+
+test('impact stays within range when dragged far', () => {
+  const c = boot(MAP3);
+  colOf(c, 'a').down(ev({ clientY: 0 }));
+  colOf(c, 'a').move(ev({ clientY: 5000 }));
+  assert.equal(nodeOf(c, 'a').impact, -1);
+});
+
+test('clicking selects, and clicking again deselects', () => {
+  const c = boot(MAP3);
+  colOf(c, 'b').click(ev());
+  assert.equal(c.state.selectedFact, 'b');
+  assert.ok(colOf(c, 'b').selected);
+  colOf(c, 'b').click(ev());
+  assert.equal(c.state.selectedFact, null);
+});
+
+test('keyboard impact holds the order until the column loses focus', () => {
+  const c = boot(MAP3);
+  for (let n = 0; n < 12; n++) colOf(c, 'a').key(ev({ key: 'ArrowUp' }));
+  near(nodeOf(c, 'a').impact, 0.1);
+  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['a', 'b', 'c']);
+  colOf(c, 'a').blur(ev());
+  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['b', 'a', 'c']);
+  colOf(c, 'b').key(ev({ key: 'Enter' }));
+  assert.equal(c.state.selectedFact, 'b');
+});
+
+test('keyboard on a divider changes importance', () => {
+  const c = boot(MAP3);
+  colOf(c, 'a').dividerKey(ev({ key: 'ArrowRight' }));
+  assert.ok(nodeOf(c, 'a').importance > 10);
+  assert.equal(nodeOf(c, 'b').importance, 30);
+});
+
+test('touch doesn\'t start drags', () => {
+  const c = boot(MAP3);
+  colOf(c, 'a').down(ev({ pointerType: 'touch', clientY: 200 }));
+  colOf(c, 'a').move(ev({ pointerType: 'touch', clientY: 100 }));
+  assert.equal(nodeOf(c, 'a').impact, -0.5);
+  colOf(c, 'a').dividerDown(ev({ pointerType: 'touch', clientX: 0 }));
+  colOf(c, 'a').dividerMove(ev({ pointerType: 'touch', clientX: 100 }));
+  assert.equal(nodeOf(c, 'a').importance, 10);
+});
+
+test('premise columns can be selected but not dragged', () => {
+  const src = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n\n## Q\nslug: q\nkind: premise\n`;
+  const c = boot(src);
+  const before = c.state.src;
+  colOf(c, 'q').down(ev({ clientY: 100 }));
+  colOf(c, 'q').move(ev({ clientY: 0 }));
+  colOf(c, 'q').up(ev());
+  colOf(c, 'q').dividerDown(ev({ clientX: 0 }));
+  colOf(c, 'q').dividerMove(ev({ clientX: 100 }));
+  colOf(c, 'q').key(ev({ key: 'ArrowUp' }));
+  colOf(c, 'q').dividerKey(ev({ key: 'ArrowRight' }));
+  assert.equal(c.state.src, before);
+  assert.equal(chartOf(c).thermo.has, false);
+  colOf(c, 'q').click(ev());
+  assert.equal(c.state.selectedFact, 'q');
+  assert.equal(c.renderVals().score.has, false);
+});
+
+test('a filter dims columns and keeps shares', () => {
+  const c = boot(MAP3);
+  c.setState({ q: 'zzz-no-match' });
+  const cols = chartOf(c).cols;
+  assert.equal(cols.length, 3);
+  near(cols[2].share, 0.6);
+  assert.equal(cols[2].op, 0.22);
+});
+
+test('overlays are markers on the column', () => {
+  const src = MAP3.replace('title: T', 'title: T\nshow-confidence: true\nshow-evidence: true\nshow-good-faith: true').replace('importance: 10', 'importance: 10\nconfidence: 3');
+  const marks = colOf(boot(src), 'a').marks;
+  assert.ok(marks.includes('★★★☆☆') && marks.includes('0') && marks.includes('no basis'), marks);
+});
+
+test('views and resize behaviours switch and show bindings', () => {
+  for (const id of ['width', 'tall', 'area']) {
+    const c = boot(MAP3);
+    chartOf(c).views.find((x) => x.id === id).pick();
+    assert.equal(c.state.chartView, id);
+    assert.deepEqual(unresolved(c.renderVals()), [], id);
+    colOf(c, 'a').down(ev({ clientY: 100 }));
+    colOf(c, 'a').move(ev({ clientY: 0 }));
+    assert.deepEqual(unresolved(c.renderVals()), [], `${id} with thermometer`);
+  }
+});
+
+test('adding a fact defaults to impact 0 and importance 50', () => {
+  const c = boot(MAP3);
+  const a0 = c.renderVals().add;
+  a0.open();
+  c.renderVals().add.onDraftText({ target: { value: 'New one' } });
+  c.renderVals().add.save();
+  const n = nodeOf(c, 'new-one');
+  assert.deepEqual([n.importance, n.impact, n.kind], [50, 0, 'fact']);
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

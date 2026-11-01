@@ -33,6 +33,8 @@ input::placeholder,textarea::placeholder{color:var(--ink3)}
 button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tb{background:transparent}.tb:hover:not([disabled]){background:var(--sunk)}.tb[disabled]{cursor:not-allowed}
 label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
+[role=button]:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important}
 </style>
 </helmet>
 <div class="am-root" data-theme="{{themeId}}" data-accent="{{accentId}}">
@@ -267,13 +269,6 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <span style="flex: 1"></span>
         <sc-if value="{{fc.anyEdit}}" hint-placeholder-val="{{ true }}">
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
-            <sc-if value="{{fc.canWeight}}" hint-placeholder-val="{{ true }}">
-              <label style="display: flex; align-items: center; gap: 8px; color: var(--ink2)">Weight
-                <input type="range" min="0" max="100" step="1" value="{{fc.weight}}" onChange="{{fc.onWeight}}" aria-label="Weight of the focused decision" style="width: 140px; accent-color: {{fc.fg}}">
-                <span style="font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); min-width: 28px">{{fc.weight}}</span>
-              </label>
-              <button type="button" onClick="{{fc.flip}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">{{fc.flipLabel}}</button>
-            </sc-if>
             <sc-if value="{{fc.askDelete}}" hint-placeholder-val="{{ true }}">
               <button type="button" onClick="{{fc.askDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; color: var(--con)">Delete</button>
             </sc-if>
@@ -285,21 +280,19 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         </sc-if>
       </div>
       <textarea aria-label="Claim text" rows="2" value="{{fc.text}}" onChange="{{fc.onText}}" onKeyDown="{{fc.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 1px solid transparent; border-radius: 8px; padding: 4px 6px; margin: -4px -6px; font: inherit; font-size: 26px; line-height: 1.3; font-weight: 500; color: var(--ink); background: transparent; resize: vertical"></textarea>
-      <sc-if value="{{lean.has}}" hint-placeholder-val="{{ true }}">
-        <div style="display: flex; flex-direction: column; gap: 6px">
+      <sc-if value="{{score.has}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 8px">
           <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px; flex-wrap: wrap">
-            <span style="color: var(--pro); font-weight: 600">+ For {{lean.forPct}}%</span>
-            <span style="color: var(--ink2)">{{lean.caption}}</span>
-            <span style="color: var(--con); font-weight: 600">− Against {{lean.againstPct}}%</span>
+            <span style="color: var(--ink2)">Overall score</span>
+            <span style="font-weight: 700; font-variant-numeric: tabular-nums">{{score.signed}}</span>
           </div>
-          <div style="display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: var(--rule-soft); gap: 2px">
-            <div style="width: {{lean.forPct}}%; background: var(--pro-fill)"></div>
-            <div style="width: {{lean.againstPct}}%; background: var(--con)"></div>
+          <div role="img" aria-label="Overall score {{score.signed}}, on a scale from −1 to +1" style="position: relative; height: 10px; border-radius: 5px; background: linear-gradient(to right, var(--con), var(--sunk), var(--pro))">
+            <span style="position: absolute; left: {{score.left}}%; top: -4px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--ink)"></span>
           </div>
         </div>
       </sc-if>
-      <sc-if value="{{lean.none}}" hint-placeholder-val="{{ false }}">
-        <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{lean.noneText}}</p>
+      <sc-if value="{{score.none}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{score.noneText}}</p>
       </sc-if>
       <sc-if value="{{rat.show}}" hint-placeholder-val="{{ false }}">
         <div aria-label="Rationale check" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
@@ -435,106 +428,92 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </sc-if>
     </section>
 
-    <sc-if value="{{sel.has}}" hint-placeholder-val="{{ false }}">
-      <div role="status" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: var(--ink); color: var(--on-ink); border-radius: 10px; padding: 8px 8px 8px 16px; font-size: 14px">
-        <strong style="font-weight: 600">{{sel.count}}</strong>
-        <span style="flex: 1; min-width: 200px; color: var(--rule)">{{sel.hint}}</span>
-        <div style="display: flex; gap: 6px">
-          <button type="button" onClick="{{sel.toMax}}" aria-label="Set selected weights to 100" title="Set selected weights to 100" style="width: 40px; height: 40px; border: 1px solid var(--ink2); border-radius: 8px; background: transparent; color: var(--on-ink); cursor: pointer; display: flex; align-items: center; justify-content: center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h13M12 7l5 5-5 5M20.5 4v16"></path></svg>
+    <section aria-label="Contributing factors" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600">{{chart.title}} <span style="font-size: 13px; font-weight: 500; color: var(--ink2)">{{chart.countLabel}}</span></h2>
+        <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{add.open}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            {{add.label}}
           </button>
-          <button type="button" onClick="{{sel.toCentre}}" aria-label="Set selected weights to 50" title="Set selected weights to 50 (centre)" style="width: 40px; height: 40px; border: 1px solid var(--ink2); border-radius: 8px; background: transparent; color: var(--on-ink); cursor: pointer; display: flex; align-items: center; justify-content: center">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M2.5 12h6M6 9l3 3-3 3M21.5 12h-6M18 9l-3 3 3 3"></path></svg>
-          </button>
+        </sc-if>
+        <span style="flex: 1"></span>
+        <div role="group" aria-label="Chart view" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
+          <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
+          </sc-for>
         </div>
-        <button type="button" onClick="{{sel.clear}}" style="min-height: 40px; padding: 0 12px; border: 1px solid var(--ink2); border-radius: 8px; background: transparent; color: var(--on-ink); font: inherit; font-size: 13px; cursor: pointer">Clear selection</button>
+        <div role="group" aria-label="When resizing" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
+          <sc-for list="{{chart.modes}}" as="t" hint-placeholder-count="2">
+            <button type="button" aria-pressed="{{t.pressed}}" onClick="{{t.pick}}" style="min-height: 32px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; background: {{t.bg}}; color: {{t.fg}}">{{t.label}}</button>
+          </sc-for>
+        </div>
       </div>
-    </sc-if>
 
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px">
-      <sc-for list="{{columns}}" as="col" hint-placeholder-count="2">
-        <section aria-label="{{col.title}}" data-col="1" style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0">
-          <div style="width: 100%; box-sizing: border-box; background: var(--card); border-radius: 12px; border: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 18px; min-height: 60px">
-            <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
-              <sc-if value="{{col.canSelectAll}}" hint-placeholder-val="{{ true }}">
-                <input type="checkbox" checked="{{col.allSelected}}" onChange="{{col.toggleAll}}" aria-label="{{col.selectAllLabel}}" title="{{col.selectAllLabel}}" style="width: 18px; height: 18px; margin: 0; accent-color: {{col.fg}}; cursor: pointer">
-              </sc-if>
-              <h2 style="margin: 0; font-size: 20px; font-weight: 600; color: {{col.fg}}">{{col.title}} <span style="font-size: 13px; font-weight: 500; color: var(--ink2)">{{col.countLabel}}</span></h2>
-            </div>
-            <sc-if value="{{col.canAdd}}" hint-placeholder-val="{{ true }}">
-              <button type="button" aria-label="{{col.addLabel}}" onClick="{{col.openAdd}}" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: {{col.fg}}; color: var(--on-fill); cursor: pointer; display: flex; align-items: center; justify-content: center">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
-              </button>
+      <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
+        <div style="border: 1.5px dashed var(--ink2); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+          <textarea autoFocus="{{ true }}" aria-label="{{add.aria}}" placeholder="{{add.aria}}" rows="2" value="{{add.draftText}}" onChange="{{add.onDraftText}}" onKeyDown="{{add.onDraftKey}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; resize: vertical"></textarea>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--ink2)">
+            <label style="flex: 1 1 160px; min-width: 0; display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px">slug
+              <input type="text" spellcheck="false" value="{{add.draftSlugValue}}" onChange="{{add.onDraftSlug}}" placeholder="auto from text" style="flex: 1; min-width: 0; min-height: 32px; box-sizing: border-box; border: 1px solid {{add.slugBorder}}; border-radius: 6px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--ink)">
+            </label>
+            <sc-if value="{{add.slugCustom}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{add.slugAuto}}" style="min-height: 32px; padding: 0 8px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); font: inherit; font-size: 12px; cursor: pointer">Auto</button>
             </sc-if>
           </div>
+          <sc-if value="{{add.hasSlugError}}" hint-placeholder-val="{{ false }}">
+            <span role="status" style="font-size: 12px; color: var(--con)">{{add.slugErrorText}}</span>
+          </sc-if>
+          <div style="display: flex; justify-content: flex-end; gap: 8px">
+            <button type="button" onClick="{{add.cancel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap">Cancel</button>
+            <button type="button" onClick="{{add.save}}" disabled="{{add.saveDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; opacity: {{add.saveOpacity}}">Add</button>
+          </div>
+        </div>
+      </sc-if>
 
-          <sc-if value="{{col.adding}}" hint-placeholder-val="{{ false }}">
-            <div style="width: 100%; box-sizing: border-box; background: var(--card); border: 1.5px dashed {{col.fg}}; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
-              <textarea autoFocus="{{ true }}" aria-label="{{col.draftAria}}" placeholder="{{col.draftAria}}" rows="2" value="{{col.draftText}}" onChange="{{col.onDraftText}}" onKeyDown="{{col.onDraftKey}}" style="width: 100%; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 15px; resize: vertical"></textarea>
-              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--ink2)">
-                <sc-if value="{{col.showWeight}}" hint-placeholder-val="{{ true }}">
-                  <div style="display: flex; align-items: center; gap: 8px">
-                    <input type="range" min="0" max="100" step="1" value="{{col.draftWeight}}" onChange="{{col.onDraftWeight}}" aria-label="Weight" style="width: 110px; accent-color: {{col.fg}}">
-                    <span style="font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ink); min-width: 24px">{{col.draftWeight}}</span>
+      <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
+        <div data-chart="1" style="position: relative; display: flex; align-items: {{chart.align}}; height: 260px; user-select: none; -webkit-user-select: none">
+          <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
+          </sc-if>
+          <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
+            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.selected}}" title="{{c.text}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; box-shadow: {{c.ring}}; outline: {{c.poolOutline}}; outline-offset: -5px; font-size: 13px; line-height: 1.3">
+              <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
+                <div style="height: 100%; display: grid; grid-template-rows: 1fr 1fr">
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
                   </div>
-                </sc-if>
-                <label style="flex: 1 1 160px; min-width: 0; display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px">slug
-                  <input type="text" spellcheck="false" value="{{col.draftSlugValue}}" onChange="{{col.onDraftSlug}}" placeholder="auto from text" style="flex: 1; min-width: 0; min-height: 32px; box-sizing: border-box; border: 1px solid {{col.slugBorder}}; border-radius: 6px; padding: 0 8px; font: inherit; font-size: 12px; color: var(--ink)">
-                </label>
-                <sc-if value="{{col.slugCustom}}" hint-placeholder-val="{{ false }}">
-                  <button type="button" onClick="{{col.slugAuto}}" style="min-height: 32px; padding: 0 8px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); font: inherit; font-size: 12px; cursor: pointer">Auto</button>
-                </sc-if>
-              </div>
-              <sc-if value="{{col.hasSlugError}}" hint-placeholder-val="{{ false }}">
-                <span role="status" style="font-size: 12px; color: var(--con)">{{col.slugErrorText}}</span>
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column">
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span> <span style="font-size: 11px">{{c.marks}}</span></div></sc-if>
+                  </div>
+                </div>
               </sc-if>
-              <div style="display: flex; justify-content: flex-end; gap: 8px">
-                <button type="button" onClick="{{col.cancelAdd}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap">Cancel</button>
-                <button type="button" onClick="{{col.add}}" disabled="{{col.addDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: {{col.fg}}; color: var(--on-fill); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; opacity: {{col.addOpacity}}">Add</button>
-              </div>
+              <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
+                <div style="height: 100%; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px">
+                  <span style="overflow: hidden; min-height: 0">{{c.text}}</span>
+                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
+                </div>
+              </sc-if>
+            </div>
+            <sc-if value="{{c.hasDivider}}" hint-placeholder-val="{{ true }}">
+              <button type="button" class="am-divider" disabled="{{c.dividerDisabled}}" aria-label="{{c.dividerLabel}}" title="{{c.dividerTitle}}" onPointerDown="{{c.dividerDown}}" onPointerMove="{{c.dividerMove}}" onPointerUp="{{c.dividerUp}}" onPointerCancel="{{c.dividerUp}}" onKeyDown="{{c.dividerKey}}" style="flex: none; width: 8px; align-self: stretch; padding: 0; border: 0; background: transparent; cursor: {{c.dividerCursor}}; touch-action: pan-y"></button>
+            </sc-if>
+          </sc-for>
+          <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: 236px; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
+              <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
+              <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--on-ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
             </div>
           </sc-if>
-
-          <sc-for list="{{col.cards}}" as="c" hint-placeholder-count="2">
-            <article data-card="1" style="position: relative; width: {{c.widthPct}}%; box-sizing: border-box; background: {{c.bg}}; border: {{c.borderW}} {{c.borderStyle}} {{c.border}}; border-radius: 12px; padding: 12px 36px 12px 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: {{c.shadow}}; opacity: {{c.opacity}}">
-              <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink2); min-width: 0">
-                <sc-if value="{{c.canReorder}}" hint-placeholder-val="{{ true }}">
-                  <button type="button" aria-label="{{c.reorderLabel}}" title="Drag to reorder" onPointerDown="{{c.rdown}}" onPointerMove="{{c.rmove}}" onPointerUp="{{c.rup}}" onPointerCancel="{{c.rup}}" onLostPointerCapture="{{c.rup}}" onKeyDown="{{c.rkey}}" style="width: 22px; height: 28px; margin-left: -6px; border: 0; border-radius: 6px; background: transparent; color: var(--ink3); cursor: grab; touch-action: none; padding: 0; display: flex; align-items: center; justify-content: center">
-                    <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="3" r="1.4"></circle><circle cx="7" cy="3" r="1.4"></circle><circle cx="3" cy="8" r="1.4"></circle><circle cx="7" cy="8" r="1.4"></circle><circle cx="3" cy="13" r="1.4"></circle><circle cx="7" cy="13" r="1.4"></circle></svg>
-                  </button>
-                </sc-if>
-                <sc-if value="{{c.selectable}}" hint-placeholder-val="{{ true }}">
-                  <input type="checkbox" checked="{{c.selected}}" onChange="{{c.onSelect}}" aria-label="{{c.selectLabel}}" title="Select for group resize (or Ctrl/⌘-click the card)" style="width: 16px; height: 16px; margin: 0; accent-color: {{c.fg}}; cursor: pointer">
-                </sc-if>
-                <span style="font-weight: 700; color: {{c.fg}}; white-space: nowrap">{{c.glyph}}</span>
-                <sc-if value="{{c.hasBy}}" hint-placeholder-val="{{ true }}"><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{c.by}}</span></sc-if>
-                <sc-if value="{{c.hasConf}}" hint-placeholder-val="{{ false }}"><span title="{{c.confTitle}}" aria-label="{{c.confTitle}}" style="color: var(--star-line); letter-spacing: 1px; white-space: nowrap">{{c.confStars}}</span></sc-if>
-                <span style="margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); background: {{c.tint}}; border-radius: 6px; padding: 1px 7px">{{c.badge}}</span>
-              </div>
-              <button type="button" onClick="{{c.open}}" aria-label="{{c.openLabel}}" style="text-align: left; background: none; border: 0; padding: 0; font: inherit; font-size: 16px; line-height: 1.4; color: var(--ink); cursor: pointer">{{c.text}}</button>
-              <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2)">
-                <div style="flex: 1; min-width: 24px; height: 4px; background: var(--rule-soft); border-radius: 2px; overflow: hidden"><div style="width: {{c.strengthPct}}%; height: 100%; background: {{c.solid}}"></div></div>
-                <span style="white-space: nowrap">{{c.meta}}</span>
-                <sc-if value="{{c.hasRefs}}" hint-placeholder-val="{{ false }}">
-                  <span title="{{c.refTitle}}" aria-label="{{c.refTitle}}" style="display: flex; align-items: center; gap: 3px; white-space: nowrap; color: var(--ink)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"></path></svg>{{c.refCount}}
-                  </span>
-                </sc-if>
-              </div>
-              <sc-if value="{{c.hasHandle}}" hint-placeholder-val="{{ true }}">
-                <button type="button" aria-label="{{c.handleLabel}}" title="Drag to change weight" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" style="position: absolute; top: 0; right: 0; bottom: 0; width: 26px; border: 0; border-left: 1px solid var(--rule-soft); border-radius: 0 12px 12px 0; background: {{c.handleBg}}; color: {{c.fg}}; cursor: ew-resize; touch-action: none; padding: 0; display: flex; align-items: center; justify-content: center">
-                  <svg width="8" height="20" viewBox="0 0 8 20" fill="currentColor" aria-hidden="true"><circle cx="2" cy="4" r="1.4"></circle><circle cx="6" cy="4" r="1.4"></circle><circle cx="2" cy="10" r="1.4"></circle><circle cx="6" cy="10" r="1.4"></circle><circle cx="2" cy="16" r="1.4"></circle><circle cx="6" cy="16" r="1.4"></circle></svg>
-                </button>
-              </sc-if>
-            </article>
-          </sc-for>
-
-          <sc-if value="{{col.empty}}" hint-placeholder-val="{{ false }}">
-            <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{col.emptyText}}</p>
-          </sc-if>
-        </section>
-      </sc-for>
-    </div>
+        </div>
+        <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--ink2)">{{chart.hint}}</p>
+      </sc-if>
+      <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
+        <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
+      </sc-if>
+    </section>
   </div>
   </sc-if>
 
@@ -1049,7 +1028,7 @@ show-good-faith: false
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"diffThreshold":{"editor":"int","default":10,"min":1,"max":50,"section":"Diff"},"minCardWidth":{"editor":"int","default":34,"min":15,"max":80,"unit":"%","section":"Map"},"startView":{"editor":"enum","options":["map","pie","source","diff"],"default":"map","section":"Map"},"$preview":{"width":1440,"height":1500}}'>
+<script type="text/x-dc" data-dc-script data-props='{"diffThreshold":{"editor":"int","default":10,"min":1,"max":50,"section":"Diff"},"startView":{"editor":"enum","options":["map","pie","source","diff"],"default":"map","section":"Map"},"$preview":{"width":1440,"height":1500}}'>
 // ---------------------------------------------------------------- themes (the risk register's ids and colours)
 const THEMES = Object.freeze([
   { id: 'paper', label: 'Paper', bg: '#F5F4F0', card: '#FFFFFF', ink: '#1B1D22', rule: '#DEDBD2' },
@@ -1202,6 +1181,8 @@ async function checkRationale(key, claim, parent, pros, cons) {
 }
 
 // ---------------------------------------------------------------- OpenRouter: Research (evidence with web search)
+const CHART_VIEW_STORE = 'argmap.chartView';
+const RESIZE_MODE_STORE = 'argmap.resizeMode';
 const OR_KEY_STORE = 'argmap.openRouterApiKey';
 const OR_MODEL_STORE = 'argmap.openRouterModel';
 const OR_URL = 'https://openrouter.ai/api/v1/chat/completions';
@@ -1272,7 +1253,7 @@ class Component extends DCLogic {
     const qView = QUERY.get('view');
     const qTheme = QUERY.get('theme');
     this.drag = null;
-    this.reorder = null;
+    this.suppressClick = false;
     this.handle = null;
     this.handleB = null;
     this.autosaveTimer = null;
@@ -1288,9 +1269,12 @@ class Component extends DCLogic {
       view: a.errors.length ? 'source' : VIEWS.includes(qView) ? qView : window.AM_B ? 'diff' : props.startView ?? 'map',
       focus: qFocus !== null && Component.findPath(map.root, qFocus) !== null ? qFocus : map.root.slug,
       sourceTab: 'md',
-      adding: null, draftText: '', draftWeight: 100,
-      dragging: null, dragGroup: [], selected: [], draftSlugCustom: null, pinned: null,
-      evOpen: false, evEdit: null, evName: '', evText: '', evUrl: '', reordering: null,
+      adding: null, draftText: '',
+      selectedFact: null, tradePool: [], frozenOrder: null, thermoSlug: null,
+      chartView: ['width', 'tall', 'area'].includes(loadSetting(CHART_VIEW_STORE)) ? loadSetting(CHART_VIEW_STORE) : 'width',
+      resizeMode: loadSetting(RESIZE_MODE_STORE) === 'trade' ? 'trade' : 'scale',
+      draftSlugCustom: null, pinned: null,
+      evOpen: false, evEdit: null, evName: '', evText: '', evUrl: '',
       q: '', filtOpen: false, fConf: 'any', fEv: 'any',
       settingsOpen: false, settingsTab: 'display', apiKey: '', apiKeySaved: '', apiShow: false, apiStatus: '',
       confirmDelete: false, notice: null, hover: null,
@@ -1680,6 +1664,20 @@ class Component extends DCLogic {
     return s;
   }
 
+  static signed(v) {
+    const t = Math.abs(v).toFixed(2);
+    return t === '0.00' ? t : (v > 0 ? '+' : '−') + t;
+  }
+
+  // Red through neutral to green; darkness follows the size of the impact. --sunk adapts to each theme.
+  static impactFill(impact) {
+    return `color-mix(in srgb, var(${impact < 0 ? '--con' : '--pro'}) ${Math.round(12 + 88 * Math.abs(impact))}%, var(--sunk))`;
+  }
+
+  static impactInk(impact) {
+    return Math.abs(impact) > 0.5 ? 'var(--on-fill)' : 'var(--ink)';
+  }
+
   // Per slug: { score, importance, impact, share }. score is the importance-weighted mean of direct children's impact.
   // A fact's own importance and impact are as written; a premise's are calculated, since its children are all that define it.
   static allValues(root) {
@@ -1872,37 +1870,6 @@ class Component extends DCLogic {
     return null;
   }
 
-  static weightsOf(root, slugs) {
-    const out = {};
-    for (const slug of slugs) {
-      const p = Component.findPath(root, slug);
-      if (!p) throw new Error(`bug: no argument with slug "${slug}"`);
-      const n = p[p.length - 1];
-      if (n.side !== 'pro' && n.side !== 'con') throw new Error(`bug: "${slug}" has no weight to scale`);
-      out[slug] = n.weight;
-    }
-    return out;
-  }
-
-  // Scale a group of weights so the anchor lands on anchorNew, keeping their ratios.
-  // The factor is capped so the largest stays ≤ 100. If the anchor started at 0 there is
-  // no ratio to keep, so every weight shifts by the same amount instead.
-  static scaleWeights(start, anchor, anchorNew) {
-    if (!Object.prototype.hasOwnProperty.call(start, anchor)) throw new Error(`bug: anchor "${anchor}" is not in the group`);
-    const clamp = (w) => Math.max(0, Math.min(100, Math.round(w)));
-    const slugs = Object.keys(start);
-    const a0 = start[anchor];
-    const out = {};
-    if (a0 === 0) {
-      slugs.forEach((k) => { out[k] = clamp(start[k] + anchorNew); });
-      return out;
-    }
-    const maxW = Math.max(...slugs.map((k) => start[k]));
-    const f = Math.min(anchorNew / a0, 100 / maxW);
-    slugs.forEach((k) => { out[k] = clamp(start[k] * f); });
-    return out;
-  }
-
   // Share of the whole map per slug: root = 1, child = parent × layoutWeight / Σ sibling layoutWeights.
   static shares(map, scores) {
     const v = new Map();
@@ -2032,11 +1999,6 @@ class Component extends DCLogic {
 
   static truncate(t, n) { return t.length <= n ? t : t.slice(0, n - 1).trimEnd() + '…'; }
 
-  static widthToWeight(frac, minW) {
-    const w = Math.round(((frac * 100) - minW) / (100 - minW) * 100);
-    return Math.max(0, Math.min(100, w));
-  }
-
   // ---------------------------------------------------------------- edits (the only place state changes)
   edit(fn) {
     this.setState((s) => {
@@ -2046,40 +2008,8 @@ class Component extends DCLogic {
     });
   }
 
-  setWeight(slug, w) {
-    if (!Number.isInteger(w) || w < 0 || w > 100) throw new Error(`bug: weight ${w} is outside 0–100`);
-    this.edit((m) => {
-      const p = Component.findPath(m.root, slug);
-      if (!p) throw new Error(`bug: no argument with slug "${slug}"`);
-      if (p[p.length - 1].weight === w) return m;
-      return { ...m, root: Component.updateNode(m.root, slug, (n) => ({ ...n, weight: w })) };
-    });
-  }
-
-  setWeights(next) {
-    Object.keys(next).forEach((k) => {
-      const w = next[k];
-      if (!Number.isInteger(w) || w < 0 || w > 100) throw new Error(`bug: weight ${w} for "${k}" is outside 0–100`);
-    });
-    this.edit((m) => {
-      const cur = Component.weightsOf(m.root, Object.keys(next));
-      const changed = Object.keys(next).filter((k) => cur[k] !== next[k]);
-      if (changed.length === 0) return m;
-      return { ...m, root: changed.reduce((root, k) => Component.updateNode(root, k, (n) => ({ ...n, weight: next[k] })), m.root) };
-    });
-  }
-
-  groupFor(slug) {
-    const sel = this.state.selected;
-    return sel.length > 1 && sel.includes(slug) ? sel : [slug];
-  }
-
-  toggleSelect(slug) {
-    this.setState((s) => ({ selected: s.selected.includes(slug) ? s.selected.filter((x) => x !== slug) : [...s.selected, slug] }));
-  }
-
   setFocus(slug) {
-    this.setState({ focus: slug, adding: null, confirmDelete: false, hover: null, selected: [], evOpen: false, evEdit: null });
+    this.setState({ focus: slug, adding: null, confirmDelete: false, hover: null, selectedFact: null, tradePool: [], frozenOrder: null, evOpen: false, evEdit: null });
   }
 
   setBasis(v) {
@@ -2103,84 +2033,6 @@ class Component extends DCLogic {
         return n.confidence === k ? n : { ...n, confidence: k };
       }),
     }));
-  }
-
-  // Move `slug` to position `to` among its same-side siblings, keeping the pro/con interleaving of the list.
-  static moveWithinSide(children, slug, to) {
-    const node = children.find((c) => c.slug === slug);
-    if (!node) throw new Error(`bug: "${slug}" is not among these children`);
-    const slots = children.map((c, i) => (c.side === node.side ? i : -1)).filter((i) => i >= 0);
-    const list = slots.map((i) => children[i]);
-    const from = list.indexOf(node);
-    if (to < 0 || to >= list.length) throw new Error(`bug: move target ${to} out of range 0–${list.length - 1}`);
-    if (from === to) return children;
-    const moved = list.slice();
-    moved.splice(from, 1);
-    moved.splice(to, 0, node);
-    const out = children.slice();
-    slots.forEach((slotIdx, k) => { out[slotIdx] = moved[k]; });
-    return out;
-  }
-
-  sideOrder(side) {
-    const p = Component.findPath(this.state.map.root, this.state.focus);
-    if (!p) throw new Error(`bug: focus "${this.state.focus}" missing`);
-    return p[p.length - 1].children.filter((c) => c.side === side).map((c) => c.slug);
-  }
-
-  moveArg(slug, to) {
-    const parentSlug = this.state.focus;
-    this.edit((m) => {
-      const p = Component.findPath(m.root, parentSlug);
-      if (!p) throw new Error(`bug: focus "${parentSlug}" missing`);
-      const kids = p[p.length - 1].children;
-      const next = Component.moveWithinSide(kids, slug, to);
-      if (next === kids) return m;
-      return { ...m, root: Component.updateNode(m.root, parentSlug, (n) => ({ ...n, children: next })) };
-    });
-  }
-
-  startReorder(slug, side, e) {
-    const grip = e.currentTarget;
-    const col = grip.closest('[data-col]');
-    if (!col) throw new Error('bug: reorder grip is not inside a column');
-    grip.setPointerCapture(e.pointerId);
-    this.reorder = { slug, side, pointerId: e.pointerId, col };
-    this.setState({ reordering: slug });
-    e.preventDefault();
-  }
-
-  moveReorder(e) {
-    const r = this.reorder;
-    if (r === null || e.pointerId !== r.pointerId) return;
-    const cards = Array.from(r.col.querySelectorAll('[data-card]'));
-    const order = this.sideOrder(r.side);
-    if (cards.length !== order.length) throw new Error(`bug: ${cards.length} cards on screen but ${order.length} ${r.side}s in the model`);
-    const from = order.indexOf(r.slug);
-    let to = 0;
-    cards.forEach((el, i) => {
-      if (i === from) return;
-      const b = el.getBoundingClientRect();
-      if (e.clientY > b.top + b.height / 2) to += 1;
-    });
-    if (to !== from) this.moveArg(r.slug, to);
-  }
-
-  endReorder(e) {
-    const r = this.reorder;
-    if (r === null || e.pointerId !== r.pointerId) return;
-    this.reorder = null;
-    this.setState({ reordering: null });
-  }
-
-  onReorderKey(slug, side, e) {
-    const d = { ArrowUp: -1, ArrowDown: 1 }[e.key];
-    if (d === undefined) return;
-    e.preventDefault();
-    const order = this.sideOrder(side);
-    const to = order.indexOf(slug) + d;
-    if (to < 0 || to >= order.length) return; // already at the top or bottom
-    this.moveArg(slug, to);
   }
 
   saveRef() {
@@ -2218,7 +2070,7 @@ class Component extends DCLogic {
       if (r.errors.length) return { src: v, srcErrors: r.errors };
       const keep = Component.findPath(r.map.root, s.focus) !== null;
       return {
-        src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, selected: [], evOpen: false, evEdit: null,
+        src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, selectedFact: null, tradePool: [], frozenOrder: null, evOpen: false, evEdit: null,
         pinned: s.pinned !== null && Component.findPath(r.map.root, s.pinned) !== null ? s.pinned : null,
         focus: keep ? s.focus : r.map.root.slug,
         notice: keep || s.map === BLANK ? s.notice : `“${s.focus}” is no longer in the source, so the view moved to the thesis.`,
@@ -2403,7 +2255,7 @@ class Component extends DCLogic {
       this.setState({ ...file, src: text, srcErrors: r.errors, view: 'source', sourceTab: 'md', fileStatus: `Opened ${name} · ${r.errors.length} error${r.errors.length === 1 ? '' : 's'} to fix` });
       return;
     }
-    this.setState({ ...file, src: text, map: r.map, srcErrors: [], focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, selected: [], pinned: null, notice: null, fileStatus: `Opened ${name}` });
+    this.setState({ ...file, src: text, map: r.map, srcErrors: [], focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, selectedFact: null, tradePool: [], frozenOrder: null, pinned: null, notice: null, fileStatus: `Opened ${name}` });
   }
 
   loadB(text, name, url = null) {
@@ -2470,7 +2322,7 @@ class Component extends DCLogic {
       map, src: Component.serialize(map), srcErrors: [], focus: slug, view: 'map',
       fileName: `${Component.slugBase(title) || slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newText: '',
-      adding: s.newKind === 'premises' ? 'premise' : null, draftText: '', draftWeight: 100, draftSlugCustom: null, selected: [], pinned: null,
+      adding: s.newKind === 'premises' ? 'premise' : null, draftText: '', draftSlugCustom: null, selectedFact: null, tradePool: [], frozenOrder: null, pinned: null,
       confirmDelete: false, hover: null, notice: null, fileStatus: `New map · ${title}`,
     });
   }
@@ -2490,7 +2342,7 @@ class Component extends DCLogic {
       const isPremise = side === 'premise';
       const node = { slug, text, kind: isPremise ? 'premise' : 'fact', importance: isPremise ? null : 50, impact: isPremise ? null : 0, by: null, basis: null, confidence: null, details: null, refs: [], children: [] };
       const map = { ...s.map, root: Component.mapNode(s.map.root, s.focus, (n) => ({ ...n, children: [...n.children, node] })) };
-      return { map, src: Component.serialize(map), adding: null, draftText: '', draftWeight: 100, draftSlugCustom: null };
+      return { map, src: Component.serialize(map), adding: null, draftText: '', draftSlugCustom: null };
     });
   }
 
@@ -2500,42 +2352,117 @@ class Component extends DCLogic {
     this.setState({ focus: parentSlug, confirmDelete: false });
   }
 
-  startDrag(slug, e) {
-    const handle = e.currentTarget;
-    const col = handle.closest('[data-col]');
-    if (!col) throw new Error('bug: weight handle is not inside a column');
-    const rect = col.getBoundingClientRect();
-    handle.setPointerCapture(e.pointerId);
-    const group = this.groupFor(slug);
-    this.drag = {
-      slug, left: rect.left, width: rect.width, pointerId: e.pointerId, minW: this.props.minCardWidth ?? 34,
-      start: Component.weightsOf(this.state.map.root, group),
+  // ---------------------------------------------------------------- chart gestures
+  setImportances(slugs, before, after) {
+    const changed = slugs.filter((_, j) => after[j] !== before[j]);
+    if (changed.length === 0) return;
+    this.edit((m) => ({
+      ...m,
+      root: slugs.reduce((root, slug, j) => (after[j] === before[j] ? root
+        : Component.mapNode(root, slug, (n) => ({ ...n, importance: Math.round(after[j] * 10) / 10 }))), m.root),
+    }));
+  }
+
+  setImpact(slug, v) {
+    const impact = Math.round(Math.max(-1, Math.min(1, v)) * 100) / 100;
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => (n.impact === impact ? n : { ...n, impact })) }));
+  }
+
+  // Which column a divider resizes, and the column indexes it may trade with.
+  dividerPlan(i, rows) {
+    const s = this.state;
+    return {
+      divider: i, resized: s.selectedFact === rows[i + 1].node.slug ? i + 1 : i, mode: s.resizeMode,
+      pool: rows.map((r, j) => (s.tradePool.includes(r.node.slug) ? j : -1)).filter((j) => j >= 0),
     };
-    this.setState({ dragging: slug, dragGroup: group });
+  }
+
+  startDivider(i, rows, e) {
+    if (e.pointerType === 'touch') return;
+    const chart = e.currentTarget.closest('[data-chart]');
+    if (!chart) throw new Error('bug: divider is not inside the chart');
+    e.currentTarget.setPointerCapture(e.pointerId);
+    this.drag = {
+      type: 'divider', pointerId: e.pointerId, x0: e.clientX, width: chart.getBoundingClientRect().width - 8 * (rows.length - 1),
+      slugs: rows.map((r) => r.node.slug), raws: rows.map((r) => r.importance), plan: this.dividerPlan(i, rows),
+    };
     e.preventDefault();
   }
 
-  moveDrag(e) {
+  moveDivider(e) {
     const d = this.drag;
-    if (d === null || e.pointerId !== d.pointerId) return;
-    const anchorNew = Component.widthToWeight((e.clientX - d.left) / d.width, d.minW);
-    this.setWeights(Component.scaleWeights(d.start, d.slug, anchorNew));
+    if (d === null || d.type !== 'divider' || e.pointerId !== d.pointerId) return;
+    const after = Component.resizeImportance(d.raws, { ...d.plan, move: (e.clientX - d.x0) / d.width });
+    this.setImportances(d.slugs, d.raws, after);
   }
 
-  endDrag(e) {
+  endDivider(e) {
+    if (this.drag !== null && this.drag.type === 'divider' && e.pointerId === this.drag.pointerId) this.drag = null;
+  }
+
+  onDividerKey(i, rows, e) {
+    const step = e.shiftKey ? 0.005 : 0.02;
+    const move = { ArrowRight: step, ArrowLeft: -step }[e.key];
+    if (move === undefined) return;
+    e.preventDefault();
+    const raws = rows.map((r) => r.importance);
+    this.setImportances(rows.map((r) => r.node.slug), raws, Component.resizeImportance(raws, { ...this.dividerPlan(i, rows), move }));
+  }
+
+  startColumnDrag(slug, impact, order, draggable, e) {
+    this.suppressClick = false;
+    if (!draggable || e.pointerType === 'touch') return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    this.drag = { type: 'column', pointerId: e.pointerId, slug, y0: e.clientY, start: impact, order, moved: false };
+  }
+
+  moveColumnDrag(e) {
     const d = this.drag;
-    if (d === null || e.pointerId !== d.pointerId) return;
+    if (d === null || d.type !== 'column' || e.pointerId !== d.pointerId) return;
+    const dy = e.clientY - d.y0;
+    if (!d.moved) {
+      if (Math.abs(dy) <= 5) return;
+      d.moved = true;
+      this.setState({ frozenOrder: d.order, selectedFact: d.slug, thermoSlug: d.slug });
+    }
+    this.setImpact(d.slug, d.start - dy / 118); // 236px of thermometer spans the whole range
+  }
+
+  endColumnDrag(e) {
+    const d = this.drag;
+    if (d === null || d.type !== 'column' || e.pointerId !== d.pointerId) return;
     this.drag = null;
-    this.setState({ dragging: null, dragGroup: [] });
+    if (!d.moved) return;
+    this.suppressClick = true;
+    this.setState({ frozenOrder: null, thermoSlug: null });
   }
 
-  onHandleKey(slug, weight, e) {
-    const step = e.shiftKey ? 1 : 5;
-    const d = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step }[e.key];
-    if (d === undefined) return;
+  toggleFact(slug) {
+    this.setState((s) => ({ selectedFact: s.selectedFact === slug ? null : slug }));
+  }
+
+  onColumnClick(slug, e) {
+    if (this.suppressClick) { this.suppressClick = false; return; }
+    if ((e.metaKey || e.shiftKey || e.ctrlKey) && this.state.resizeMode === 'trade') {
+      this.setState((s) => ({ tradePool: s.tradePool.includes(slug) ? s.tradePool.filter((x) => x !== slug) : [...s.tradePool, slug] }));
+      return;
+    }
+    this.toggleFact(slug);
+  }
+
+  onColumnKey(slug, impact, order, draggable, e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.toggleFact(slug); return; }
+    const step = e.shiftKey ? 0.01 : 0.05;
+    const d = { ArrowUp: step, ArrowDown: -step }[e.key];
+    if (d === undefined || !draggable) return;
     e.preventDefault();
-    const start = Component.weightsOf(this.state.map.root, this.groupFor(slug));
-    this.setWeights(Component.scaleWeights(start, slug, Math.max(0, Math.min(100, weight + d))));
+    // Columns are keyed by position, so the order holds still until blur or keyboard focus would land on another fact.
+    if (this.state.frozenOrder === null) this.setState({ frozenOrder: order });
+    this.setImpact(slug, impact + d);
+  }
+
+  onColumnBlur() {
+    if (this.drag === null && this.state.frozenOrder !== null) this.setState({ frozenOrder: null });
   }
 
   // ---------------------------------------------------------------- view model
@@ -2548,7 +2475,6 @@ class Component extends DCLogic {
       thesis: 'var(--accent)', thesisTint: 'var(--accent-tint)', orphan: 'var(--orphan)',
       prem: 'var(--prem)', premTint: 'var(--prem-tint)', premFill: ['var(--prem-fill)', 'var(--prem-fill2)', 'var(--prem-fill3)'],
     };
-    const minW = this.props.minCardWidth ?? 34;
     const thr = this.props.diffThreshold ?? 10;
     const map = Component.withLegacyFields(s.map);
     const mapB = s.mapB === null ? null : Component.withLegacyFields(s.mapB);
@@ -2600,11 +2526,7 @@ class Component extends DCLogic {
       slug: focus.slug, text: focus.text, by: focus.by === null ? '' : focus.by, hasBy: focus.by !== null,
       kind: focus.side === null ? (isProposition ? '◆ Proposition' : '◆ Thesis') : `${fst.glyph} ${fst.label}`, glyphOnly: fst.glyph,
       fg: fst.fg, tint: fst.tint, border: fst.fg,
-      anyEdit: editable && focus.side !== null, canWeight: editable && isArg,
-      weight: focus.weight === null ? 0 : focus.weight,
-      onWeight: (e) => this.setWeight(focus.slug, Number(e.target.value)),
-      flipLabel: focus.side === 'pro' ? 'Make it a con' : 'Make it a pro',
-      flip: () => this.edit((m) => ({ ...m, root: Component.mapNode(m.root, focus.slug, (n) => ({ ...n, impact: -n.impact })) })),
+      anyEdit: editable && focus.side !== null,
       askDelete: !s.confirmDelete, confirming: s.confirmDelete,
       askDel: () => this.setState({ confirmDelete: true }), cancelDel: () => this.setState({ confirmDelete: false }),
       deleteLabel: nDesc ? `Delete with ${nDesc} sub-argument${nDesc === 1 ? '' : 's'}` : 'Delete argument',
@@ -2612,6 +2534,7 @@ class Component extends DCLogic {
       onText: (e) => this.onFocusText(e.target.value),
       onTextKey: (e) => { if (e.key === 'Enter') e.preventDefault(); },
     };
+    const values = Component.allValues(s.map.root);
     const best = premises.reduce((b, c) => (b === null || scores.get(c.slug).strength > scores.get(b.slug).strength ? c : b), null);
     const lean = {
       ...leanOf(scores.get(focus.slug)),
@@ -2644,99 +2567,105 @@ class Component extends DCLogic {
       };
     }, scores);
 
-    // columns
+    // the chart of contributing factors
     const taken = Component.allSlugs(map.root);
     const autoSlug = Component.slugBase(s.draftText) === '' ? '' : Component.slugify(s.draftText, taken);
     const draftSlugValue = s.draftSlugCustom === null ? autoSlug : s.draftSlugCustom;
     const slugProblem = Component.slugProblem(draftSlugValue, taken);
     const showSlugProblem = slugProblem !== null && (s.draftSlugCustom !== null || s.draftText.trim() !== '');
     const canAdd = s.draftText.trim() !== '' && slugProblem === null;
-    const selected = new Set(s.selected);
-    const mkCard = (c) => {
-      const st = sideOf(c);
-      const sc = scores.get(c.slug);
-      const n = c.children.length;
-      const dragging = s.dragGroup.includes(c.slug) || s.reordering === c.slug;
-      const sameSide = focus.children.filter((k) => k.side === c.side).length;
-      const isSel = selected.has(c.slug);
-      const selectable = editable && (c.side === 'pro' || c.side === 'con');
-      const holds = Math.round(sc.strength * 100);
-      const isPrem = c.side === 'premise';
-      // display overlays (pros and cons only): confidence fades 1★ → 0.44 up to 5★ → 1; unset stays solid
-      const confOpacity = disp.confidence && !isPrem && c.confidence !== null ? (0.3 + 0.14 * c.confidence).toFixed(2) : 1;
-      const noEvidence = disp.evidence && !isPrem && c.refs.length === 0;
-      const noBasis = disp.goodFaith && !isPrem && c.basis === null;
-      return {
-        text: c.text, by: c.by === null ? '' : c.by, hasBy: c.by !== null,
-        badge: isPrem ? `${holds}%` : String(c.weight),
-        glyph: `${st.glyph} ${st.label}`, fg: st.fg, tint: st.tint, solid: st.solid,
-        border: dragging || isSel ? st.fg : noEvidence ? 'var(--ink3)' : P.line,
-        borderW: noEvidence ? '2px' : '1px', borderStyle: noEvidence ? 'dotted' : 'solid',
-        bg: noBasis ? `repeating-linear-gradient(135deg, color-mix(in srgb, var(--ink) 10%, transparent) 0 2px, transparent 2px 9px), ${isSel ? st.tint : 'var(--card)'}` : (isSel ? st.tint : 'var(--card)'),
-        opacity: confOpacity,
-        shadow: (isSel ? `0 0 0 1.5px ${st.fg}, ` : '') + (dragging ? '0 6px 18px rgba(27,31,36,0.16)' : '0 1px 2px rgba(27,31,36,0.06)'),
-        selectable, selected: isSel, selectLabel: `Select “${Component.truncate(c.text, 50)}” for group resize`,
-        onSelect: () => this.toggleSelect(c.slug),
-        widthPct: (minW + (100 - minW) * (isPrem ? sc.strength * 100 : c.weight) / 100).toFixed(2),
-        strengthPct: holds,
-        meta: `holds ${holds}%` + (n ? ` · ${n} argument${n === 1 ? '' : 's'}` : ''),
-        hasConf: c.confidence !== null,
-        confStars: c.confidence === null ? '' : '★'.repeat(c.confidence) + '☆'.repeat(5 - c.confidence),
-        confTitle: c.confidence === null ? '' : `Confidence ${c.confidence} of 5`,
-        canReorder: editable && !isPrem && sameSide > 1 && !filterActive,
-        reorderLabel: `Reorder “${Component.truncate(c.text, 50)}”. Drag, or use the up and down arrow keys.`,
-        rdown: (e) => this.startReorder(c.slug, c.side, e), rmove: (e) => this.moveReorder(e), rup: (e) => this.endReorder(e),
-        rkey: (e) => this.onReorderKey(c.slug, c.side, e),
-        hasRefs: c.refs.length > 0, refCount: String(c.refs.length),
-        refTitle: `${c.refs.length} piece${c.refs.length === 1 ? '' : 's'} of evidence`,
-        hasHandle: editable && !isPrem, handleBg: dragging ? st.tint : 'var(--sunk)',
-        openLabel: `Focus: ${c.text}`,
-        handleLabel: `Weight of “${Component.truncate(c.text, 50)}”: ${c.weight}. Drag sideways, or use the arrow keys.`,
-        open: (e) => {
-          if ((e.ctrlKey || e.metaKey) && selectable) { e.preventDefault(); this.toggleSelect(c.slug); return; }
-          this.setFocus(c.slug);
-        },
-        down: (e) => this.startDrag(c.slug, e), move: (e) => this.moveDrag(e), up: (e) => this.endDrag(e),
-        key: (e) => this.onHandleKey(c.slug, c.weight, e),
-      };
+    const addKind = focus.side === null && (isProposition || s.adding === 'premise') ? 'premise' : 'fact';
+    const add = {
+      canOpen: editable && s.adding === null, adding: editable && s.adding !== null,
+      label: addKind === 'premise' ? 'Add a premise' : 'Add a contributing factor',
+      aria: addKind === 'premise' ? 'New premise' : 'New contributing factor',
+      open: () => this.setState({ adding: addKind, draftText: '', draftSlugCustom: null }),
+      draftText: s.draftText, draftSlugValue,
+      onDraftSlug: (e) => this.setState({ draftSlugCustom: e.target.value.toLowerCase().replace(/\s+/g, '-') }),
+      slugCustom: s.draftSlugCustom !== null, slugAuto: () => this.setState({ draftSlugCustom: null }),
+      hasSlugError: showSlugProblem, slugErrorText: slugProblem === null ? '' : slugProblem,
+      slugBorder: showSlugProblem ? P.con : P.line,
+      onDraftText: (e) => this.onDraftText(e.target.value),
+      onDraftKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (canAdd) this.addArg(addKind); } },
+      cancel: () => this.setState({ adding: null, draftSlugCustom: null }),
+      save: () => this.addArg(addKind), saveDisabled: !canAdd, saveOpacity: canAdd ? 1 : 0.45,
     };
-    const premiseMode = focus.side === null && (isProposition || (editable && s.adding === 'premise'));
-    const columns = (premiseMode ? ['premise'] : ['pro', 'con']).map((side) => {
-      const st = side === 'pro' ? { fg: P.pro, title: 'Pros', noun: 'pro' }
-        : side === 'con' ? { fg: P.con, title: 'Cons', noun: 'con' }
-        : { fg: P.prem, title: 'Premises', noun: 'premise' };
-      const allKids = focus.children.filter((c) => c.side === side);
-      const kids = filterActive ? allKids.filter((c) => matchSet.has(c.slug)) : allKids;
-      const adding = editable && s.adding === side;
-      const kidSlugs = kids.map((k) => k.slug);
-      const allSelected = kidSlugs.length > 0 && kidSlugs.every((k) => selected.has(k));
+    const rows = Component.factRows(focus, values, s.frozenOrder);
+    const order = rows.map((r) => r.node.slug);
+    const biggest = Math.max(...rows.map((r) => r.importance), 0);
+    const isArea = s.chartView === 'area';
+    const pressed = (on) => ({ pressed: String(on), bg: on ? 'var(--ink)' : 'transparent', fg: on ? 'var(--on-ink)' : 'var(--ink2)' });
+    const cols = rows.map((r, i) => {
+      const c = r.node;
+      const draggable = editable && !r.calculated;
+      const dividerDraggable = editable && !r.calculated && i < rows.length - 1 && !rows[i + 1].calculated;
+      const isSel = s.selectedFact === c.slug;
+      const inPool = s.resizeMode === 'trade' && s.tradePool.includes(c.slug);
+      const marks = r.calculated ? [] : [
+        ...(disp.confidence && c.confidence !== null ? ['★'.repeat(c.confidence) + '☆'.repeat(5 - c.confidence)] : []),
+        ...(disp.evidence ? [`📎 ${c.refs.length}`] : []),
+        ...(disp.goodFaith && c.basis === null ? ['no basis'] : []),
+      ].join(' · ');
       return {
-        canSelectAll: editable && side !== 'premise' && kids.length > 0, allSelected,
-        selectAllLabel: allSelected ? `Deselect all ${st.title.toLowerCase()}` : `Select all ${st.title.toLowerCase()}`,
-        toggleAll: () => this.setState((cur) => {
-          const all = kidSlugs.every((k) => cur.selected.includes(k));
-          return { selected: all ? cur.selected.filter((x) => !kidSlugs.includes(x)) : [...cur.selected, ...kidSlugs.filter((k) => !cur.selected.includes(k))] };
-        }),
-        side, title: st.title, fg: st.fg,
-        countLabel: filterActive ? `${kids.length} of ${allKids.length}` : (kids.length ? String(kids.length) : ''),
-        canAdd: editable && !adding, addLabel: `Add a ${st.noun}`, adding,
-        openAdd: () => this.setState({ adding: side, draftText: '', draftWeight: 100, draftSlugCustom: null }),
-        draftAria: side === 'premise' ? 'New premise' : `New ${st.noun}`, showWeight: side !== 'premise',
-        draftText: s.draftText, draftWeight: s.draftWeight, draftSlugValue,
-        onDraftSlug: (e) => this.setState({ draftSlugCustom: e.target.value.toLowerCase().replace(/\s+/g, '-') }),
-        slugCustom: s.draftSlugCustom !== null, slugAuto: () => this.setState({ draftSlugCustom: null }),
-        hasSlugError: showSlugProblem, slugErrorText: slugProblem === null ? '' : slugProblem,
-        slugBorder: showSlugProblem ? P.con : P.line,
-        onDraftText: (e) => this.onDraftText(e.target.value),
-        onDraftKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (canAdd) this.addArg(side); } },
-        onDraftWeight: (e) => this.setState({ draftWeight: Number(e.target.value) }),
-        cancelAdd: () => this.setState({ adding: null, draftSlugCustom: null }),
-        add: () => this.addArg(side), addDisabled: !canAdd, addOpacity: canAdd ? 1 : 0.45,
-        cards: kids.map(mkCard),
-        empty: kids.length === 0 && !adding,
-        emptyText: filterActive && allKids.length > 0 ? `No ${st.noun}s here match the filter.` : `No ${st.noun}s yet.`,
+        slug: c.slug, text: c.text, share: r.share, grow: r.share.toFixed(5), pct: String(Math.round(r.share * 100)), signed: Component.signed(r.impact),
+        aria: `${c.text}: ${Math.round(r.share * 100)}% of importance, impact ${Component.signed(r.impact)}${r.calculated ? ', calculated from its child factors' : ''}. Press Enter to select${draggable ? ', up and down arrows to change impact' : ''}.`,
+        selected: isSel, inPool, ring: isSel ? 'inset 0 0 0 3px var(--ink)' : 'none', poolOutline: inPool ? '2px dashed var(--ink)' : 'none',
+        op: filterActive && !matchSet.has(c.slug) ? 0.22 : 1,
+        isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
+        fill: Component.impactFill(r.impact),
+        bg: isArea ? 'transparent' : Component.impactFill(r.impact), ink: isArea ? 'var(--ink)' : Component.impactInk(r.impact),
+        height: s.chartView === 'tall' ? `${70 + 190 * (biggest === 0 ? 1 : r.importance / biggest)}px` : '100%',
+        cursor: draggable ? 'ns-resize' : 'pointer',
+        hasMarks: marks !== '', marks,
+        click: (e) => this.onColumnClick(c.slug, e),
+        down: (e) => this.startColumnDrag(c.slug, r.impact, order, draggable, e),
+        move: (e) => this.moveColumnDrag(e), up: (e) => this.endColumnDrag(e),
+        key: (e) => this.onColumnKey(c.slug, r.impact, order, draggable, e),
+        blur: () => this.onColumnBlur(),
+        hasDivider: i < rows.length - 1, dividerDisabled: !dividerDraggable,
+        dividerCursor: dividerDraggable ? 'col-resize' : 'default',
+        dividerLabel: `Resize importance between “${Component.truncate(c.text, 40)}” and the next column. Use the left and right arrow keys.`,
+        dividerTitle: 'Drag to change importance',
+        dividerDown: (e) => { if (dividerDraggable) this.startDivider(i, rows, e); },
+        dividerMove: (e) => this.moveDivider(e), dividerUp: (e) => this.endDivider(e),
+        dividerKey: (e) => { if (dividerDraggable) this.onDividerKey(i, rows, e); },
       };
     });
+    const thermoAt = rows.findIndex((r) => r.node.slug === s.thermoSlug);
+    const thermoLeft = thermoAt < 0 ? 0 : rows.slice(0, thermoAt).reduce((t, r) => t + r.share, 0) + rows[thermoAt].share / 2;
+    const chart = {
+      title: focus.side === null && isProposition ? 'Premises' : 'Contributing factors',
+      countLabel: rows.length ? String(rows.length) : '',
+      hasCols: rows.length > 0, empty: rows.length === 0 && s.adding === null,
+      emptyText: 'Nothing here yet.',
+      cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
+      views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
+        id, label, ...pressed(s.chartView === id),
+        pick: () => { storeSetting(CHART_VIEW_STORE, id); this.setState({ chartView: id }); },
+      })),
+      modes: [['scale', 'Scale all the others'], ['trade', 'Trade with chosen columns']].map(([id, label]) => ({
+        id, label, ...pressed(s.resizeMode === id),
+        pick: () => { storeSetting(RESIZE_MODE_STORE, id); this.setState({ resizeMode: id }); },
+      })),
+      hint: !editable || rows.every((r) => r.calculated)
+        ? (rows.length && rows[0].calculated ? 'Premise values are calculated from their child factors. Click a column for its details.' : 'Click a column for its details.')
+        : s.resizeMode === 'scale'
+          ? 'Drag a divider as far as you like, even past its neighbour: the selected column, or else the one left of the divider, resizes and the rest scale to fit. Drag a column up or down to change its impact. Click a column for its details.'
+          : '⌘-click or Shift-click columns to mark them. Dragging a divider then trades importance only with those columns, or with the column across the divider if none are marked. Drag a column up or down to change its impact. Click a column for its details.',
+      thermo: thermoAt < 0 ? { has: false, left: 0, top: 50, label: '', side: 'left' } : {
+        has: true, left: (thermoLeft * 100).toFixed(2), top: ((1 - rows[thermoAt].impact) * 50).toFixed(1), label: Component.signed(rows[thermoAt].impact),
+        side: thermoLeft > 0.85 ? 'right' : 'left',
+      },
+    };
+    const focusScore = values.get(focus.slug).score;
+    const leading = rows.length && rows[0].calculated ? rows[rows.length - 1] : null;
+    const score = {
+      has: focusScore !== null && rows.length > 0, none: focusScore === null || rows.length === 0,
+      signed: Component.signed(focusScore ?? 0), left: (((focusScore ?? 0) + 1) * 50).toFixed(1),
+      noneText: leading !== null
+        ? `Leading premise: “${Component.truncate(leading.node.text, 90)}”, at ${Component.signed(leading.impact)}.`
+        : 'No contributing factors yet.',
+    };
 
     // pie (sunburst of the focused claim): one ring per level below the centre, all levels, sharing radii 72–250
     // Pinned: the pie stays centred on the pinned claim and clicks only select. Unpinned: the pie follows the focus.
@@ -3065,7 +2994,7 @@ class Component extends DCLogic {
     const target = this.openTarget();
     const tb = {
       toggleNew: () => this.setState({ newOpen: !s.newOpen, openOpen: false }), newExpanded: String(s.newOpen),
-      addPremise: () => this.setState({ view: 'map', focus: map.root.slug, adding: 'premise', draftText: '', draftWeight: 100, draftSlugCustom: null, confirmDelete: false, hover: null, selected: [] }),
+      addPremise: () => this.setState({ view: 'map', focus: map.root.slug, adding: 'premise', draftText: '', draftSlugCustom: null, confirmDelete: false, hover: null, selectedFact: null, tradePool: [], frozenOrder: null }),
       premiseDisabled, premiseOpacity: premiseDisabled ? 0.45 : 1,
       premiseTitle: locked ? 'Fix the markdown errors first'
         : rootHasArgs ? 'This root already has pros and cons. Premises go under a root that has none (start a new map, or remove them).'
@@ -3220,7 +3149,7 @@ class Component extends DCLogic {
       ev: s.fEv, onEv: (e) => this.setState({ fEv: e.target.value }),
       reset: () => this.setState({ q: '', fConf: 'any', fEv: 'any' }),
       active: filterActive,
-      summary: `${shownArgs} of ${totalArgs} pros and cons match` + (s.view === 'map' ? ' · branches with a match stay visible; reordering is off while filtering' : ''),
+      summary: `${shownArgs} of ${totalArgs} pros and cons match` + (s.view === 'map' ? ' · others are dimmed' : ''),
     };
 
     // settings
@@ -3272,18 +3201,8 @@ class Component extends DCLogic {
       ].map(([k, label, desc]) => ({ label, desc, on: disp[k], toggle: () => this.setDisplay({ [k]: !disp[k] }) })),
     };
 
-    const nSel = s.selected.length;
-    const sel = {
-      has: nSel > 0,
-      count: `${nSel} selected`,
-      hint: nSel > 1 ? 'Drag any selected grip to resize them together, keeping their proportions.' : 'Ctrl/⌘-click or tick more cards to resize them together.',
-      clear: () => this.setState({ selected: [] }),
-      toMax: () => this.setWeights(Object.fromEntries(s.selected.map((k) => [k, 100]))),
-      toCentre: () => this.setWeights(Object.fromEntries(s.selected.map((k) => [k, 50]))),
-    };
-
     return {
-      title: map.title, tabs, tb, nm, sel, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
+      title: map.title, tabs, tb, nm, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
       hasMap, isMap: hasMap && s.view === 'map', isPie: hasMap && s.view === 'pie', isDiff: hasMap && s.view === 'diff', isSource: !noMap && s.view === 'source',
       hasNotice: s.notice !== null, notice: s.notice === null ? '' : s.notice, clearNotice: () => this.setState({ notice: null }),
       locked,
@@ -3291,7 +3210,7 @@ class Component extends DCLogic {
       ice, hasParent: parent !== null, crumbs,
       parentCard: parent === null ? { text: '', glyph: '', fg: P.ink } : { text: parent.text, glyph: sideOf(parent).glyph, fg: sideOf(parent).fg },
       goUp: () => { if (!parent) throw new Error('bug: up pressed on the thesis'); this.setFocus(parent.slug); },
-      fc, lean, columns, pie, diff,
+      fc, lean, score, chart, add, pie, diff,
       isMd: s.sourceTab === 'md', isJson: s.sourceTab === 'json',
       srcTabs: [['md', 'Markdown'], ['json', 'JSON']].map(([id, label]) => ({
         label, pressed: String(s.sourceTab === id),
