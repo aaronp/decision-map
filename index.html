@@ -3848,12 +3848,12 @@ class Component extends DCLogic {
       hintShown: (inPie ? pieRows : rows).length > 0,
       empty: (inPie ? pieRows : rows).length === 0 && editable, emptyReadOnly: (inPie ? pieRows : rows).length === 0 && !editable,
       cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
-      // Width only encodes nothing in height, so the bar is as short as a depth row; the other views need the height.
-      compact: s.chartView === 'width', height: s.chartView === 'width' ? `${DEPTH_ROW}px` : 'min(46vh, 420px)', minHeight: s.chartView === 'width' ? '0' : '240px',
+      // Width only encodes nothing in height, so the bar is short, with room for a title and its values; the other views need the height.
+      compact: s.chartView === 'width', height: s.chartView === 'width' ? '120px' : 'min(46vh, 420px)', minHeight: s.chartView === 'width' ? '0' : '240px',
       // The impact thermometer is taller than a short bar, so it reaches past it while you drag.
       overflow: s.chartView === 'width' ? 'visible' : 'hidden',
       thermoTop: s.chartView === 'width' ? 'calc(50% - 118px)' : '12px', thermoHeight: s.chartView === 'width' ? '236px' : 'calc(100% - 24px)',
-      fillDir: s.chartView === 'width' ? 'row' : 'column', fillPad: s.chartView === 'width' ? '3px 6px' : '8px', fillAlign: s.chartView === 'width' ? 'center' : 'stretch',
+      fillDir: 'column', fillPad: '8px', fillAlign: 'stretch',
       views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
         id, label, ...pressed(s.chartView === id), isWidth: id === 'width', isTall: id === 'tall', isArea: id === 'area',
         pick: () => { storeSetting(CHART_VIEW_STORE, id); this.setState({ chartView: id }); },

@@ -81,7 +81,7 @@ Columns are sorted from most contrary to most supporting. Colour is impact, and 
 - **Click a column** or any cell in the rows below to open it.
 - **Pin** the bar to keep it on the point it shows. Clicking a column then shows that point's details, without moving the bar.
 - **Recalculate**, next to the health bar, sets the open point's impact to the overall score of its own points. Undo puts it back.
-- In the **Width only** chart view the bar is as short as the rows below it, since height means nothing there. The other two views keep the tall bar.
+- In the **Width only** chart view the bar is a short 120px, since height means nothing there. The other two views keep the tall bar.
 - **Change importance** by dragging a divider, or with the slider on an open point.
 - **Change impact** by dragging a column up or down, or with the slider on an open point.
 - **Choose the columns a resize changes** with Ctrl-click, ⌘-click or Shift-click, or **L** on the keyboard. Chosen columns get a diagonal pattern and dashed border. Dragging a divider then changes the chosen columns on each side of it, spread in proportion to their size, or the column next to the divider on a side with none chosen. Every other column keeps its size, and the divider stays under the pointer. You can also choose cells in the levels below, which apply when you resize at that level. Choices stay as you move between levels until **Clear** removes them. With nothing chosen, the two columns either side of the divider trade.

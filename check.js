@@ -2184,10 +2184,10 @@ test('the same holds for goal, option and map point titles', () => {
 
 
 // ---------------------------------------------------------------- the map bar: short, pinnable, and impact recalculated from points
-test('the bar is as short as the depth rows in Width only, and tall in the other chart views', () => {
+test('the bar is short in Width only, and tall in the other chart views', () => {
   const c = boot(MAP3);
   assert.equal(chartOf(c).compact, true);
-  assert.equal(chartOf(c).height, '30px');
+  assert.equal(chartOf(c).height, '120px');
   c.setState({ chartView: 'tall' });
   assert.equal(chartOf(c).compact, false);
   assert.deepEqual(unresolved(c.renderVals()), []);
