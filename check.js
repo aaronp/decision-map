@@ -1466,7 +1466,7 @@ test('every record view renders with no unresolved bindings, and maps keep their
 
 // ---------------------------------------------------------------- goals and goal views
 const recBoot = () => { const c = boot(REC); c.setState({ view: 'goals' }); return c; };
-const goalsWt = (c) => c.renderVals().goalsView.weights;
+const goalsWt = (c) => c.renderVals().goalsLevel.weights;
 test('dragging the goal divider trades importance, respecting choices', () => {
   const c = recBoot();
   goalsWt(c).dividers[0].down(ev({ clientX: 0 }));
@@ -1478,8 +1478,9 @@ test('dragging the goal divider trades importance, respecting choices', () => {
 });
 test('a goal opens to a grid of options by criteria, best first, with its winner', () => {
   const c = recBoot();
-  c.renderVals().goalsView.cards[0].open();
-  const g = c.renderVals().goalView;
+  c.renderVals().goalsLevel.detail.open();
+  c.renderVals().criteriaLevel.compareAll();
+  const g = c.renderVals().optionsLevel;
   assert.deepEqual(g.grid.rows.map((r) => r.option), ['postgres', 'dynamodb']);
   assert.deepEqual(g.grid.rows[1].cells.map((x) => x.n), [9, 0]);
   assert.equal(g.grid.rows[0].isWinner, true);
@@ -1494,7 +1495,7 @@ test('setting a missing score creates it; the file round-trips', () => {
 test('adding an existing option to a goal, and a new one', () => {
   const c = recBoot();
   c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'cost' });
-  const gv = () => c.renderVals().goalView;
+  const gv = () => c.renderVals().criteriaLevel;
   assert.deepEqual(gv().existing.map((o) => o.slug), ['postgres']);
   gv().existing[0].add();
   gv().onNewOption({ target: { value: 'Kafka + S3' } });
@@ -1506,17 +1507,17 @@ test('bar and pie share one switch, and the pie has handles but none at the wrap
   c.renderVals().recordChart.pick('pie');
   assert.equal(goalsWt(c).isPie, true);
   assert.equal(goalsWt(c).handles.length, 1);
-  c.renderVals().goalsView.weights.segments[0].down(ev({ metaKey: true }));
+  c.renderVals().goalsLevel.weights.segments[0].down(ev({ metaKey: true }));
   assert.deepEqual(unresolved(c.renderVals()), []);
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'reliability', cell: { option: 'postgres', criterion: 'ops' } });
+  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'ops' });
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
 // ---------------------------------------------------------------- reasons
 test('reasons list by weight, and their weight never changes the score', () => {
   const c = recBoot();
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'reliability', cell: { option: 'postgres', criterion: 'durability' } });
-  const panel = () => c.renderVals().goalView.panel;
+  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
+  const panel = () => c.renderVals().reasonsLevel;
   panel().onNewReason({ target: { value: 'Cheap to run' } });
   panel().addReason();
   assert.deepEqual(panel().reasons.map((r) => r.text), ['Runbooks exist', 'Cheap to run']);
@@ -1526,8 +1527,8 @@ test('reasons list by weight, and their weight never changes the score', () => {
 });
 test('a reason has the same extras as a point', () => {
   const c = recBoot();
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'reliability', cell: { option: 'postgres', criterion: 'durability' } });
-  c.renderVals().goalView.panel.reasons[0].open();
+  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
+  c.renderVals().reasonsLevel.reasons[0].open();
   assert.equal(c.renderVals().bc.basis, 'We run 14 clusters');
   assert.equal(c.renderVals().ev.items.length, 1);
   assert.deepEqual(unresolved(c.renderVals()), []);
@@ -1672,8 +1673,8 @@ test('the example record parses and round-trips', () => {
 // ---------------------------------------------------------------- final review fixes
 const reasonOpen = () => {
   const c = boot(REC);
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'reliability', cell: { option: 'postgres', criterion: 'durability' } });
-  c.renderVals().goalView.panel.reasons[0].open();
+  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
+  c.renderVals().reasonsLevel.reasons[0].open();
   return c;
 };
 test('review: a reason\'s basis, confidence and evidence can be edited', () => {
@@ -1698,7 +1699,7 @@ test('review: a map\'s Diff with a record as B explains itself instead of crashi
 test('review: a goal that no longer exists falls back to the goal list', () => {
   const c = boot(REC);
   c.setState({ view: 'goals' });
-  c.renderVals().goalsView.addGoal();
+  c.renderVals().goalsLevel.weights.add();
   c.recNav({ recLevel: 'criteria', recGoal: c.state.selGoal });
   assert.equal(c.renderVals().isRecLevel.criteria, true);
   c.undo();
@@ -1743,7 +1744,7 @@ test('review: record weights start at 50 and a drag never takes one to 0', () =>
   const c = boot(Component.serialize(m));
   c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'first-goal' });
   c.addCriterion('first-goal');
-  const wtc = () => c.renderVals().goalView.criteria;
+  const wtc = () => c.renderVals().criteriaLevel.weights;
   for (let k = 0; k < 5; k++) {
     wtc().dividers[0].down(ev({ clientX: 0 }));
     wtc().dividers[0].move(ev({ clientX: -5000 }));
@@ -1942,6 +1943,31 @@ test('goals and criteria levels resolve every binding, as bar and as pie', () =>
       assert.deepEqual(unresolved(c.renderVals()), [], `${chart} ${lv}`);
     }
   }
+});
+
+// ---------------------------------------------------------------- revision 2: options and reasons levels
+test('editing one option: a slider and a short reason per criterion, and Reasons opens the next level', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'postgres', optMode: 'edit' });
+  const ol = () => c.renderVals().optionsLevel;
+  assert.deepEqual(ol().rows.map((r) => [r.title, r.score]), [['Durability', 8], ['Ops', 6]]);
+  ol().rows[1].onScore({ target: { value: '9' } });
+  ol().rows[1].onSummary({ target: { value: 'Well understood' } });
+  assert.equal(Component.recordModel(c.state.map).goals[0].scores.postgres.ops, 9);
+  assert.equal(Component.recordModel(c.state.map).goals[0].summaries.postgres.ops, 'Well understood');
+  ol().rows[0].openReasons();
+  assert.equal(c.renderVals().isRecLevel.reasons, true);
+  assert.deepEqual(c.renderVals().reasonsLevel.reasons.map((r) => r.text), ['Runbooks exist']);
+});
+test('compare all: the grid, and a cell edits that option', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'postgres', optMode: 'compare' });
+  const g = c.renderVals().optionsLevel.grid;
+  assert.deepEqual(g.rows.map((r) => r.option), ['postgres', 'dynamodb']);
+  g.rows[1].cells[0].pick();
+  assert.equal(c.state.optMode, 'edit');
+  assert.equal(c.state.recOption, 'dynamodb');
+  assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
 Promise.all(pending).then(() => {
