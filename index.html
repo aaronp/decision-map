@@ -298,6 +298,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           <span style="position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--ink3)"></span>
         </div>
         <span style="font-size: 14px; color: var(--ink2)">{{health.label}} <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; font-weight: 500; color: var(--ink); margin-left: 4px">{{health.signed}}</span></span>
+        <sc-if value="{{health.canRecalc}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{health.recalc}}" title="{{health.recalcTitle}}" aria-label="{{health.recalcTitle}}" style="min-height: 30px; padding: 0 10px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer">Recalculate</button></sc-if>
       </div>
       <details style="font-size: 14px; color: var(--ink2)">
         <summary style="cursor: pointer; width: max-content">More</summary>
@@ -455,16 +456,22 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 
     <section aria-label="Points" style="flex: {{focusLayout.pointsFlex}}; display: flex; flex-direction: column; gap: 8px; min-width: 0">
       <sc-if value="{{chart.barShown}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; justify-content: flex-end">
+          <button type="button" onClick="{{pie.togglePin}}" aria-pressed="{{pie.pinPressed}}" aria-label="{{pie.pinLabel}}" title="{{pie.pinLabel}}" style="display: flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 12px; border: 1px solid {{pie.pinBorder}}; border-radius: 8px; background: {{pie.pinBg}}; color: {{pie.pinFg}}; font: inherit; font-size: 13px; cursor: pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="{{pie.pinFill}}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6l-1 5.5 3.5 3.5h-11L10 9z"></path><path d="M12 12.5V21"></path></svg>Pin</button>
+        </div>
         <div style="display: flex; gap: 8px; min-width: 0">
           <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
             <button type="button" title="{{add.leftTitle}}" aria-label="{{add.leftTitle}}" onClick="{{add.left}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--control); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
           </sc-if>
-        <div data-chart="1" style="position: relative; flex: 1; min-width: 0; display: flex; align-items: {{chart.align}}; height: min(46vh, 420px); min-height: 240px; box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden; user-select: none; -webkit-user-select: none">
+        <div data-chart="1" style="position: relative; flex: 1; min-width: 0; display: flex; align-items: {{chart.align}}; height: {{chart.height}}; min-height: {{chart.minHeight}}; box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow: {{chart.overflow}}; user-select: none; -webkit-user-select: none">
           <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
             <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
           </sc-if>
           <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
             <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" data-born="{{c.born}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
+              <sc-if value="{{c.isSelected}}" hint-placeholder-val="{{ false }}">
+                <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 3px solid var(--ink)"></div>
+              </sc-if>
               <sc-if value="{{c.isChosen}}" hint-placeholder-val="{{ false }}">
                 <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></div>
               </sc-if>
@@ -481,7 +488,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
                 </div>
               </sc-if>
               <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
-                <div style="height: 100%; box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; gap: 4px">
+                <div style="height: 100%; box-sizing: border-box; padding: {{chart.fillPad}}; display: flex; flex-direction: {{chart.fillDir}}; align-items: {{chart.fillAlign}}; justify-content: space-between; gap: 4px; overflow: hidden">
                   <span style="overflow: hidden; min-height: 0; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.text}}</span>
                   <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.pct}}% · {{c.signed}}<sc-if value="{{c.hasMarks}}" hint-placeholder-val="{{ false }}"><span style="display: block; font-weight: 400; font-size: 11px">{{c.marks}}</span></sc-if></span>
                 </div>
@@ -492,7 +499,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             </sc-if>
           </sc-for>
           <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
-            <div aria-hidden="true" style="position: absolute; z-index: 2; top: 12px; left: {{chart.thermo.left}}%; height: calc(100% - 24px); width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
+            <div aria-hidden="true" style="position: absolute; z-index: 2; top: {{chart.thermoTop}}; left: {{chart.thermo.left}}%; height: {{chart.thermoHeight}}; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--sunk), var(--pro)); pointer-events: none">
               <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
               <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--on-ink); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
             </div>
@@ -3738,22 +3745,23 @@ class Component extends DCLogic {
     // overview icicle
     // the chart of contributing factors
     const focusHasPremises = focus.children.some((c) => c.kind === 'premise');
-    // A pinned pie stays centred on the pinned point, and clicking a slice only changes which point the details show.
+    // A pinned pie or bar stays on the pinned point, and clicking a slice or column only changes which point the details show.
     const pinPath = s.pinned === null ? null : Component.findPath(map.root, s.pinned);
     const isPinned = pinPath !== null;
     const pieRoot = isPinned ? pinPath[pinPath.length - 1] : focus;
     const pieRows = Component.factRows(pieRoot, values);
+    const rootHasPremises = pieRoot.children.some((c) => c.kind === 'premise');
     const inPie = view === 'pie';
     const addIsPremise = s.adding !== null && s.adding.isPremise;
     const canCommit = Component.slugBase(s.draftText) !== '';
     const add = {
       canOpen: editable, adding: editable && s.adding !== null, isFact: !addIsPremise,
-      left: () => this.openAdd(focus.slug, focusHasPremises ? 0 : -0.5, focusHasPremises),
-      right: () => this.openAdd(focus.slug, focusHasPremises ? 0 : 0.5, focusHasPremises),
+      left: () => this.openAdd(pieRoot.slug, rootHasPremises ? 0 : -0.5, rootHasPremises),
+      right: () => this.openAdd(pieRoot.slug, rootHasPremises ? 0 : 0.5, rootHasPremises),
       wide: () => this.openAdd(inPie ? pieRoot.slug : focus.slug, 0),
       wideLabel: 'Add the first point',
-      leftTitle: focusHasPremises ? 'Add an option' : 'Add a contrary point',
-      rightTitle: focusHasPremises ? 'Add an option' : 'Add a supporting point',
+      leftTitle: rootHasPremises ? 'Add an option' : 'Add a contrary point',
+      rightTitle: rootHasPremises ? 'Add an option' : 'Add a supporting point',
       placeholder: addIsPremise ? 'Your option' : 'Your point',
       text: s.draftText, details: s.draftDetails, impact: s.draftImpact, signed: Component.signed(s.draftImpact),
       onText: (e) => this.onDraftText(e.target.value),
@@ -3765,7 +3773,9 @@ class Component extends DCLogic {
       cancel: () => this.cancelAdd(), commit: () => this.commitAdd(),
       commitDisabled: !canCommit, commitOpacity: canCommit ? 1 : 0.45,
     };
-    const rows = Component.factRows(focus, values, s.frozenOrder);
+    const rows = Component.factRows(pieRoot, values, s.frozenOrder);
+    // The health bar and Recalculate are about the point whose details show, which a pinned bar can differ from.
+    const focusRows = pieRoot === focus ? rows : Component.factRows(focus, values);
     const order = rows.map((r) => r.node.slug);
     const biggest = Math.max(...rows.map((r) => r.importance), 0);
     const isArea = s.chartView === 'area';
@@ -3781,6 +3791,7 @@ class Component extends DCLogic {
         ...(disp.goodFaith && c.basis === null ? ['no basis'] : []),
       ].join(' · ');
       return {
+        isSelected: isPinned && c.slug === focus.slug,
         slug: c.slug, text: c.text, share: r.share, grow: r.share.toFixed(5), pct: String(Math.round(r.share * 100)), signed: Component.signed(r.impact),
         aria: `${c.text}: ${Math.round(r.share * 100)}% of importance, impact ${Component.signed(r.impact)}${r.calculated ? ', calculated from its child factors' : ''}. Press Enter to open${draggable ? ', up and down arrows to change impact, L to choose it to absorb resizes' : ''}.${isChosen ? ' Chosen: absorbs resizes.' : ''}`,
         isChosen, pressed: String(isChosen), canDrag: String(draggable),
@@ -3837,6 +3848,12 @@ class Component extends DCLogic {
       hintShown: (inPie ? pieRows : rows).length > 0,
       empty: (inPie ? pieRows : rows).length === 0 && editable, emptyReadOnly: (inPie ? pieRows : rows).length === 0 && !editable,
       cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
+      // Width only encodes nothing in height, so the bar is as short as a depth row; the other views need the height.
+      compact: s.chartView === 'width', height: s.chartView === 'width' ? `${DEPTH_ROW}px` : 'min(46vh, 420px)', minHeight: s.chartView === 'width' ? '0' : '240px',
+      // The impact thermometer is taller than a short bar, so it reaches past it while you drag.
+      overflow: s.chartView === 'width' ? 'visible' : 'hidden',
+      thermoTop: s.chartView === 'width' ? 'calc(50% - 118px)' : '12px', thermoHeight: s.chartView === 'width' ? '236px' : 'calc(100% - 24px)',
+      fillDir: s.chartView === 'width' ? 'row' : 'column', fillPad: s.chartView === 'width' ? '3px 6px' : '8px', fillAlign: s.chartView === 'width' ? 'center' : 'stretch',
       views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
         id, label, ...pressed(s.chartView === id), isWidth: id === 'width', isTall: id === 'tall', isArea: id === 'area',
         pick: () => { storeSetting(CHART_VIEW_STORE, id); this.setState({ chartView: id }); },
@@ -3851,15 +3868,20 @@ class Component extends DCLogic {
         side: thermoLeft > 0.85 ? 'right' : 'left',
       },
     };
-    const leading = rows.length && rows[0].calculated ? rows[rows.length - 1] : null;
+    const leading = focusRows.length && focusRows[0].calculated ? focusRows[focusRows.length - 1] : null;
     const healthScore = leading !== null ? leading.impact : (values.get(focus.slug).score ?? 0);
-    const healthLabel = rows.length === 0 ? 'No points yet'
+    const healthLabel = focusRows.length === 0 ? 'No points yet'
       : leading !== null ? `Leading: ${Component.truncate(leading.node.text, 48)}` : Component.healthLabel(healthScore);
+    // Recalculate: a fact's impact becomes the overall score of its own points (premises have calculated values already).
+    const recalcScore = focus.kind === 'fact' && focusRows.some((r) => !r.calculated) ? values.get(focus.slug).score : null;
     const health = {
-      has: rows.length > 0, label: healthLabel, signed: rows.length ? Component.signed(healthScore) : '',
+      has: focusRows.length > 0, label: healthLabel, signed: focusRows.length ? Component.signed(healthScore) : '',
       left: (healthScore >= 0 ? 50 : 50 + healthScore * 50).toFixed(1), width: (Math.abs(healthScore) * 50).toFixed(1),
       fill: healthScore >= 0 ? 'var(--pro-fill)' : 'var(--con-fill)',
-      aria: rows.length ? `${healthLabel}, ${Component.signed(healthScore)} on a scale from −1 to +1` : healthLabel,
+      aria: focusRows.length ? `${healthLabel}, ${Component.signed(healthScore)} on a scale from −1 to +1` : healthLabel,
+      canRecalc: editable && recalcScore !== null,
+      recalcTitle: recalcScore === null ? '' : `Set this point's impact to ${Component.signed(recalcScore)}, the overall score of its points`,
+      recalc: () => { if (recalcScore !== null) this.setImpact(focus.slug, recalcScore); },
     };
 
     // The pie: the same tree as the bar and depth rows, one ring per level around the point in focus.

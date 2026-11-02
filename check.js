@@ -1022,7 +1022,7 @@ test('the hover buttons only show in edit mode, toggled next to the pin', () => 
   assert.equal(ctlsOf(c).length, 3);
   assert.equal(pieOf(c).slices.find((x) => x.slug === 'b').moves.length, 2);
   const at = template.indexOf('{{pie.toggleEdit}}');
-  assert.ok(at > 0 && Math.abs(at - template.indexOf('{{pie.togglePin}}')) < 2000);
+  assert.ok(at > 0 && Math.abs(at - template.lastIndexOf('{{pie.togglePin}}')) < 2000);
   assert.ok(!template.includes('{{pie.edges}}'), 'no hot zone on the edges');
 });
 
@@ -2180,6 +2180,49 @@ test('the same holds for goal, option and map point titles', () => {
   m.renderVals().pn.onText({ target: { value: '' } });
   assert.equal(m.renderVals().pn.text, '');
   assert.equal(nodeOf(m, 'a').text, 'A');
+});
+
+
+// ---------------------------------------------------------------- the map bar: short, pinnable, and impact recalculated from points
+test('the bar is as short as the depth rows in Width only, and tall in the other chart views', () => {
+  const c = boot(MAP3);
+  assert.equal(chartOf(c).compact, true);
+  assert.equal(chartOf(c).height, '30px');
+  c.setState({ chartView: 'tall' });
+  assert.equal(chartOf(c).compact, false);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+test('pinning the bar keeps it on the pinned point while a clicked column shows its details', () => {
+  const c = boot(NESTED);
+  c.setState({ view: 'map' });
+  assert.equal(c.renderVals().pie.pinPressed, 'false');
+  c.renderVals().pie.togglePin();
+  colOf(c, 'a').click(ev());
+  assert.equal(c.state.focus, 'a');
+  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['a', 'b']);
+  assert.equal(colOf(c, 'a').isSelected, true);
+  assert.equal(c.renderVals().pn.text, 'A');
+  assert.equal(c.renderVals().health.has, true, 'the health bar is for the point whose details show');
+  c.renderVals().add.right();
+  assert.equal(c.state.adding.parent, 'r', 'the + beside the pinned bar adds to the pinned point');
+  c.setState({ adding: null });
+  c.renderVals().pie.togglePin();
+  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['kid']);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+test('Recalculate sets a point\'s impact from its points, and undo puts it back', () => {
+  const c = boot(NESTED);
+  c.setState({ view: 'map' });
+  c.setFocus('a');
+  assert.equal(c.renderVals().health.canRecalc, true);
+  c.renderVals().health.recalc();
+  assert.equal(nodeOf(c, 'a').impact, 1);
+  c.undo();
+  assert.equal(nodeOf(c, 'a').impact, -0.5);
+  c.setFocus('kid');
+  assert.equal(c.renderVals().health.canRecalc, false, 'a point with no points under it');
+  c.setFocus('r');
+  assert.equal(c.renderVals().health.canRecalc, false, 'the root has no impact of its own');
 });
 
 Promise.all(pending).then(() => {
