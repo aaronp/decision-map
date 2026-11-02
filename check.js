@@ -1700,10 +1700,9 @@ test('review: a goal that no longer exists falls back to the goal list', () => {
   c.setState({ view: 'goals' });
   c.renderVals().goalsView.addGoal();
   c.recNav({ recLevel: 'criteria', recGoal: c.state.selGoal });
-  assert.equal(c.renderVals().isGoal, true);
+  assert.equal(c.renderVals().isRecLevel.criteria, true);
   c.undo();
-  assert.equal(c.renderVals().isGoal, false);
-  assert.equal(c.renderVals().isGoals, true);
+  assert.equal(c.renderVals().isRecLevel.goals, true);
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 test('review: opening a file with errors drops the old file\'s record state', () => {
@@ -1906,6 +1905,42 @@ test('a level whose goal, option or criterion is gone falls back, with every bin
   for (const lv of ['overview', 'goals', 'criteria', 'options', 'reasons']) {
     c.recNav({ recLevel: lv, recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
     assert.deepEqual(unresolved(c.renderVals()), [], lv);
+  }
+});
+
+// ---------------------------------------------------------------- revision 2: goals and criteria levels
+test('All goals: a short bar with a "+" column; clicking a goal shows its details', () => {
+  const c = rec2({ recLevel: 'goals' });
+  const gl = () => c.renderVals().goalsLevel;
+  assert.equal(gl().weights.hasAdd, true);
+  gl().weights.segments[1].pick();
+  assert.equal(gl().detail.title, 'Cost');
+  gl().detail.onDesc({ target: { value: 'Money and people' } });
+  assert.equal(nodeOf(c, 'cost').details, 'Money and people');
+  gl().weights.add();
+  assert.equal(Component.recordModel(c.state.map).goals.length, 3);
+  gl().detail.open();
+  assert.equal(c.renderVals().isRecLevel.criteria, true);
+});
+test('a goal\'s criteria: bar with "+", criterion details, and options by goal score', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'criteria', recGoal: 'reliability' });
+  const cl = () => c.renderVals().criteriaLevel;
+  cl().weights.segments[1].pick();
+  cl().detail.onDesc({ target: { value: 'How hard it is to run' } });
+  assert.equal(nodeOf(c, 'ops').details, 'How hard it is to run');
+  assert.deepEqual(cl().options.map((o) => [o.title, o.isWinner]), [['Postgres', true], ['DynamoDB', false]]);
+  cl().options[1].open();
+  assert.equal(c.state.recOption, 'dynamodb');
+  assert.equal(c.renderVals().isRecLevel.options, true);
+});
+test('goals and criteria levels resolve every binding, as bar and as pie', () => {
+  for (const chart of ['bar', 'pie']) {
+    for (const lv of ['goals', 'criteria']) {
+      const c = rec2({ recordChart: chart });
+      c.recNav({ recLevel: lv, recGoal: 'reliability', chosenFacts: ['cost', 'ops'] });
+      assert.deepEqual(unresolved(c.renderVals()), [], `${chart} ${lv}`);
+    }
   }
 });
 
