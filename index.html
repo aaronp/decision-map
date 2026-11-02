@@ -132,6 +132,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </div>
     </sc-if>
     <div style="position: relative" onKeyDown="{{menu.onKey}}">
+      <button type="button" class="tb" aria-label="Undo" title="Undo (⌘Z)" disabled="{{undoBtn.disabled}}" onClick="{{undoBtn.run}}" style="width: 38px; height: 38px; border: 0; border-radius: 8px; font: inherit; font-size: 18px; line-height: 1; cursor: pointer; opacity: {{undoBtn.opacity}}">↶</button>
+      <button type="button" class="tb" aria-label="Redo" title="Redo (⌘⇧Z)" disabled="{{redoBtn.disabled}}" onClick="{{redoBtn.run}}" style="width: 38px; height: 38px; border: 0; border-radius: 8px; font: inherit; font-size: 18px; line-height: 1; cursor: pointer; opacity: {{redoBtn.opacity}}">↷</button>
       <button type="button" class="tb" aria-label="File menu" aria-expanded="{{menu.expanded}}" onClick="{{menu.toggle}}" style="width: 38px; height: 38px; border: 0; border-radius: 8px; font: inherit; font-size: 20px; line-height: 1; cursor: pointer">⋯</button>
       <sc-if value="{{menu.open}}" hint-placeholder-val="{{ false }}">
         <div onClick="{{menu.toggle}}" aria-hidden="true" style="position: fixed; inset: 0; z-index: 5"></div>
@@ -257,19 +259,19 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 
     <div style="display: flex; flex-direction: {{focusLayout.dir}}; flex-wrap: wrap; align-items: {{focusLayout.align}}; gap: 16px; min-width: 0">
     <section aria-label="Current point" style="flex: {{focusLayout.detailsFlex}}; padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
-      <textarea aria-label="Title" rows="{{pn.titleRows}}" value="{{pn.text}}" onChange="{{pn.onText}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); resize: none"></textarea>
-      <textarea aria-label="Description" rows="{{pn.detailsRows}}" placeholder="Add a description (optional)" value="{{pn.details}}" onChange="{{pn.onDetails}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 1.1rem; color: var(--ink2); resize: none"></textarea>
+      <textarea aria-label="Title" rows="{{pn.titleRows}}" value="{{pn.text}}" onChange="{{pn.onText}}" onBlur="{{pn.onTextBlur}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); resize: none"></textarea>
+      <textarea aria-label="Description" rows="{{pn.detailsRows}}" placeholder="Add a description (optional)" value="{{pn.details}}" onChange="{{pn.onDetails}}" onBlur="{{pn.onTextBlur}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 1.1rem; color: var(--ink2); resize: none"></textarea>
       <sc-if value="{{pn.isFact}}" hint-placeholder-val="{{ true }}">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 28px; max-width: 800px">
           <label style="display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; font-weight: 600; color: var(--ink2)">
             <span>Importance <span style="font-weight: 400; color: var(--ink3)">bar width</span></span>
             <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; font-weight: 500; color: var(--ink)">{{pn.pct}}%</span>
-            <input type="range" min="2" max="90" step="1" value="{{pn.shareSlider}}" onChange="{{pn.onShare}}" disabled="{{pn.shareDisabled}}" style="grid-column: 1 / -1; width: 100%; accent-color: var(--ink)">
+            <input type="range" min="2" max="90" step="1" value="{{pn.shareSlider}}" onChange="{{pn.onShare}}" onBlur="{{pn.onTextBlur}}" disabled="{{pn.shareDisabled}}" style="grid-column: 1 / -1; width: 100%; accent-color: var(--ink)">
           </label>
           <label style="display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 13px; font-weight: 600; color: var(--ink2)">
             <span>Impact <span style="font-weight: 400; color: var(--ink3)">colour depth</span></span>
             <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 14px; font-weight: 500; color: var(--ink)">{{pn.signed}}</span>
-            <input type="range" min="-1" max="1" step="0.01" value="{{pn.impact}}" onChange="{{pn.onImpact}}" disabled="{{locked}}" style="grid-column: 1 / -1; width: 100%; accent-color: {{pn.impactFill}}">
+            <input type="range" min="-1" max="1" step="0.01" value="{{pn.impact}}" onChange="{{pn.onImpact}}" onBlur="{{pn.onTextBlur}}" disabled="{{locked}}" style="grid-column: 1 / -1; width: 100%; accent-color: {{pn.impactFill}}">
           </label>
         </div>
       </sc-if>
@@ -288,7 +290,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px; color: var(--ink)">
           <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; font-size: 13px">
             <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 0 1 180px; min-width: 120px">By
-          <input type="text" value="{{pn.by}}" onChange="{{pn.onBy}}" readOnly="{{locked}}" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
+          <input type="text" value="{{pn.by}}" onChange="{{pn.onBy}}" onBlur="{{pn.onTextBlur}}" readOnly="{{locked}}" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
         </label>
             <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{pn.slug}}</code>
           </div>
@@ -1274,7 +1276,10 @@ class Component extends DCLogic {
     this.handleB = null;
     this.autosaveTimer = null;
     this.lastSrc = A.text;
+    this.stepSerial = 0;
+    this.onGlobalKey = this.onGlobalKey.bind(this);
     this.state = {
+      history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newTitle: '', newDesc: '', newOptions: [],
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
@@ -2152,12 +2157,52 @@ class Component extends DCLogic {
   static truncate(t, n) { return t.length <= n ? t : t.slice(0, n - 1).trimEnd() + '…'; }
 
   // ---------------------------------------------------------------- edits (the only place state changes)
-  edit(fn) {
+  // step: edits with the same non-null step make one undo entry (a drag, typing in one field). A drag gets its own step.
+  edit(fn, step = null) {
+    if (step === null && this.drag !== null) step = this.drag.step ??= `drag:${++this.stepSerial}`;
     this.setState((s) => {
       if (s.srcErrors.length) throw new Error('bug: visual edit attempted while the markdown source has errors');
       const map = fn(s.map);
-      return map === s.map ? null : { map, src: Component.serialize(map) };
+      return map === s.map ? null : { map, src: Component.serialize(map), history: Component.pushHistory(s, step) };
     });
+  }
+
+  static freshHistory() { return { past: [], future: [], step: null }; }
+
+  // The undo entry for the state before an edit, unless this edit continues the same step.
+  static pushHistory(s, step) {
+    const h = s.history;
+    if (step !== null && h.step === step) return h;
+    return { past: [...h.past, { map: s.map, whatIf: s.whatIf ?? null }].slice(-200), future: [], step };
+  }
+
+  undo() { this.travel('past', 'future'); }
+
+  redo() { this.travel('future', 'past'); }
+
+  travel(from, to) {
+    this.setState((s) => {
+      const h = s.history;
+      if (h[from].length === 0 || s.srcErrors.length) return null;
+      const at = from === 'past' ? h.past[h.past.length - 1] : h.future[0];
+      const here = { map: s.map, whatIf: s.whatIf ?? null };
+      const history = from === 'past'
+        ? { past: h.past.slice(0, -1), future: [here, ...h.future], step: null }
+        : { past: [...h.past, here], future: h.future.slice(1), step: null };
+      return { map: at.map, whatIf: at.whatIf, src: Component.serialize(at.map), history, frozenOrder: null };
+    });
+  }
+
+  endStep() {
+    this.setState((s) => (s.history.step === null ? null : { history: { ...s.history, step: null } }));
+  }
+
+  // ⌘Z / Ctrl+Z undoes and with Shift redoes, except in a text field, where the browser's own undo applies.
+  onGlobalKey(e) {
+    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+    if (e.target && typeof e.target.matches === 'function' && e.target.matches('input, textarea, select, [contenteditable]')) return;
+    e.preventDefault();
+    if (e.shiftKey) this.redo(); else this.undo();
   }
 
   setFocus(slug) {
@@ -2223,7 +2268,7 @@ class Component extends DCLogic {
       if (r.errors.length) return { src: v, srcErrors: r.errors };
       const keep = Component.findPath(r.map.root, s.focus) !== null;
       return {
-        src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, chosenFacts: [], frozenOrder: null, evOpen: false, evEdit: null,
+        src: v, map: r.map, srcErrors: [], history: s.srcErrors.length ? s.history : Component.pushHistory(s, 'source'), adding: null, confirmDelete: false, chosenFacts: [], frozenOrder: null, evOpen: false, evEdit: null,
         focus: keep ? s.focus : r.map.root.slug,
         notice: keep || s.map === BLANK ? s.notice : `“${s.focus}” is no longer in the source, so the view moved to the thesis.`,
       };
@@ -2244,7 +2289,7 @@ class Component extends DCLogic {
       ...m,
       title: slug === m.root.slug && m.title === m.root.text ? t : m.title,
       root: Component.mapNode(m.root, slug, (n) => ({ ...n, text: t })),
-    }));
+    }), `field:text:${slug}`);
   }
 
   onDraftText(v) {
@@ -2323,7 +2368,12 @@ class Component extends DCLogic {
       this.setState({ apiStatus: `This browser blocks storage here (${e.message}), so a key can only be kept until you close the page.` });
     }
     loadRecent().then((recent) => this.setState({ recent }));
+    window.addEventListener('keydown', this.onGlobalKey);
     this.syncQuery();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onGlobalKey);
   }
 
   componentDidUpdate() {
@@ -2408,10 +2458,10 @@ class Component extends DCLogic {
     replaceQuery({ src: url, ours: null, focus: null });
     const file = { fileName: name, fileUrl: url, savedSrc: text, research: null, rationale: null, newOpen: false };
     if (r.errors.length) {
-      this.setState({ ...file, src: text, srcErrors: r.errors, view: 'source', sourceTab: 'md', fileStatus: `Opened ${name} · ${r.errors.length} error${r.errors.length === 1 ? '' : 's'} to fix` });
+      this.setState({ ...file, src: text, srcErrors: r.errors, history: Component.freshHistory(), view: 'source', sourceTab: 'md', fileStatus: `Opened ${name} · ${r.errors.length} error${r.errors.length === 1 ? '' : 's'} to fix` });
       return;
     }
-    this.setState({ ...file, src: text, map: r.map, srcErrors: [], pinned: null, focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, chosenFacts: [], frozenOrder: null, notice: null, fileStatus: `Opened ${name}` });
+    this.setState({ ...file, src: text, map: r.map, srcErrors: [], history: Component.freshHistory(), pinned: null, focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, chosenFacts: [], frozenOrder: null, notice: null, fileStatus: `Opened ${name}` });
   }
 
   loadB(text, name, url = null) {
@@ -2482,7 +2532,7 @@ class Component extends DCLogic {
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
-      map, src: Component.serialize(map), srcErrors: [], focus: slug, view: 'map',
+      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: slug, view: 'map',
       fileName: `${slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
       adding: null, draftText: '', chosenFacts: [], frozenOrder: null, pinned: null,
@@ -2528,11 +2578,11 @@ class Component extends DCLogic {
 
   setBy(v) {
     const by = v.replace(/\s*\n\s*/g, ' ');
-    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, by: by.trim() === '' ? null : by })) }));
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, by: by.trim() === '' ? null : by })) }), `field:by:${this.panelTarget()}`);
   }
 
   setDetails(v) {
-    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, details: v.trim() === '' ? null : v })) }));
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, this.panelTarget(), (n) => ({ ...n, details: v.trim() === '' ? null : v })) }), `field:details:${this.panelTarget()}`);
   }
 
   onShareInput(v) {
@@ -2542,28 +2592,28 @@ class Component extends DCLogic {
     const sibs = path[path.length - 2].children;
     const i = sibs.findIndex((n) => n.slug === slug);
     const raws = sibs.map((n) => n.importance);
-    this.setImportances([slug], [raws[i]], [Component.importanceForShare(raws, i, Number(v) / 100)]);
+    this.setImportances([slug], [raws[i]], [Component.importanceForShare(raws, i, Number(v) / 100)], `slider:share:${slug}`);
   }
 
   onImpactInput(v) {
     if (v.trim() === '' || !Number.isFinite(Number(v))) return;
-    this.setImpact(this.panelTarget(), Number(v));
+    this.setImpact(this.panelTarget(), Number(v), `slider:impact:${this.panelTarget()}`);
   }
 
   // ---------------------------------------------------------------- chart gestures
-  setImportances(slugs, before, after) {
+  setImportances(slugs, before, after, step = null) {
     const changed = slugs.filter((_, j) => after[j] !== before[j]);
     if (changed.length === 0) return;
     this.edit((m) => ({
       ...m,
       root: slugs.reduce((root, slug, j) => (after[j] === before[j] ? root
         : Component.mapNode(root, slug, (n) => ({ ...n, importance: Math.round(after[j] * 10) / 10 }))), m.root),
-    }));
+    }), step);
   }
 
-  setImpact(slug, v) {
+  setImpact(slug, v, step = null) {
     const impact = Math.round(Math.max(-1, Math.min(1, v)) * 100) / 100;
-    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => (n.impact === impact ? n : { ...n, impact })) }));
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => (n.impact === impact ? n : { ...n, impact })) }), step);
   }
 
   dividerPlan(i, rows, side = i) {
@@ -3362,6 +3412,7 @@ class Component extends DCLogic {
       onText: (e) => this.onFocusText(e.target.value),
       onTextKey: (e) => { if (e.key === 'Enter') e.preventDefault(); },
       onBy: (e) => this.setBy(e.target.value), onDetails: (e) => this.setDetails(e.target.value),
+      onTextBlur: () => this.endStep(),
       onShare: (e) => this.onShareInput(e.target.value), onImpact: (e) => this.onImpactInput(e.target.value),
     };
 
@@ -3522,6 +3573,8 @@ class Component extends DCLogic {
         };
       })(),
       hasMap, isMap: hasMap && s.view === 'map', isPie: hasMap && s.view === 'pie', isDiff: hasMap && s.view === 'diff', isSource: !noMap && s.view === 'source',
+      undoBtn: { disabled: locked || s.history.past.length === 0, opacity: locked || s.history.past.length === 0 ? 0.35 : 1, run: () => this.undo() },
+      redoBtn: { disabled: locked || s.history.future.length === 0, opacity: locked || s.history.future.length === 0 ? 0.35 : 1, run: () => this.redo() },
       hasNotice: s.notice !== null, notice: s.notice === null ? '' : s.notice, clearNotice: () => this.setState({ notice: null }),
       locked,
       lockedText: `The markdown has ${s.srcErrors.length} error${s.srcErrors.length === 1 ? '' : 's'}. The views show the last version that parsed, and visual editing is paused until the source is fixed.`,

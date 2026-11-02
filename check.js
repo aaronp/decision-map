@@ -1422,5 +1422,51 @@ test('newRecord has one goal with one criterion, slugs from the title', () => {
   assert.deepEqual(Component.parse(Component.serialize(m)).errors, []);
 });
 
+// ---------------------------------------------------------------- undo and redo
+test('undo and redo step through edits; a drag is one step', () => {
+  const c = boot(MAP3);
+  dragDivider(c, 'a', 100);
+  colOf(c, 'c').key(ev({ key: 'ArrowUp' }));
+  const afterBoth = Component.serialize(c.state.map);
+  c.undo();
+  assert.equal(nodeOf(c, 'c').impact, 0.5);
+  c.undo();
+  assert.deepEqual(imps(c), [10, 30, 60]);
+  assert.equal(c.renderVals().undoBtn.disabled, true);
+  c.redo(); c.redo();
+  assert.equal(Component.serialize(c.state.map), afterBoth);
+});
+test('a new edit clears redo; typing in one field is one step', () => {
+  const c = boot(MAP3);
+  c.setFocus('a');
+  const pn = () => c.renderVals().pn;
+  pn().onText({ target: { value: 'A1' } });
+  pn().onText({ target: { value: 'A12' } });
+  pn().onTextBlur();
+  c.undo();
+  assert.equal(nodeOf(c, 'a').text, 'A');
+  c.redo();
+  c.setFocus('r'); // the bar shows the top level again
+  dragDivider(c, 'a', 50);
+  assert.equal(c.renderVals().redoBtn.disabled, true);
+});
+test('undo never crosses into another file', () => {
+  const c = boot(MAP3);
+  dragDivider(c, 'a', 100);
+  c.loadA(NEW, 'new.md');
+  assert.equal(c.renderVals().undoBtn.disabled, true);
+  c.undo();
+  assert.equal(c.state.map.root.slug, 'root');
+});
+test('⌘Z outside text fields undoes; inside one the browser handles it', () => {
+  const c = boot(MAP3);
+  dragDivider(c, 'a', 100);
+  const dragged = imps(c);
+  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { matches: () => true }, preventDefault() {} });
+  assert.deepEqual(imps(c), dragged); // the target was a text field
+  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { matches: () => false }, preventDefault() {} });
+  assert.deepEqual(imps(c), [10, 30, 60]);
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
