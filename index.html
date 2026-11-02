@@ -35,11 +35,15 @@ button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px soli
 label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
 [role=button]:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important}
-.am-edge{fill:none;stroke:transparent;stroke-width:14;cursor:grab;touch-action:none;pointer-events:stroke}
-.am-edge:hover,.am-edge:focus-visible{stroke:color-mix(in srgb,var(--ink) 35%,transparent);outline:0}
 .am-ctl circle{fill:var(--ink);stroke:var(--card);stroke-width:2}
 .am-ctl path{stroke:var(--on-ink);stroke-width:2.5;stroke-linecap:round;fill:none}
 .am-ctl:hover circle{fill:var(--accent)}
+.am-move{cursor:grab;touch-action:none}
+.am-move:active{cursor:grabbing}
+.am-move circle{fill:var(--card);stroke:var(--ink)}
+.am-move path{stroke:var(--ink)}
+.am-move:hover circle,.am-move:focus-visible circle{fill:var(--accent);stroke:var(--card)}
+.am-move:hover path,.am-move:focus-visible path{stroke:var(--on-ink)}
 .am-cell:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
 .am-plus:hover{border-color:var(--ink)!important;background:var(--card)!important;color:var(--ink)!important}
 .am-col[data-born="true"]{animation:am-born .6s ease-out}
@@ -251,7 +255,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </nav>
     </sc-if>
 
-    <section aria-label="Current point" style="padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+    <div style="display: flex; flex-direction: {{focusLayout.dir}}; flex-wrap: wrap; align-items: {{focusLayout.align}}; gap: 16px; min-width: 0">
+    <section aria-label="Current point" style="flex: {{focusLayout.detailsFlex}}; padding: 8px 8px 10px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
       <textarea aria-label="Title" rows="{{pn.titleRows}}" value="{{pn.text}}" onChange="{{pn.onText}}" onKeyDown="{{pn.onTextKey}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); resize: none"></textarea>
       <textarea aria-label="Description" rows="{{pn.detailsRows}}" placeholder="Add a description (optional)" value="{{pn.details}}" onChange="{{pn.onDetails}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; field-sizing: content; border: 0; outline-offset: 2px; background: transparent; padding: 0; font: inherit; font-size: 1.1rem; color: var(--ink2); resize: none"></textarea>
       <sc-if value="{{pn.isFact}}" hint-placeholder-val="{{ true }}">
@@ -432,7 +437,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </details>
     </section>
 
-    <section aria-label="Points" style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
+    <section aria-label="Points" style="flex: {{focusLayout.pointsFlex}}; display: flex; flex-direction: column; gap: 8px; min-width: 0">
       <sc-if value="{{chart.barShown}}" hint-placeholder-val="{{ true }}">
         <div style="display: flex; gap: 8px; min-width: 0">
           <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
@@ -444,7 +449,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           </sc-if>
           <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
             <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" data-born="{{c.born}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
-              <sc-if value="{{c.isLocked}}" hint-placeholder-val="{{ false }}">
+              <sc-if value="{{c.isChosen}}" hint-placeholder-val="{{ false }}">
                 <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></div>
               </sc-if>
               <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
@@ -484,17 +489,16 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <sc-if value="{{chart.depth.has}}" hint-placeholder-val="{{ false }}">
           <div aria-label="Levels below" style="position: relative; margin: 0 {{chart.depth.gutter}}px; height: {{chart.depth.height}}px">
             <sc-for list="{{chart.depth.cells}}" as="d" hint-placeholder-count="4">
-              <button type="button" class="am-cell" aria-label="{{d.title}}" title="{{d.title}}" onClick="{{d.open}}" style="position: absolute; left: {{d.left}}; width: {{d.width}}; min-width: 2px; top: {{d.top}}px; height: {{d.height}}px; box-sizing: border-box; border: 0; border-radius: 2px; padding: 0 6px; background: {{d.bg}}; color: var(--ink); opacity: {{d.op}}; font: inherit; font-size: 12px; line-height: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer">{{d.text}}</button>
+              <button type="button" class="am-cell" aria-label="{{d.title}}" title="{{d.title}}" aria-pressed="{{d.pressed}}" onContextMenu="{{d.menu}}" onPointerDown="{{d.down}}" onClick="{{d.open}}" onKeyDown="{{d.key}}" style="position: absolute; left: {{d.left}}; width: {{d.width}}; min-width: 2px; top: {{d.top}}px; height: {{d.height}}px; box-sizing: border-box; border: 0; border-radius: 2px; padding: 0 6px; background: {{d.bg}}; color: var(--ink); opacity: {{d.op}}; font: inherit; font-size: 12px; line-height: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer">{{d.text}}<sc-if value="{{d.isChosen}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); border-radius: 2px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></span></sc-if></button>
             </sc-for>
           </div>
         </sc-if>
       </sc-if>
       <sc-if value="{{chart.pieShown}}" hint-placeholder-val="{{ false }}">
         <div style="display: flex; gap: 8px; min-width: 0">
-          <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
-            <button type="button" title="{{add.leftTitle}}" aria-label="{{add.leftTitle}}" onClick="{{add.left}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--control); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
-          </sc-if>
-          <div style="flex: 1; min-width: 0; height: min(68vh, 640px); min-height: 280px; box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 8px; display: flex; justify-content: center">
+          <div style="flex: 1; min-width: 0; height: min(68vh, 640px); min-height: 280px; box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 8px; display: flex; justify-content: center; position: relative">
+            <sc-if value="{{pie.canEdit}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{pie.toggleEdit}}" aria-pressed="{{pie.editPressed}}" aria-label="{{pie.editLabel}}" title="{{pie.editLabel}}" style="position: absolute; top: 10px; right: 62px; z-index: 4; width: 44px; height: 44px; border: 1px solid {{pie.editBorder}}; border-radius: 10px; background: {{pie.editBg}}; color: {{pie.editFg}}; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13.5 6.5l4 4"></path></svg></button></sc-if>
+            <button type="button" onClick="{{pie.togglePin}}" aria-pressed="{{pie.pinPressed}}" aria-label="{{pie.pinLabel}}" title="{{pie.pinLabel}}" style="position: absolute; top: 10px; right: 10px; z-index: 4; width: 44px; height: 44px; border: 1px solid {{pie.pinBorder}}; border-radius: 10px; background: {{pie.pinBg}}; color: {{pie.pinFg}}; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="{{pie.pinFill}}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6l-1 5.5 3.5 3.5h-11L10 9z"></path><path d="M12 12.5V21"></path></svg></button>
             <div data-pie="1" style="position: relative; height: 100%; max-width: 100%; aspect-ratio: 1 / 1; user-select: none; -webkit-user-select: none">
               <svg aria-hidden="true" style="position: absolute; width: 0; height: 0"><defs><pattern id="am-lock-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="8" style="fill: var(--ink); opacity: 0.25"></rect></pattern></defs></svg>
               <sc-for list="{{pie.slices}}" as="s" hint-placeholder-count="6">
@@ -510,32 +514,36 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
                   </g>
                 </svg>
               </sc-for>
+                <sc-for list="{{s.moves}}" as="m" hint-placeholder-count="2">
+                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; overflow: visible">
+                  <g class="am-ctl am-move" role="slider" tabIndex="0" aria-label="{{m.label}}" aria-valuenow="{{m.pct}}" aria-valuemin="0" aria-valuemax="100" transform="translate({{m.x}} {{m.y}})" onPointerDown="{{m.down}}" onPointerMove="{{m.move}}" onPointerUp="{{m.up}}" onPointerCancel="{{m.up}}" onKeyDown="{{m.key}}" onMouseEnter="{{pie.keep}}" onMouseLeave="{{pie.leave}}" onFocus="{{pie.keep}}" onBlur="{{pie.leave}}" style="pointer-events: auto">
+                    <title>Drag to resize</title>
+                    <circle r="13"></circle>
+                    <path d="M-6 0H6M-6 0l3-3M-6 0l3 3M6 0l-3-3M6 0l-3 3" transform="rotate({{m.rot}})" style="stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round"></path>
+                  </g>
+                </svg>
+              </sc-for>
               </sc-for>
               <sc-for list="{{pie.hatches}}" as="h" hint-placeholder-count="1">
                 <svg viewBox="0 0 520 520" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible"><path d="{{h.d}}" style="fill: url(#am-lock-hatch); pointer-events: none"></path></svg>
               </sc-for>
-              <sc-for list="{{pie.edges}}" as="g" hint-placeholder-count="3">
-                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible">
-                  <path d="{{g.d}}" class="am-edge" role="slider" tabIndex="0" aria-label="{{g.label}}" onPointerDown="{{g.down}}" onPointerMove="{{g.move}}" onPointerUp="{{g.up}}" onPointerCancel="{{g.up}}" onKeyDown="{{g.key}}"><title>Drag to change importance</title></path>
-                </svg>
+              <sc-for list="{{pie.labels}}" as="l" hint-placeholder-count="4">
+                <span aria-hidden="true" style="position: absolute; left: {{l.x}}%; top: {{l.y}}%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 600; color: var(--ink); pointer-events: none; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 0 3px">{{l.text}}</span>
               </sc-for>
               <sc-if value="{{pie.showCenter}}" hint-placeholder-val="{{ true }}">
                 <span style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; pointer-events: none">{{pie.center}}</span>
               </sc-if>
             </div>
           </div>
-          <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
-            <button type="button" title="{{add.rightTitle}}" aria-label="{{add.rightTitle}}" onClick="{{add.right}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--control); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
-          </sc-if>
         </div>
       </sc-if>
-      <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
+      <sc-if value="{{chart.hintShown}}" hint-placeholder-val="{{ true }}">
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 10px; min-height: 26px; font-size: 13px; color: var(--ink3)">
-          <sc-if value="{{chart.hasLocks}}" hint-placeholder-val="{{ false }}">
-            <span role="status">{{chart.lockText}}</span>
-            <button type="button" onClick="{{chart.clearLocks}}" style="min-height: 26px; padding: 0 10px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer">Clear</button>
+          <sc-if value="{{chart.hasChosen}}" hint-placeholder-val="{{ false }}">
+            <span role="status">{{chart.chosenText}}</span>
+            <button type="button" onClick="{{chart.clearChosen}}" style="min-height: 26px; padding: 0 10px; border: 1px solid var(--control); border-radius: 6px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer">Clear</button>
           </sc-if>
-          <sc-if value="{{chart.noLocks}}" hint-placeholder-val="{{ true }}"><span>{{hintText}}</span></sc-if>
+          <sc-if value="{{chart.noChosen}}" hint-placeholder-val="{{ true }}"><span>{{hintText}}</span></sc-if>
         </div>
       </sc-if>
       <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
@@ -547,6 +555,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <p style="margin: 0; padding: 12px 4px; font-size: 14px; color: var(--ink2)">No points yet.</p>
       </sc-if>
     </section>
+    </div>
 
     <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
       <div onClick="{{add.backdrop}}" onKeyDown="{{add.onDialogKey}}" style="position: fixed; inset: 0; z-index: 50; background: rgba(27, 31, 36, 0.35); display: flex; align-items: center; justify-content: center; padding: 16px">
@@ -1276,8 +1285,8 @@ class Component extends DCLogic {
       view: a.errors.length ? 'source' : VIEWS.includes(qView) ? qView : window.AM_B ? 'diff' : props.startView ?? 'map',
       focus: qFocus !== null && Component.findPath(map.root, qFocus) !== null ? qFocus : map.root.slug,
       sourceTab: 'md',
-      adding: null, draftText: '', draftDetails: '', draftImpact: 0, bornSlug: null,
-      lockedFacts: [], frozenOrder: null, thermoSlug: null,
+      adding: null, draftText: '', draftDetails: '', draftImpact: 0, bornSlug: null, pinned: null,
+      chosenFacts: [], frozenOrder: null, thermoSlug: null, pieEdit: false,
       chartView: ['width', 'tall', 'area'].includes(loadSetting(CHART_VIEW_STORE)) ? loadSetting(CHART_VIEW_STORE) : 'width',
       evOpen: false, evEdit: null, evName: '', evText: '', evUrl: '',
       q: '', filtOpen: false, fConf: 'any', fEv: 'any',
@@ -1765,15 +1774,15 @@ class Component extends DCLogic {
     return score > 0 ? 'Mostly supported' : 'Mostly contrary';
   }
 
-  // The resizeImportance plan for the divider right of rows[i], given the locked slugs. null means this divider can't move.
-  static lockPlan(i, rows, lockedFacts) {
-    const isLocked = (r) => lockedFacts.includes(r.node.slug);
-    if (!rows.some(isLocked)) return { divider: i, resized: i, mode: 'scale' };
-    const leftLocked = isLocked(rows[i]);
-    if (leftLocked && isLocked(rows[i + 1])) return null;
-    const resized = leftLocked ? i + 1 : i;
-    const pool = rows.map((r, j) => j).filter((j) => j !== resized && !isLocked(rows[j]));
-    return pool.length ? { divider: i, resized, mode: 'trade', pool } : null;
+  // The resizeImportance plan for the divider right of rows[i]. Chosen points absorb the resize; the rest keep their size.
+  // side: the column to resize when the choice allows, i or i + 1.
+  static tradePlan(i, rows, chosenFacts, side = i) {
+    const isChosen = (j) => chosenFacts.includes(rows[j].node.slug);
+    const chosen = rows.map((r, j) => j).filter(isChosen);
+    if (!chosen.length) return { divider: i, resized: side, mode: 'scale' };
+    // Resize that side, unless it is the only chosen one: then the other side grows or shrinks against it.
+    const resized = chosen.some((j) => j !== side) ? side : side === i ? i + 1 : i;
+    return { divider: i, resized, mode: 'trade', pool: chosen.filter((j) => j !== resized) };
   }
 
   // New importances after dragging the divider right of raws[divider]. move: pointer travel as a fraction of total column width, right is positive.
@@ -2038,7 +2047,8 @@ class Component extends DCLogic {
   }
 
   setFocus(slug) {
-    this.setState({ focus: slug, adding: null, bornSlug: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null, evOpen: false, evEdit: null });
+    // Chosen points are kept across levels until Clear: a choice only affects resizes among its own siblings.
+    this.setState({ focus: slug, adding: null, bornSlug: null, confirmDelete: false, hover: null, frozenOrder: null, evOpen: false, evEdit: null });
   }
 
   setBasis(v) {
@@ -2099,7 +2109,7 @@ class Component extends DCLogic {
       if (r.errors.length) return { src: v, srcErrors: r.errors };
       const keep = Component.findPath(r.map.root, s.focus) !== null;
       return {
-        src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, lockedFacts: [], frozenOrder: null, evOpen: false, evEdit: null,
+        src: v, map: r.map, srcErrors: [], adding: null, confirmDelete: false, chosenFacts: [], frozenOrder: null, evOpen: false, evEdit: null,
         focus: keep ? s.focus : r.map.root.slug,
         notice: keep || s.map === BLANK ? s.notice : `“${s.focus}” is no longer in the source, so the view moved to the thesis.`,
       };
@@ -2287,7 +2297,7 @@ class Component extends DCLogic {
       this.setState({ ...file, src: text, srcErrors: r.errors, view: 'source', sourceTab: 'md', fileStatus: `Opened ${name} · ${r.errors.length} error${r.errors.length === 1 ? '' : 's'} to fix` });
       return;
     }
-    this.setState({ ...file, src: text, map: r.map, srcErrors: [], focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, lockedFacts: [], frozenOrder: null, notice: null, fileStatus: `Opened ${name}` });
+    this.setState({ ...file, src: text, map: r.map, srcErrors: [], pinned: null, focus: r.map.root.slug, adding: null, confirmDelete: false, hover: null, chosenFacts: [], frozenOrder: null, notice: null, fileStatus: `Opened ${name}` });
   }
 
   loadB(text, name, url = null) {
@@ -2361,7 +2371,7 @@ class Component extends DCLogic {
       map, src: Component.serialize(map), srcErrors: [], focus: slug, view: 'map',
       fileName: `${slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
-      adding: null, draftText: '', lockedFacts: [], frozenOrder: null,
+      adding: null, draftText: '', chosenFacts: [], frozenOrder: null, pinned: null,
       confirmDelete: false, hover: null, notice: null, fileStatus: `New map · ${title}`,
     });
   }
@@ -2395,7 +2405,7 @@ class Component extends DCLogic {
     const path = Component.findPath(s.map.root, slug);
     if (path.length < 2) throw new Error('bug: delete offered on the thesis');
     this.edit((m) => ({ ...m, root: Component.removeNode(m.root, slug) }));
-    this.setState({ ...PANEL_RESET, lockedFacts: [], focus: path[path.length - 2].slug });
+    this.setState({ ...PANEL_RESET, focus: path[path.length - 2].slug });
   }
 
   panelTarget() {
@@ -2442,22 +2452,21 @@ class Component extends DCLogic {
     this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => (n.impact === impact ? n : { ...n, impact })) }));
   }
 
-  dividerPlan(i, rows) {
-    return Component.lockPlan(i, rows, this.state.lockedFacts);
+  dividerPlan(i, rows, side = i) {
+    return Component.tradePlan(i, rows, this.state.chosenFacts, side);
   }
 
-  toggleLock(slug) {
-    this.setState((s) => ({ lockedFacts: s.lockedFacts.includes(slug) ? s.lockedFacts.filter((x) => x !== slug) : [...s.lockedFacts, slug] }));
+  toggleChosen(slug) {
+    this.setState((s) => ({ chosenFacts: s.chosenFacts.includes(slug) ? s.chosenFacts.filter((x) => x !== slug) : [...s.chosenFacts, slug] }));
   }
 
-  clearLocks() {
-    this.setState({ lockedFacts: [] });
+  clearChosen() {
+    this.setState({ chosenFacts: [] });
   }
 
   startDivider(i, rows, e) {
     if (e.pointerType === 'touch' || e.button) return;
     const plan = this.dividerPlan(i, rows);
-    if (plan === null) return;
     const chart = e.currentTarget.closest('[data-chart]');
     if (!chart) throw new Error('bug: divider is not inside the chart');
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -2479,10 +2488,10 @@ class Component extends DCLogic {
     if (this.drag !== null && this.drag.type === 'divider' && e.pointerId === this.drag.pointerId) this.drag = null;
   }
 
-  startPieEdge(i, rows, e) {
+  // span: the fraction of the circle these sibling slices share, so the edge follows the pointer on any ring.
+  startPieEdge(i, rows, side, span, e) {
     if (e.pointerType === 'touch' || e.button) return;
-    const plan = this.dividerPlan(i, rows);
-    if (plan === null) return;
+    const plan = this.dividerPlan(i, rows, side);
     const box = e.currentTarget.closest('[data-pie]');
     if (!box) throw new Error('bug: slice edge is not inside the pie');
     const r = box.getBoundingClientRect();
@@ -2491,9 +2500,8 @@ class Component extends DCLogic {
     e.currentTarget.setPointerCapture(e.pointerId);
     this.drag = {
       type: 'pieEdge', pointerId: e.pointerId, cx, cy, prev: Math.atan2(e.clientX - cx, cy - e.clientY), turned: 0,
-      slugs: rows.map((x) => x.node.slug), raws: rows.map((x) => x.importance), plan,
+      slugs: rows.map((x) => x.node.slug), raws: rows.map((x) => x.importance), plan, span,
     };
-    this.setState({ hover: null });
     e.preventDefault();
   }
 
@@ -2503,7 +2511,7 @@ class Component extends DCLogic {
     const now = Math.atan2(e.clientX - d.cx, d.cy - e.clientY);
     d.turned += Component.angleDelta(d.prev, now);
     d.prev = now;
-    this.setImportances(d.slugs, d.raws, Component.resizeImportance(d.raws, { ...d.plan, move: d.turned / (2 * Math.PI) }));
+    this.setImportances(d.slugs, d.raws, Component.resizeImportance(d.raws, { ...d.plan, move: d.turned / (2 * Math.PI * d.span) }));
   }
 
   endPieEdge(e) {
@@ -2518,25 +2526,25 @@ class Component extends DCLogic {
   // A short delay, so the pointer can get from a slice to one of its "+" buttons.
   pieLeave() {
     clearTimeout(this.pieHoverTimer);
+    if (this.drag !== null) return; // the handle being dragged belongs to the hovered slice
     this.pieHoverTimer = setTimeout(() => this.setState({ hover: null }), 180);
   }
 
-  onDividerKey(i, rows, e) {
+  onDividerKey(i, rows, e, side = i) {
     const step = e.shiftKey ? 0.005 : 0.02;
     const move = { ArrowRight: step, ArrowLeft: -step }[e.key];
     if (move === undefined) return;
     e.preventDefault();
-    const plan = this.dividerPlan(i, rows);
-    if (plan === null) return;
+    const plan = this.dividerPlan(i, rows, side);
     const raws = rows.map((r) => r.importance);
     this.setImportances(rows.map((r) => r.node.slug), raws, Component.resizeImportance(raws, { ...plan, move }));
   }
 
   startColumnDrag(slug, impact, order, draggable, e) {
     this.suppressClick = false;
-    // A lock happens on pointer down, because Ctrl-click on a Mac fires contextmenu with no click.
+    // Choosing happens on pointer down, because Ctrl-click on a Mac fires contextmenu with no click.
     if (e.ctrlKey || e.metaKey || e.shiftKey) {
-      if (draggable) this.toggleLock(slug);
+      if (draggable) this.toggleChosen(slug);
       this.suppressClick = true;
       return;
     }
@@ -2574,7 +2582,7 @@ class Component extends DCLogic {
 
   onColumnKey(slug, impact, order, draggable, e) {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setFocus(slug); return; }
-    if (e.key === 'l' || e.key === 'L') { e.preventDefault(); if (draggable) this.toggleLock(slug); return; }
+    if (e.key === 'l' || e.key === 'L') { e.preventDefault(); if (draggable) this.toggleChosen(slug); return; }
     const step = e.shiftKey ? 0.01 : 0.05;
     const d = { ArrowUp: step, ArrowDown: -step }[e.key];
     if (d === undefined || !draggable) return;
@@ -2643,13 +2651,19 @@ class Component extends DCLogic {
     // overview icicle
     // the chart of contributing factors
     const focusHasPremises = focus.children.some((c) => c.kind === 'premise');
+    // A pinned pie stays centred on the pinned point, and clicking a slice only changes which point the details show.
+    const pinPath = s.pinned === null ? null : Component.findPath(map.root, s.pinned);
+    const isPinned = pinPath !== null;
+    const pieRoot = isPinned ? pinPath[pinPath.length - 1] : focus;
+    const pieRows = Component.factRows(pieRoot, values);
+    const inPie = s.view === 'pie';
     const addIsPremise = s.adding !== null && s.adding.isPremise;
     const canCommit = Component.slugBase(s.draftText) !== '';
     const add = {
       canOpen: editable, adding: editable && s.adding !== null, isFact: !addIsPremise,
       left: () => this.openAdd(focus.slug, focusHasPremises ? 0 : -0.5, focusHasPremises),
       right: () => this.openAdd(focus.slug, focusHasPremises ? 0 : 0.5, focusHasPremises),
-      wide: () => this.openAdd(focus.slug, 0),
+      wide: () => this.openAdd(inPie ? pieRoot.slug : focus.slug, 0),
       wideLabel: 'Add the first point',
       leftTitle: focusHasPremises ? 'Add an option' : 'Add a contrary point',
       rightTitle: focusHasPremises ? 'Add an option' : 'Add a supporting point',
@@ -2673,7 +2687,7 @@ class Component extends DCLogic {
       const c = r.node;
       const draggable = editable && !r.calculated;
       const dividerDraggable = editable && !r.calculated && i < rows.length - 1 && !rows[i + 1].calculated;
-      const isLocked = s.lockedFacts.includes(c.slug);
+      const isChosen = s.chosenFacts.includes(c.slug);
       const marks = r.calculated ? [] : [
         ...(disp.confidence && c.confidence !== null ? ['★'.repeat(c.confidence) + '☆'.repeat(5 - c.confidence)] : []),
         ...(disp.evidence ? [`📎 ${c.refs.length}`] : []),
@@ -2681,9 +2695,9 @@ class Component extends DCLogic {
       ].join(' · ');
       return {
         slug: c.slug, text: c.text, share: r.share, grow: r.share.toFixed(5), pct: String(Math.round(r.share * 100)), signed: Component.signed(r.impact),
-        aria: `${c.text}: ${Math.round(r.share * 100)}% of importance, impact ${Component.signed(r.impact)}${r.calculated ? ', calculated from its child factors' : ''}. Press Enter to open${draggable ? ', up and down arrows to change impact, L to lock' : ''}.${isLocked ? ' Locked.' : ''}`,
-        isLocked, pressed: String(isLocked), canDrag: String(draggable),
-        op: filterActive && !matchSet.has(c.slug) ? 0.22 : isLocked ? 0.8 : 1,
+        aria: `${c.text}: ${Math.round(r.share * 100)}% of importance, impact ${Component.signed(r.impact)}${r.calculated ? ', calculated from its child factors' : ''}. Press Enter to open${draggable ? ', up and down arrows to change impact, L to choose it to absorb resizes' : ''}.${isChosen ? ' Chosen: absorbs resizes.' : ''}`,
+        isChosen, pressed: String(isChosen), canDrag: String(draggable),
+        op: filterActive && !matchSet.has(c.slug) ? 0.22 : isChosen ? 0.8 : 1,
         isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
         fill: Component.impactFill(r.impact),
         bg: isArea ? 'transparent' : Component.impactFill(r.impact), ink: 'var(--ink)',
@@ -2718,23 +2732,33 @@ class Component extends DCLogic {
       title: `${d.node.text} (${Component.signed(d.impact)})`,
       text: d.w > 0.05 ? d.node.text : '',
       op: filterActive && !matchSet.has(d.node.slug) ? 0.22 : 1,
-      open: () => this.setFocus(d.node.slug),
+      slug: d.node.slug, isChosen: s.chosenFacts.includes(d.node.slug), pressed: String(s.chosenFacts.includes(d.node.slug)),
+      menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
+      // Choosing happens on pointer down, because Ctrl-click on a Mac fires contextmenu with no click.
+      down: (e) => {
+        this.suppressClick = !!(e.ctrlKey || e.metaKey || e.shiftKey);
+        if (this.suppressClick && editable && d.node.kind === 'fact') this.toggleChosen(d.node.slug);
+      },
+      open: () => { if (this.suppressClick) { this.suppressClick = false; return; } this.setFocus(d.node.slug); },
+      key: (e) => { if ((e.key === 'l' || e.key === 'L') && editable && d.node.kind === 'fact') { e.preventDefault(); this.toggleChosen(d.node.slug); } },
     }));
     const depthRows = depthCells.reduce((n, d) => Math.max(n, d.top / DEPTH_ROW + 1), 0);
-    const lockCount = rows.filter((r) => s.lockedFacts.includes(r.node.slug)).length;
+    const chosenCount = s.chosenFacts.filter((x) => Component.findPath(map.root, x) !== null).length;
     const chart = {
       depth: { has: depthCells.length > 0, gutter: editable ? 56 : 0, height: depthRows * DEPTH_ROW, cells: depthCells },
-      hasCols: rows.length > 0, barShown: s.view === 'map' && rows.length > 0, pieShown: s.view === 'pie' && rows.length > 0, empty: rows.length === 0 && editable, emptyReadOnly: rows.length === 0 && !editable,
+      hasCols: rows.length > 0, barShown: s.view === 'map' && rows.length > 0, pieShown: inPie && pieRows.length > 0,
+      hintShown: (inPie ? pieRows : rows).length > 0,
+      empty: (inPie ? pieRows : rows).length === 0 && editable, emptyReadOnly: (inPie ? pieRows : rows).length === 0 && !editable,
       cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
       views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
         id, label, ...pressed(s.chartView === id), isWidth: id === 'width', isTall: id === 'tall', isArea: id === 'area',
         pick: () => { storeSetting(CHART_VIEW_STORE, id); this.setState({ chartView: id }); },
       })),
-      lockCount, hasLocks: lockCount > 0, noLocks: lockCount === 0, clearLocks: () => this.clearLocks(),
-      lockText: `${lockCount} locked · a resize leaves ${lockCount === 1 ? 'it' : 'them'} alone`,
+      chosenCount, hasChosen: chosenCount > 0, noChosen: chosenCount === 0, clearChosen: () => this.clearChosen(),
+      chosenText: `${chosenCount} chosen · a resize takes from or gives to only chosen points beside the one you resize`,
       hint: !editable || rows.every((r) => r.calculated)
         ? (rows.length && rows[0].calculated ? 'Calculated from each option’s own points · click to open' : 'Click a column to open it')
-        : 'Drag a divider to weigh · drag up or down for impact · click to open · Ctrl or ⌘-click to lock',
+        : 'Drag a divider to weigh · drag up or down for impact · click to open · Ctrl or ⌘-click to choose what a resize changes',
       thermo: thermoAt < 0 ? { has: false, left: 0, top: 50, label: '', side: 'left' } : {
         has: true, left: (thermoLeft * 100).toFixed(2), top: ((1 - rows[thermoAt].impact) * 50).toFixed(1), label: Component.signed(rows[thermoAt].impact),
         side: thermoLeft > 0.85 ? 'right' : 'left',
@@ -2752,7 +2776,7 @@ class Component extends DCLogic {
     };
 
     // The pie: the same tree as the bar and depth rows, one ring per level around the point in focus.
-    const parts = Component.partition(focus, Infinity, values).filter((p) => p.depth >= 1);
+    const parts = Component.partition(pieRoot, Infinity, values).filter((p) => p.depth >= 1);
     const nRings = Math.max(1, ...parts.map((p) => p.depth));
     const PIE_C = 260;
     const PIE_INNER = 72;
@@ -2760,10 +2784,11 @@ class Component extends DCLogic {
     const ringW = (PIE_OUTER - PIE_INNER) / nRings;
     const ringOf = (depth) => [PIE_INNER + (depth - 1) * ringW + (depth === 1 ? 0 : 1.5), PIE_INNER + depth * ringW - (depth === nRings ? 0 : 1.5)];
     const piePoint = (r, a) => ({ x: (PIE_C + r * Math.sin(a)).toFixed(2), y: (PIE_C - r * Math.cos(a)).toFixed(2) });
-    const canLock = (n, depth) => editable && depth === 1 && n.kind === 'fact';
+    const canChoose = (n) => editable && n.kind === 'fact';
     const hoverPart = parts.find((p) => p.node.slug === s.hover) ?? null;
     const hoverCtls = [];
-    if (hoverPart !== null && editable) {
+    const hoverMoves = [];
+    if (hoverPart !== null && editable && s.pieEdit) {
       const [r0, r1] = ringOf(hoverPart.depth);
       const a0 = hoverPart.x0 * 2 * Math.PI;
       const a1 = hoverPart.x1 * 2 * Math.PI;
@@ -2779,67 +2804,90 @@ class Component extends DCLogic {
         x: p.x, y: p.y, label, add: onAdd,
         key: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAdd(); } },
       });
-      const sibling = (angle, label, delta) => ctl(piePoint(rm, angle), isOption ? 'Add an option' : label, () => this.openAdd(
+      // Inner slices that share an edge get a move handle there: the "+" sits inward and the handle outward along that edge.
+      const sibRows = Component.factRows(hParent, values);
+      const k = sibRows[0].calculated ? -1 : sibRows.findIndex((r) => r.node.slug === hn.slug);
+      const movesAt = { start: k > 0, end: k >= 0 && k < sibRows.length - 1 };
+      const parentPart = parts.find((p) => p.node.slug === hParent.slug);
+      const span = parentPart ? parentPart.x1 - parentPart.x0 : 1;
+      const sibling = (angle, label, delta, moves) => ctl(piePoint(moves ? rm - 15 : rm, angle), isOption ? 'Add an option' : label, () => this.openAdd(
         hParent.slug,
         isOption ? 0 : Math.round(Math.max(-1, Math.min(1, values.get(hn.slug).impact + delta)) * 100) / 100,
         isOption,
       ));
-      hoverCtls.push(sibling(full ? a0 + 0.2 : a0 - pad, 'Add a more contrary point beside this', -0.25));
-      hoverCtls.push(sibling(full ? a1 - 0.2 : a1 + pad, 'Add a more supporting point beside this', 0.25));
+      hoverCtls.push(sibling(full ? a0 + 0.2 : a0 - pad, 'Add a more contrary point beside this', -0.25, movesAt.start));
+      hoverCtls.push(sibling(full ? a1 - 0.2 : a1 + pad, 'Add a more supporting point beside this', 0.25, movesAt.end));
       if (hn.children.length === 0) {
         hoverCtls.push(ctl(piePoint(r1 + 18, (a0 + a1) / 2), `Add a point under: ${Component.truncate(hn.text, 60)}`, () => this.openAdd(hn.slug, 0)));
       }
-    }
-    const pieEdges = !editable || rows.length < 2 || rows[0].calculated ? [] : rows.slice(0, -1).map((r, i) => {
-      const a = parts.find((p) => p.node.slug === r.node.slug).x1 * 2 * Math.PI;
-      const [r0, r1] = ringOf(1);
-      const from = piePoint(r0, a);
-      const to = piePoint(r1, a);
-      return {
-        d: `M ${from.x} ${from.y} L ${to.x} ${to.y}`,
-        label: `Resize importance between “${Component.truncate(r.node.text, 40)}” and the next slice. Use the left and right arrow keys.`,
-        down: (e) => this.startPieEdge(i, rows, e),
-        move: (e) => this.movePieEdge(e), up: (e) => this.endPieEdge(e),
-        key: (e) => this.onDividerKey(i, rows, e),
+      const handle = (i, angle, side) => {
+        const at = piePoint(rm + 15, angle);
+        return {
+          x: at.x, y: at.y, rot: (angle * 180 / Math.PI).toFixed(1), pct: Math.round(values.get(hn.slug).share * 100),
+          label: `Resize “${Component.truncate(hn.text, 40)}” from its ${i === k ? 'clockwise' : 'counter-clockwise'} edge. Use the left and right arrow keys.`,
+          down: (e) => this.startPieEdge(i, sibRows, side, span, e),
+          move: (e) => this.movePieEdge(e), up: (e) => this.endPieEdge(e),
+          key: (e) => this.onDividerKey(i, sibRows, e, side),
+        };
       };
-    });
+      if (movesAt.start) hoverMoves.push(handle(k - 1, a0 - pad, k));
+      if (movesAt.end) hoverMoves.push(handle(k, a1 + pad, k));
+    }
     const pieSlices = parts.map((p) => {
       const n = p.node;
       const [r0, r1] = ringOf(p.depth);
-      const isLocked = p.depth === 1 && s.lockedFacts.includes(n.slug);
+      const isChosen = s.chosenFacts.includes(n.slug);
+      const isSelected = isPinned && n.slug === focus.slug;
       const v = values.get(n.slug);
       const info = `${n.text}: ${Math.round(v.share * 100)}% share, impact ${Component.signed(v.impact)}`;
       return {
-        slug: n.slug, depth: p.depth, hasChildren: n.children.length > 0, isLocked, info,
+        slug: n.slug, depth: p.depth, hasChildren: n.children.length > 0, isChosen, isSelected, info,
         ctls: hoverPart !== null && hoverPart.node.slug === n.slug ? hoverCtls : [],
+        moves: hoverPart !== null && hoverPart.node.slug === n.slug ? hoverMoves : [],
         d: Component.arc(PIE_C, PIE_C, r0, r1, p.x0 * 2 * Math.PI, p.x1 * 2 * Math.PI),
         fill: Component.impactFill(v.impact),
-        fillOpacity: isLocked ? 0.65 : 1,
-        stroke: s.hover === n.slug ? 'var(--ink)' : isLocked ? 'var(--ink2)' : 'var(--card)',
-        sw: s.hover === n.slug || isLocked ? 2 : 1.5, dash: isLocked ? '6 4' : 'none',
+        fillOpacity: isChosen ? 0.65 : 1,
+        stroke: isSelected || s.hover === n.slug ? 'var(--ink)' : isChosen ? 'var(--ink2)' : 'var(--card)',
+        sw: isSelected ? 3.5 : s.hover === n.slug || isChosen ? 2 : 1.5, dash: isChosen ? '6 4' : 'none',
         op: filterActive && !matchSet.has(n.slug) ? 0.2 : 1,
         menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
         down: (e) => {
           this.suppressClick = !!(e.ctrlKey || e.metaKey || e.shiftKey);
-          if (this.suppressClick && canLock(n, p.depth)) this.toggleLock(n.slug);
+          if (this.suppressClick && canChoose(n)) this.toggleChosen(n.slug);
         },
         pick: () => this.onColumnClick(n.slug),
         key: (e) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setFocus(n.slug); }
-          if ((e.key === 'l' || e.key === 'L') && canLock(n, p.depth)) { e.preventDefault(); this.toggleLock(n.slug); }
+          if ((e.key === 'l' || e.key === 'L') && canChoose(n)) { e.preventDefault(); this.toggleChosen(n.slug); }
         },
         enter: () => this.pieEnter(n.slug), leave: () => this.pieLeave(),
       };
     });
+    const pieHasPremises = pieRoot.children.some((c) => c.kind === 'premise');
     const pie = {
-      slices: pieSlices, edges: pieEdges,
-      hatches: pieSlices.filter((x) => x.isLocked).map((x) => ({ d: x.d })),
-      showCenter: !focusHasPremises, center: Component.signed(values.get(focus.slug).score ?? 0),
+      slices: pieSlices,
+      hatches: pieSlices.filter((x) => x.isChosen).map((x) => ({ d: x.d })),
+      // A label only where its text fits along the slice.
+      labels: parts.filter((p) => (p.x1 - p.x0) * 2 * Math.PI * ((ringOf(p.depth)[0] + ringOf(p.depth)[1]) / 2) >= 36).map((p) => {
+        const [r0, r1] = ringOf(p.depth);
+        const at = piePoint((r0 + r1) / 2, (p.x0 + p.x1) * Math.PI);
+        return { x: (Number(at.x) / 520 * 100).toFixed(2), y: (Number(at.y) / 520 * 100).toFixed(2), text: Component.signed(values.get(p.node.slug).impact) };
+      }),
+      showCenter: !pieHasPremises, center: Component.signed(values.get(pieRoot.slug).score ?? 0),
       keep: () => clearTimeout(this.pieHoverTimer), leave: () => this.pieLeave(),
+      pinPressed: String(isPinned), pinFill: isPinned ? 'currentColor' : 'none',
+      pinBg: isPinned ? 'var(--ink)' : 'var(--card)', pinFg: isPinned ? 'var(--on-ink)' : 'var(--ink)', pinBorder: isPinned ? 'var(--ink)' : 'var(--control)',
+      pinLabel: isPinned ? 'Unpin the pie so it follows your selection' : 'Pin the pie here, so clicking a slice shows its details without moving the pie',
+      togglePin: () => this.setState({ pinned: isPinned ? null : focus.slug }),
+      canEdit: editable, editPressed: String(s.pieEdit),
+      editBg: s.pieEdit ? 'var(--ink)' : 'var(--card)', editFg: s.pieEdit ? 'var(--on-ink)' : 'var(--ink)', editBorder: s.pieEdit ? 'var(--ink)' : 'var(--control)',
+      editLabel: s.pieEdit ? 'Stop editing: hide the add and resize buttons' : 'Edit: hover a slice to add beside it or resize it',
+      toggleEdit: () => this.setState({ pieEdit: !s.pieEdit }),
       hint: hoverPart !== null ? pieSlices.find((x) => x.slug === hoverPart.node.slug).info
         : !editable ? 'Click a slice to open it'
-          : focusHasPremises ? 'Calculated from each option’s own points · click to open'
-            : 'Drag between inner slices to weigh · Ctrl or ⌘-click to lock · hover to add · click to open',
+          : pieHasPremises ? 'Calculated from each option’s own points · click to open'
+            : !s.pieEdit ? `${isPinned ? 'Pinned · click a slice to see its details' : 'Click a slice to open it'} · ✎ to add and resize`
+              : 'Hover a slice: + adds beside it, ⇔ drags to resize · Ctrl or ⌘-click to choose what a resize changes',
     };
 
     // diff
@@ -3346,6 +3394,7 @@ class Component extends DCLogic {
     return {
       title: map.title, tabs, tb, nm, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
       isFocusView: hasMap && (s.view === 'map' || s.view === 'pie'),
+      focusLayout: inPie ? { dir: 'row', align: 'flex-start', detailsFlex: '1 1 360px', pointsFlex: '2 1 480px' } : { dir: 'column', align: 'stretch', detailsFlex: '0 0 auto', pointsFlex: '0 0 auto' },
       hintText: s.view === 'pie' ? pie.hint : chart.hint,
       pageDisplay, headerControls: hasMap && !nm.open, chartViewsShown: hasMap && !nm.open && s.view === 'map',
       menu: (() => {

@@ -17,13 +17,13 @@ The goal is a cleaner screen built around one thing at a time: the current point
 - The Map and Pie views become one focus view with a consistent header bar.
 - Selecting a point makes it the current point. There is no separate "selected" state.
 - Importance and impact can be changed directly on the chart and with sliders on the current point.
-- Locking points controls what a resize affects, in both the bar and the pie.
+- Choosing points controls what a resize affects, in both the bar and the pie.
 
 ## Non-goals
 
 - Redesigning the Source and Diff views. They move under the new header and otherwise stay as they are.
 - Changing the markdown format.
-- Locking on touch screens, which stays desktop first like the rest of the chart's drag gestures.
+- Choosing points on touch screens, which stays desktop first like the rest of the chart's drag gestures.
 
 ## Anti-goals
 
@@ -54,13 +54,15 @@ Sorting is automatic by impact, including for newly added points. Selecting a ch
 
 Importance (bar width) and impact (colour depth) can both be adjusted.
 
-### Locking
+### Choosing what a resize changes
 
-Ctrl-click or ⌘-click marks points as **locked**. A locked point keeps its size, and a resize takes from or adds to the unlocked points. Locked points show a diagonal background, a disabled style and a dashed border. A **Clear** button removes all locks. The author confirmed "locked" over the alternative, where marked points would be the ones that change.
+Ctrl-click or ⌘-click **chooses** points. A resize takes from or adds to only the chosen points, spread in proportion to their size, and every point not chosen keeps its size. Chosen points show a diagonal background, a disabled style and a dashed border. A **Clear** button removes the choice.
+
+**Changed after trying it (author's decision):** this was first built the other way round, with marked points locked and the rest absorbing the resize. The author tried it and reversed it.
 
 ### Pie view
 
-The header switches between the bar and the pie. The pie can be dragged to resize and locked, like the bar. Hovering a slice shows a "+" on either side of it, and hovering a leaf (a slice with no children) also shows a "+" on the slice to add below it.
+The header switches between the bar and the pie. The pie can be dragged to resize and its slices chosen, like the bar. Hovering a slice shows a "+" on either side of it, and hovering a leaf (a slice with no children) also shows a "+" on the slice to add below it.
 
 ## Calls made by Claude
 
@@ -102,7 +104,7 @@ One bar replaces the file toolbar, the page heading, the icon row and the filter
 
 ### Points and adding
 
-- Clicking a column opens it. The previous select-then-Open step goes away, and with it `selectedFact` and the details panel. A divider now resizes the column on its left, unless locks say otherwise (below).
+- Clicking a column opens it. The previous select-then-Open step goes away, and with it `selectedFact` and the details panel. A divider now resizes the column on its left, unless the choice says otherwise (below).
 - Adding uses one modal dialog: title, optional description, and an impact slider (not for premises). The custom slug field in today's add form is dropped, and slugs are automatic.
 - Starting impact: left "+" −0.50, right "+" +0.50, wide "+" 0. On premises, both "+" buttons add an option and the wide one says so. New facts start at importance 50, as today.
 - New points animate into their sorted place, respecting `prefers-reduced-motion`.
@@ -114,39 +116,40 @@ One bar replaces the file toolbar, the page heading, the icon row and the filter
 - They stay aligned while dragging. Cells wide enough show the title, and all cells have a tooltip. Non-matching cells dim under a filter.
 - Depth rows only show the levels below the current point. Breadcrumbs cover the levels above, so the view no longer shows the whole map at once from a deep level.
 
-### Locking details
+### Choosing details
 
-- Locks belong to the current level and last until you move to another level. They survive switching between bar and pie. They aren't saved in the file.
-- On a resize, the column left of the divider changes, unless it alone is locked, in which case the right one does. A divider between two locked points doesn't move, and neither does a drag when every other point is locked.
-- With locks, the drag is zero-sum in proportion across the unlocked points, using the existing `resizeImportance` trade mode with the unlocked points as its pool. With no locks, it is the existing scale mode.
+- **Changed after trying it (author's decision):** points can be chosen at any level, in the bar's depth rows and on any pie ring. A choice only affects resizes among its own siblings, and choices last until Clear, across levels. It survives switching between bar and pie, and isn't saved in the file.
+- On a resize, the column left of the divider changes, unless it is the only chosen point, in which case the right one does, against it. Every divider can move while anything is chosen.
+- With a choice, the drag is zero-sum in proportion across the chosen points, using the existing `resizeImportance` trade mode with the chosen points as its pool. With nothing chosen, it is the existing scale mode.
 - Existing limits stay: a resized column between a 2% share and 90% in scale mode, and a trade column no lower than 2%.
 - The "Scale all the others / Trade with chosen columns" switch is removed. Its stored setting is ignored.
-- Shift-click also locks. Premises can't be locked or resized.
+- Shift-click also chooses. Premises can't be chosen or resized.
 - In the code, avoid naming this `locked`: that word already means the map is read-only because its markdown source has errors, and that text stays as it is. `tradePool` can be replaced.
-- If there's a conflict in the UI, read-only wins: no locks, drags or "+" buttons on a read-only map.
+- If there's a conflict in the UI, read-only wins: no choosing, drags or "+" buttons on a read-only map.
 
 ### Pie
 
-- This replaces today's sunburst view inside the same screen layout. **The pin button, the legend list, the centre "go up" button and the slice labels go away**, since breadcrumbs and the shared layout cover them. The centre shows the score, except on a root with premises.
+- This replaces today's sunburst view. The legend list and the centre "go up" button go away, since breadcrumbs cover them. The centre shows the score, except on a root with premises.
+- **Changed after trying it (author's decision):** there are no "+" buttons beside the pie, because it wasn't clear what they added to. Slices with room carry their signed impact as a label. The pin is back: a pinned pie stays centred, and clicking a slice shows its details without moving the pie. The details sit beside the pie, so they stay on screen.
 - Slices are drawn in impact order, clockwise from the top. All rings below the current point are shown, and clicking any slice opens it.
-- Drag handles sit on the edges between inner-ring slices only, with none where the last slice meets the first. Locks apply to the inner ring only. Deeper slices are adjusted by opening their level.
+- **Changed after trying it (author's decision):** an **Edit** button (pencil) next to the pin turns the hover buttons on and off, and starts off. The invisible drag zone on the edges is gone. In edit mode, a hovered slice on any ring shows a ⇔ move handle next to the "+" on each edge it shares with a neighbour, with none where the last slice meets the first. Dragging it, or arrow keys on it, resizes the hovered slice against its siblings.
 - The "+" buttons beside a slice add a sibling, starting 0.25 more contrary (counter-clockwise) or more supporting (clockwise) than the slice. A leaf's own "+" sits just outside the slice and adds its first child, starting at impact 0. The outer ring leaves room for it.
-- The two "+" buttons beside the pie and the wide "+" work as they do in the bar view.
+- The wide "+" works as it does in the bar view.
 
 ### Accessibility and devices
 
 - Existing keyboard support mustn't regress: left and right on a focused divider change importance, up and down on a focused column change impact, Enter opens. Pie edges take arrow keys.
-- **L** on a focused column or inner slice toggles its lock. This is new and wasn't in the prototype.
+- **L** on a focused column, depth-row cell or slice toggles whether it is chosen. This is new and wasn't in the prototype.
 - Slice "+" buttons also appear when a slice has keyboard focus, and can be reached by Tab. The prototype was mouse only.
-- Colour isn't the only signal: signed values stay on columns and in tooltips. Dashed borders and the diagonal pattern mark locks.
-- On touch, viewing, opening, sliders and the side "+" buttons work. Dragging and locking aren't required, and the chart mustn't block page scrolling.
+- Colour isn't the only signal: signed values stay on columns and in tooltips. Dashed borders and the diagonal pattern mark chosen points.
+- On touch, viewing, opening, sliders and the side "+" buttons work. Dragging and choosing aren't required, and the chart mustn't block page scrolling.
 
 ### Everything else
 
 - **Filters and display overlays** keep today's behaviour, including the star, paperclip and "no basis" markers on columns.
 - **Themes:** all four themes must work, using existing tokens. The prototype only shows Paper.
 - **README:** update the chart, pie and Links sections.
-- **Checks:** update `check.js` where it relies on `selectedFact`, the details panel, the mode switch or the root-claim slug. Add checks for the title slug, optional description, options on create, and the lock rules.
+- **Checks:** update `check.js` where it relies on `selectedFact`, the details panel, the mode switch or the root-claim slug. Add checks for the title slug, optional description, options on create, and the choosing rules.
 
 ## Left to the builder
 

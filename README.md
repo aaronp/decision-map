@@ -81,17 +81,19 @@ Columns are sorted from most contrary to most supporting. Colour is impact, and 
 - **Click a column** or any cell in the rows below to open it.
 - **Change importance** by dragging a divider, or with the slider on an open point.
 - **Change impact** by dragging a column up or down, or with the slider on an open point.
-- **Lock a column** with Ctrl-click, ⌘-click or Shift-click, or **L** on the keyboard. A resize leaves locked columns alone and takes from or adds to the unlocked ones. **Clear** removes all locks. With nothing locked, you can drag as far as you like and the rest scale to fit.
+- **Choose the columns a resize changes** with Ctrl-click, ⌘-click or Shift-click, or **L** on the keyboard. Chosen columns get a diagonal pattern and dashed border. Dragging any divider then takes from or adds to only the chosen columns, spread in proportion to their size, and every other column keeps its size. You can also choose cells in the levels below, which apply when you resize at that level. Choices stay as you move between levels until **Clear** removes them. With nothing chosen, you can drag as far as you like and the rest scale to fit.
 
 Dividers also take the left and right arrow keys, and columns the up and down keys. On touch screens, use the sliders.
 
 ### The pie
 
-The same points as rings around the current point, sorted clockwise from the top.
+The same points as rings around the current point, sorted clockwise from the top, next to the current point's details. Slices with room show their impact.
 
-- **Drag the edge** between two inner slices to change importance.
-- **Lock an inner slice** the same way as a column.
-- **Hover a slice** for a **+** on each side, which adds a point beside it. A slice with no children also gets a **+** outside it for its first child.
+- **Edit** (the pencil next to the pin) turns on the hover buttons. Off by default, so hovering just shows a slice's details.
+- **Drag the ⇔ handle** that edit mode shows on a slice's edges to resize that slice against its siblings, on any ring. It takes the left and right arrow keys too.
+- **Choose slices** on any ring the same way as columns.
+- **Pin** the pie to keep it centred where it is. Clicking a slice then shows that point's details beside the pie, without moving the pie.
+- In edit mode, **hover a slice** for a **+** on each side, which adds a point beside it. A slice with no children also gets a **+** outside it for its first child.
 
 ## Run it
 

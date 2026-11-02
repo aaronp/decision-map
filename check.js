@@ -233,7 +233,7 @@ test('every view renders with no unresolved bindings', () => {
 const MAP3 = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 10\nimpact: -0.5\n\n## B\nslug: b\nimportance: 30\nimpact: 0\n\n## C\nslug: c\nimportance: 60\nimpact: 0.5\n`;
 const chartOf = (c) => c.renderVals().chart;
 const colOf = (c, slug) => chartOf(c).cols.find((x) => x.slug === slug);
-const nodeOf = (c, slug) => c.state.map.root.children.find((n) => n.slug === slug);
+const nodeOf = (c, slug) => (Component.findPath(c.state.map.root, slug) ?? [undefined]).at(-1);
 const ev = (props = {}) => ({
   pointerType: 'mouse', pointerId: 1, clientX: 0, clientY: 0, metaKey: false, shiftKey: false, key: '',
   preventDefault() {}, currentTarget: { setPointerCapture() {}, blur() {}, closest: () => ({ getBoundingClientRect: () => ({ width: 1016 }) }) }, ...props,
@@ -279,7 +279,7 @@ const dragDivider = (c, slug, dx) => {
   colOf(c, slug).dividerMove(ev({ clientX: dx })); // width 1016 less two dividers is 1000px
   colOf(c, slug).dividerUp(ev());
 };
-const lock = (c, slug) => colOf(c, slug).down(ev({ metaKey: true }));
+const choose = (c, slug) => colOf(c, slug).down(ev({ metaKey: true }));
 
 test('clicking a column opens it', () => {
   const c = boot(MAP3);
@@ -287,35 +287,29 @@ test('clicking a column opens it', () => {
   assert.equal(c.state.focus, 'b');
 });
 
-test('a locked column keeps its size and the unlocked ones absorb the resize', () => {
+test('chosen columns absorb a resize and the others keep their size', () => {
   const c = boot(MAP3);
-  lock(c, 'c');
-  assert.ok(colOf(c, 'c').isLocked);
+  choose(c, 'c');
+  assert.ok(colOf(c, 'c').isChosen);
+  dragDivider(c, 'a', 100);
+  assert.deepEqual(imps(c), [20, 30, 50]);
+});
+
+test('with only the left column chosen, the divider resizes the right one from it', () => {
+  const c = boot(MAP3);
+  choose(c, 'a');
   dragDivider(c, 'a', 100);
   assert.deepEqual(imps(c), [20, 20, 60]);
 });
 
-test('with only the left column locked, the divider resizes the right one', () => {
+test('a divider between unchosen columns still moves, taking from the chosen ones', () => {
   const c = boot(MAP3);
-  lock(c, 'a');
-  dragDivider(c, 'a', 100);
-  assert.deepEqual(imps(c), [10, 20, 70]);
+  choose(c, 'a');
+  dragDivider(c, 'b', 100);
+  assert.deepEqual(imps(c), [2, 38, 60]); // a stops at the 2% floor
 });
 
-test('a divider between two locked columns does nothing, and neither does one with no unlocked column left', () => {
-  const c = boot(MAP3);
-  lock(c, 'a'); lock(c, 'b');
-  dragDivider(c, 'a', 100);
-  assert.deepEqual(imps(c), [10, 30, 60]);
-  const d = boot(MAP3);
-  lock(d, 'b'); lock(d, 'c');
-  dragDivider(d, 'a', 100);
-  assert.deepEqual(imps(d), [10, 30, 60]);
-  colOf(d, 'a').dividerKey(ev({ key: 'ArrowRight' }));
-  assert.deepEqual(imps(d), [10, 30, 60]);
-});
-
-test('with nothing locked, a drag changes only the resized fact', () => {
+test('with nothing chosen, a drag changes only the resized fact', () => {
   const c = boot(MAP3);
   dragDivider(c, 'a', 500);
   assert.equal(nodeOf(c, 'b').importance, 30);
@@ -365,21 +359,21 @@ test('depth cells line up with the dividers and dim under a filter', () => {
   assert.equal(chartOf(boot(MAP3)).depth.has, false);
 });
 
-test('Clear removes locks, and moving level clears them too', () => {
+test('choices are kept across levels until Clear', () => {
   const c = boot(MAP3);
-  lock(c, 'a');
-  assert.equal(chartOf(c).lockCount, 1);
-  chartOf(c).clearLocks();
-  assert.equal(chartOf(c).lockCount, 0);
-  lock(c, 'a');
+  choose(c, 'a');
+  assert.equal(chartOf(c).chosenCount, 1);
   c.setFocus('b');
-  assert.deepEqual(c.state.lockedFacts, []);
+  assert.deepEqual(c.state.chosenFacts, ['a']);
+  assert.equal(chartOf(c).chosenCount, 1, 'counted from any level');
+  chartOf(c).clearChosen();
+  assert.equal(chartOf(c).chosenCount, 0);
 });
 
-test('a lock on a point that no longer exists is ignored', () => {
+test('a choose on a point that no longer exists is ignored', () => {
   const c = boot(MAP3);
-  c.setState({ lockedFacts: ['gone'] });
-  assert.equal(chartOf(c).lockCount, 0);
+  c.setState({ chosenFacts: ['gone'] });
+  assert.equal(chartOf(c).chosenCount, 0);
   dragDivider(c, 'a', 500);
   assert.equal(nodeOf(c, 'b').importance, 30);
 });
@@ -389,26 +383,26 @@ test('all-zero siblings resize to nothing, with no NaN', () => {
   assert.deepEqual(Component.resizeImportance(raws, { divider: 0, resized: 0, move: 0.1, mode: 'trade', pool: [1, 2] }), raws);
 });
 
-test('premises can be opened but not locked', () => {
+test('premises can be opened but not chosen', () => {
   const c = boot(PREMISE_MAP);
   chartOf(c).cols[0].down(ev({ metaKey: true }));
-  assert.deepEqual(c.state.lockedFacts, []);
+  assert.deepEqual(c.state.chosenFacts, []);
 });
 
-test('L toggles a lock from the keyboard, and Ctrl-click stays out of the context menu', () => {
+test('L toggles a choose from the keyboard, and Ctrl-click stays out of the context menu', () => {
   const c = boot(MAP3);
   colOf(c, 'c').key(ev({ key: 'l' }));
-  assert.deepEqual(c.state.lockedFacts, ['c']);
+  assert.deepEqual(c.state.chosenFacts, ['c']);
   colOf(c, 'c').key(ev({ key: 'L' }));
-  assert.deepEqual(c.state.lockedFacts, []);
+  assert.deepEqual(c.state.chosenFacts, []);
   let prevented = false;
   colOf(c, 'a').menu({ ctrlKey: true, preventDefault() { prevented = true; } });
   assert.ok(prevented);
 });
 
-test('a lock gesture doesn\'t open the column', () => {
+test('a choose gesture doesn\'t open the column', () => {
   const c = boot(MAP3);
-  lock(c, 'a');
+  choose(c, 'a');
   colOf(c, 'a').click(ev({ metaKey: true }));
   assert.equal(c.state.focus, 'r');
 });
@@ -1036,10 +1030,38 @@ test('the examples are migrated and keep every fact', () => {
 // ---------------------------------------------------------------- findings from the whole-branch review
 const pieOf = (c) => { c.setState({ view: 'pie' }); return c.renderVals().pie; };
 const ctlsOf = (c) => pieOf(c).slices.flatMap((x) => x.ctls);
+const editing = (c) => { pieOf(c).toggleEdit(); return c; };
+const movesOf = (c, slug) => { pieOf(c).slices.find((x) => x.slug === slug).enter(); return pieOf(c).slices.find((x) => x.slug === slug).moves; };
 
-test('slice edges exist between inner slices only, with none at the wrap', () => {
-  assert.equal(pieOf(boot(MAP3)).edges.length, 2);
-  assert.equal(pieOf(boot(PREMISE_MAP)).edges.length, 0);
+test('the hover buttons only show in edit mode, toggled next to the pin', () => {
+  const c = boot(MAP3);
+  assert.equal(pieOf(c).editPressed, 'false');
+  assert.equal(movesOf(c, 'b').length, 0);
+  assert.equal(ctlsOf(c).length, 0);
+  editing(c);
+  assert.equal(pieOf(c).editPressed, 'true');
+  assert.equal(ctlsOf(c).length, 3);
+  assert.equal(pieOf(c).slices.find((x) => x.slug === 'b').moves.length, 2);
+  const at = template.indexOf('{{pie.toggleEdit}}');
+  assert.ok(at > 0 && Math.abs(at - template.indexOf('{{pie.togglePin}}')) < 2000);
+  assert.ok(!template.includes('{{pie.edges}}'), 'no hot zone on the edges');
+});
+
+test('a hovered inner slice gets a move handle at each edge it shares, none at the wrap', () => {
+  const c = editing(boot(MAP3));
+  assert.deepEqual(['a', 'b', 'c'].map((x) => movesOf(c, x).length), [1, 2, 1]);
+  const p = editing(boot(PREMISE_MAP));
+  assert.equal(movesOf(p, pieOf(p).slices[0].slug).length, 0);
+  const d = editing(boot(DEEP_MAP));
+  assert.equal(movesOf(d, pieOf(d).slices.find((x) => x.depth > 1).slug).length, 0);
+});
+
+test('a move handle resizes the hovered slice, whichever side it is on', () => {
+  const c = editing(boot(MAP3));
+  movesOf(c, 'b')[0].key(ev({ key: 'ArrowRight' }));
+  assert.ok(nodeOf(c, 'b').importance < 30);
+  assert.equal(nodeOf(c, 'a').importance, 10);
+  assert.equal(nodeOf(c, 'c').importance, 60);
 });
 
 test('angleDelta takes the short way around', () => {
@@ -1048,39 +1070,86 @@ test('angleDelta takes the short way around', () => {
   near(Component.angleDelta(0, 0.5), 0.5);
 });
 
-test('dragging a slice edge respects locks', () => {
+test('dragging a slice edge takes from the chosen slices only', () => {
   const c = boot(MAP3);
   pieOf(c).slices.find((x) => x.slug === 'c').down(ev({ metaKey: true }));
-  assert.deepEqual(c.state.lockedFacts, ['c']);
+  assert.deepEqual(c.state.chosenFacts, ['c']);
+  editing(c);
   const rect = { left: 0, top: 0, width: 200, height: 200 };
   const e = (x, y) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) } });
-  pieOf(c).edges[0].down(e(100, 0)); // straight up from the centre
-  pieOf(c).edges[0].move(e(200, 100)); // a quarter turn clockwise, or 0.25 of the total
-  pieOf(c).edges[0].up(e(200, 100));
-  assert.equal(nodeOf(c, 'c').importance, 60);
-  near(nodeOf(c, 'a').importance + nodeOf(c, 'b').importance, 40);
+  const handle = movesOf(c, 'a')[0];
+  handle.down(e(100, 0)); // straight up from the centre
+  c.renderVals().pie.leave();
+  assert.equal(pieOf(c).slices.find((x) => x.slug === 'a').moves.length, 1, 'the handle stays while dragging');
+  handle.move(e(200, 100)); // a quarter turn clockwise, or 0.25 of the total
+  handle.up(e(200, 100));
+  assert.equal(nodeOf(c, 'b').importance, 30);
+  near(nodeOf(c, 'a').importance + nodeOf(c, 'c').importance, 70);
   assert.ok(nodeOf(c, 'a').importance > 10);
 });
 
-test('with nothing locked, a slice edge changes only the resized fact, and arrows work', () => {
-  const c = boot(MAP3);
-  pieOf(c).edges[0].key(ev({ key: 'ArrowRight' }));
+test('with nothing chosen, a slice edge changes only the resized fact, and arrows work', () => {
+  const c = editing(boot(MAP3));
+  movesOf(c, 'a')[0].key(ev({ key: 'ArrowRight' }));
   assert.ok(nodeOf(c, 'a').importance > 10);
   assert.equal(nodeOf(c, 'b').importance, 30);
 });
 
-test('only inner slices can be locked, and a locked slice shows it', () => {
+test('slices on any ring can be chosen, and a chosen slice shows it', () => {
   const c = boot(DEEP_MAP);
-  pieOf(c).slices.find((x) => x.depth > 1).down(ev({ metaKey: true }));
-  assert.deepEqual(c.state.lockedFacts, []);
+  const deep = pieOf(c).slices.find((x) => x.depth > 1);
+  deep.down(ev({ metaKey: true }));
+  assert.deepEqual(c.state.chosenFacts, [deep.slug]);
   const inner = pieOf(c).slices.find((x) => x.depth === 1);
   inner.key(ev({ key: 'l' }));
-  assert.deepEqual(c.state.lockedFacts, ['level-1']);
-  assert.equal(pieOf(c).slices.find((x) => x.depth === 1).isLocked, true);
-  assert.equal(pieOf(c).hatches.length, 1);
+  assert.deepEqual(c.state.chosenFacts, [deep.slug, 'level-1']);
+  assert.equal(pieOf(c).slices.find((x) => x.slug === deep.slug).isChosen, true);
+  assert.equal(pieOf(c).hatches.length, 2);
 });
 
-test('a lock gesture on a slice doesn\'t open it, but a click does', () => {
+const TWO_DEEP = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 50\nimpact: -0.5\n\n### X\nslug: x\nimportance: 10\nimpact: -0.6\n\n### Y\nslug: y\nimportance: 30\nimpact: 0\n\n### Z\nslug: z\nimportance: 60\nimpact: 0.6\n\n## B\nslug: b\nimportance: 50\nimpact: 0.5\n`;
+
+test('a deeper ring gets move handles that trade only among its own chosen siblings', () => {
+  const c = editing(boot(TWO_DEEP));
+  assert.deepEqual(['x', 'y', 'z'].map((v) => movesOf(c, v).length), [1, 2, 1]);
+  pieOf(c).slices.find((v) => v.slug === 'z').down(ev({ metaKey: true }));
+  movesOf(c, 'x')[0].key(ev({ key: 'ArrowRight' }));
+  assert.equal(nodeOf(c, 'y').importance, 30);
+  assert.equal(nodeOf(c, 'a').importance, 50);
+  near(nodeOf(c, 'x').importance + nodeOf(c, 'z').importance, 70);
+  assert.ok(nodeOf(c, 'x').importance > 10);
+});
+
+test('dragging a deeper handle follows the pointer around its parent\'s arc', () => {
+  const c = editing(boot(TWO_DEEP));
+  pieOf(c).slices.find((v) => v.slug === 'z').down(ev({ metaKey: true }));
+  const rect = { left: 0, top: 0, width: 200, height: 200 };
+  const e = (x, y) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) } });
+  const handle = movesOf(c, 'x')[0];
+  handle.down(e(100, 0));
+  handle.move(e(200, 100)); // a quarter turn: half of A's half of the circle
+  handle.up(e(200, 100));
+  near(nodeOf(c, 'x').importance, 60);
+  near(nodeOf(c, 'z').importance, 10);
+});
+
+test('a depth-row cell can be chosen with Ctrl-click without opening it', () => {
+  const c = boot(TWO_DEEP);
+  c.setState({ view: 'map' });
+  const cellOf = (slug) => chartOf(c).depth.cells.find((d) => d.slug === slug);
+  cellOf('y').down(ev({ metaKey: true }));
+  cellOf('y').open(ev({ metaKey: true }));
+  assert.equal(c.state.focus, 'r');
+  assert.deepEqual(c.state.chosenFacts, ['y']);
+  assert.equal(cellOf('y').pressed, 'true');
+  cellOf('y').key(ev({ key: 'l' }));
+  assert.deepEqual(c.state.chosenFacts, []);
+  cellOf('y').down(ev());
+  cellOf('y').open(ev());
+  assert.equal(c.state.focus, 'y');
+});
+
+test('a choose gesture on a slice doesn\'t open it, but a click does', () => {
   const c = boot(MAP3);
   const a = pieOf(c).slices.find((x) => x.slug === 'a');
   a.down(ev({ metaKey: true }));
@@ -1092,7 +1161,7 @@ test('a lock gesture on a slice doesn\'t open it, but a click does', () => {
 });
 
 test('hovering shows a "+" each side, and a leaf gets one more for a first child', () => {
-  const c = boot(MAP3);
+  const c = editing(boot(MAP3));
   pieOf(c).slices[0].enter();
   const ctls = ctlsOf(c);
   assert.equal(ctls.length, 3);
@@ -1109,21 +1178,21 @@ test('hovering shows a "+" each side, and a leaf gets one more for a first child
 });
 
 test('a slice with children gets no leaf "+"; premise siblings have no impact', () => {
-  const c = boot(DEEP_MAP);
+  const c = editing(boot(DEEP_MAP));
   pieOf(c).slices.find((x) => x.hasChildren).enter();
   assert.equal(ctlsOf(c).length, 2);
-  const p = boot(PREMISE_MAP);
+  const p = editing(boot(PREMISE_MAP));
   pieOf(p).slices[0].enter();
   ctlsOf(p)[0].add();
   assert.equal(p.state.adding.isPremise, true);
 });
 
-test('read-only maps have no edges or "+" on the pie', () => {
+test('read-only maps have no edit button, handles or "+" on the pie', () => {
   const c = boot(MAP3);
-  c.setState({ view: 'pie', srcErrors: [{ line: 1, message: 'x' }] });
-  assert.equal(c.renderVals().pie.edges.length, 0);
-  c.renderVals().pie.slices[0].enter();
-  assert.equal(c.renderVals().pie.slices.flatMap((x) => x.ctls).length, 0);
+  c.setState({ view: 'pie', pieEdit: true, srcErrors: [{ line: 1, message: 'x' }] });
+  assert.equal(c.renderVals().pie.canEdit, false);
+  c.renderVals().pie.slices[1].enter();
+  assert.equal(c.renderVals().pie.slices.flatMap((x) => [...x.ctls, ...x.moves]).length, 0);
 });
 
 test('zero-share premises draw no NaN', () => {
@@ -1135,7 +1204,7 @@ test('a slice\'s "+" buttons come right after it in Tab order, above the later s
   const slices = template.indexOf('{{pie.slices}}');
   const buttons = template.indexOf('{{s.ctls}}');
   assert.ok(slices < buttons && buttons < template.indexOf('{{pie.hatches}}'));
-  const c = boot(MAP3);
+  const c = editing(boot(MAP3));
   pieOf(c).slices[1].enter();
   assert.deepEqual(pieOf(c).slices.map((x) => x.ctls.length), [0, 3, 0]);
   c.setState({ hover: 'a' });
@@ -1152,8 +1221,10 @@ test('a right-button press starts no drag', () => {
   assert.equal(nodeOf(c, 'a').importance, 10);
   const rect = { left: 0, top: 0, width: 200, height: 200 };
   const e = (x, y, extra = {}) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) }, ...extra });
-  pieOf(c).edges[0].down(e(100, 0, { button: 2 }));
-  pieOf(c).edges[0].move(e(200, 100));
+  editing(c);
+  const handle = movesOf(c, 'a')[0];
+  handle.down(e(100, 0, { button: 2 }));
+  handle.move(e(200, 100));
   assert.equal(nodeOf(c, 'a').importance, 10);
 });
 
@@ -1169,12 +1240,93 @@ test('title and description get enough rows without field-sizing', () => {
   assert.equal(c.renderVals().pn.titleRows, 1);
 });
 
-test('switching between bar and pie keeps locks', () => {
+test('pinning keeps the pie centred while a clicked slice shows its details', () => {
+  const c = boot(NESTED);
+  c.setState({ view: 'pie' });
+  assert.equal(pieOf(c).pinPressed, 'false');
+  pieOf(c).togglePin();
+  assert.equal(pieOf(c).pinPressed, 'true');
+  const a = pieOf(c).slices.find((x) => x.slug === 'a');
+  a.down(ev());
+  a.pick(ev());
+  assert.equal(c.state.focus, 'a');
+  assert.equal(panelOf(c).text, 'A');
+  assert.ok(pieOf(c).slices.some((x) => x.slug === 'b'), 'still shows the siblings');
+  assert.equal(pieOf(c).slices.find((x) => x.slug === 'a').isSelected, true);
+  pieOf(c).togglePin();
+  assert.deepEqual(pieOf(c).slices.map((x) => x.slug), ['kid']);
+});
+
+test('selecting a leaf while pinned keeps the pie, with no wide "+"', () => {
+  const c = boot(NESTED);
+  pieOf(c).togglePin();
+  c.setFocus('kid');
+  assert.equal(chartOf(c).pieShown, true);
+  assert.equal(chartOf(c).empty, false);
+  assert.equal(chartOf(c).hintShown, true);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
+test('a pinned pie resizes and chooses on its own ring, whichever slice is selected', () => {
+  const c = boot(NESTED);
+  pieOf(c).togglePin();
+  pieOf(c).slices.find((x) => x.slug === 'b').key(ev({ key: 'l' }));
+  c.setFocus('a');
+  assert.deepEqual(c.state.chosenFacts, ['b']);
+  assert.equal(chartOf(c).chosenCount, 1);
+  editing(c);
+  assert.equal(movesOf(c, 'a').length, 1);
+  movesOf(c, 'a')[0].key(ev({ key: 'ArrowRight' }));
+  assert.ok(nodeOf(c, 'b').importance < 30); // the chosen slice absorbs
+  near(nodeOf(c, 'a').importance + nodeOf(c, 'b').importance, 40);
+});
+
+test('a stale or deleted pin falls back to following the focus', () => {
+  const c = boot(NESTED);
+  c.setFocus('a');
+  pieOf(c).togglePin();
+  panelOf(c).askDel();
+  panelOf(c).doDel();
+  assert.equal(pieOf(c).pinPressed, 'false');
+  c.setState({ pinned: 'gone' });
+  assert.equal(pieOf(c).pinPressed, 'false');
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
+test('a new map or file drops the pin', () => {
+  const c = boot(NESTED);
+  pieOf(c).togglePin();
+  c.setState({ newTitle: 'Fresh', newDesc: '', newOptions: [] });
+  c.createMap();
+  assert.equal(c.state.pinned, null);
+});
+
+test('slices wide enough carry a signed label, and thin ones don\'t', () => {
+  const c = boot(MAP3);
+  const labels = pieOf(c).labels;
+  assert.equal(labels.length, 3);
+  assert.ok(labels.some((l) => l.text === Component.signed(-0.5)));
+  const thin = boot(MAP3.replace('importance: 10', 'importance: 0.5'));
+  assert.equal(pieOf(thin).labels.length, 2);
+  for (const l of labels) assert.ok(Number.isFinite(Number(l.x)) && Number.isFinite(Number(l.y)));
+});
+
+test('the pie has no "+" buttons beside it, and sits next to the details', () => {
+  const start = template.indexOf('{{chart.pieShown}}');
+  const pieBlock = template.slice(start, template.indexOf('{{chart.hintShown}}'));
+  assert.ok(!pieBlock.includes('{{add.left}}') && !pieBlock.includes('{{add.right}}'));
+  const c = boot(MAP3);
+  assert.equal(c.renderVals().focusLayout.dir, 'column');
+  c.setState({ view: 'pie' });
+  assert.equal(c.renderVals().focusLayout.dir, 'row');
+});
+
+test('switching between bar and pie keeps choices', () => {
   const c = boot(MAP3);
   colOf(c, 'c').down(ev({ metaKey: true }));
   c.setState({ view: 'pie' });
-  assert.deepEqual(c.state.lockedFacts, ['c']);
-  assert.equal(c.renderVals().pie.slices.find((x) => x.slug === 'c').isLocked, true);
+  assert.deepEqual(c.state.chosenFacts, ['c']);
+  assert.equal(c.renderVals().pie.slices.find((x) => x.slug === 'c').isChosen, true);
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
@@ -1221,11 +1373,11 @@ test('opening a diff row goes through the normal focus change', () => {
   const c = boot(LEGACY_A, LEGACY_B);
   c.setState({ view: 'map' });
   colOf(c, 'pay-tax').click(ev());
-  c.setState({ view: 'diff', diffTab: 'table', lockedFacts: ['pay-tax'] });
+  c.setState({ view: 'diff', diffTab: 'table', chosenFacts: ['pay-tax'] });
   c.renderVals().diff.rows.find((r) => r.text.startsWith('Teenagers don')).open();
   assert.equal(c.state.view, 'map');
   assert.equal(c.state.focus, 'inexperience');
-  assert.deepEqual(c.state.lockedFacts, []);
+  assert.deepEqual(c.state.chosenFacts, ['pay-tax'], 'choices are kept across levels');
 });
 
 console.log(`${passed} passed, ${failed} failed`);
