@@ -595,6 +595,16 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 
   <!-- ============ DIFF VIEW ============ -->
   <svg aria-hidden="true" style="position: absolute; width: 0; height: 0"><defs><pattern id="am-rec-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.5" height="10" style="fill: var(--ink); opacity: 0.3"></rect></pattern></defs></svg>
+  <sc-if value="{{hasCrumbs}}" hint-placeholder-val="{{ false }}">
+    <nav aria-label="Where you are in the record" style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; padding: 6px 8px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px">
+      <sc-for list="{{recCrumbs}}" as="cr" hint-placeholder-count="3">
+        <button type="button" class="tb" aria-current="{{cr.currentAttr}}" onClick="{{cr.go}}" style="display: flex; flex-direction: column; align-items: flex-start; max-width: 240px; min-height: 40px; border: 0; border-radius: 8px; padding: 4px 10px; font: inherit; color: var(--ink); text-align: left; cursor: pointer; opacity: {{cr.opacity}}">
+          <span style="font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">{{cr.tier}}</span>
+          <span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: {{cr.weight}}">{{cr.name}}</span>
+        </button>
+      </sc-for>
+    </nav>
+  </sc-if>
   <sc-if value="{{dropAsk.shown}}" hint-placeholder-val="{{ false }}">
     <div role="alertdialog" aria-label="Drop what-if weights?" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 2px solid var(--warn-fg); font-size: 14px">
       <span style="flex: 1 1 260px; font-weight: 600">{{dropAsk.text}}</span>
@@ -1557,9 +1567,10 @@ const ACCENTS = Object.freeze([
   { id: 'teal', label: 'Teal', hex: '#0F766E' },
   { id: 'graphite', label: 'Graphite', hex: '#4A4F58' },
 ]);
-const VIEWS = ['map', 'pie', 'source', 'diff', 'overall', 'goals', 'compare'];
+const VIEWS = ['map', 'pie', 'source', 'diff', 'record', 'overall', 'goals', 'compare'];
 const MAP_VIEWS = ['map', 'pie', 'source', 'diff'];
-const RECORD_VIEWS = ['overall', 'goals', 'source', 'compare'];
+const RECORD_VIEWS = ['record', 'source', 'compare'];
+const REC_LEVELS = ['overview', 'goals', 'criteria', 'options', 'reasons'];
 
 // ---------------------------------------------------------------- query string: ?src (alias ?ours), ?theirs, ?view, ?focus, ?theme
 const QUERY = new URLSearchParams(location.search);
@@ -1788,7 +1799,8 @@ class Component extends DCLogic {
       history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
       dropPending: null, snapshots: [], snapName: '', snapNotice: '', confirmSnap: null,
-      goal: QUERY.get('goal'), recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, cell: null, reason: null, newReasonText: '', newOptionText: '', confirmGoalDelete: false,
+      recLevel: QUERY.get('view') === 'goals' ? 'goals' : 'overview', recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, optMode: 'edit',
+      recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, cell: null, reason: null, newReasonText: '', newOptionText: '', confirmGoalDelete: false,
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
       themeQ: THEMES.some((t) => t.id === qTheme) ? qTheme : null,
@@ -2966,8 +2978,8 @@ class Component extends DCLogic {
   syncQuery() {
     const s = this.state;
     replaceQuery({
-      view: s.view === 'map' || s.view === 'overall' ? null : s.view,
-      goal: s.map.template === 'record' && s.view === 'goals' ? s.goal : null,
+      view: s.view === 'map' || s.view === 'record' || s.view === 'overall' ? null : s.view,
+
       focus: s.focus === s.map.root.slug || s.map === BLANK ? null : s.focus,
       theme: s.themeQ === null || s.themeQ === s.map.display.theme ? null : s.themeQ,
     });
@@ -3046,7 +3058,7 @@ class Component extends DCLogic {
   loadA(text, name, url = null, force = false) {
     if (this.askBeforeDrop(`Open ${name}`, () => this.loadA(text, name, url, true), force)) return;
     const r = Component.parse(text);
-    const fresh = { history: Component.freshHistory(), whatIf: null, offWeights: {}, cell: null, reason: null, goal: null, overallGoal: null, chosenFacts: [], cmpA: null, cmpB: null, cmpRow: null };
+    const fresh = { history: Component.freshHistory(), whatIf: null, offWeights: {}, cell: null, reason: null, recLevel: 'overview', recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, overallGoal: null, chosenFacts: [], cmpA: null, cmpB: null, cmpRow: null };
     replaceQuery({ src: url, ours: null, focus: null });
     const file = { fileName: name, fileUrl: url, savedSrc: text, research: null, rationale: null, newOpen: false };
     if (r.errors.length) {
@@ -3115,7 +3127,7 @@ class Component extends DCLogic {
     if (slug === '') throw new Error('bug: Create pressed with a title that has no letters or digits');
     const details = s.newDesc.trim();
     if (s.newKind === 'record') {
-      this.openNew(Component.newRecord(title, details), 'overall', `New decision record · ${title}`);
+      this.openNew(Component.newRecord(title, details), 'record', `New decision record · ${title}`);
       return;
     }
     const taken = new Set([slug]);
@@ -3133,7 +3145,7 @@ class Component extends DCLogic {
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
-      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: map.root.slug, view, goal: null, whatIf: null, offWeights: {}, cell: null, reason: null, overallGoal: null, cmpA: null, cmpB: null, cmpRow: null,
+      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: map.root.slug, view, recLevel: 'overview', recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, whatIf: null, offWeights: {}, cell: null, reason: null, overallGoal: null, cmpA: null, cmpB: null, cmpRow: null,
       fileName: `${map.root.slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
       adding: null, draftText: '', chosenFacts: [], frozenOrder: null, pinned: null,
@@ -3236,13 +3248,35 @@ class Component extends DCLogic {
     }), step);
   }
 
+  /**
+   * Where a record is: the view ('record', 'source' or 'compare') and, in Record, the deepest level whose goal, option and criterion still exist.
+   * Old view names still work: 'overall' is the overview and 'goals' is All goals.
+   */
+  static recordPlace(s) {
+    const view = s.view === 'overall' || s.view === 'goals' ? 'record' : RECORD_VIEWS.includes(s.view) ? s.view : 'record';
+    let level = s.view === 'goals' && s.recLevel === 'overview' ? 'goals' : REC_LEVELS.includes(s.recLevel) ? s.recLevel : 'overview';
+    const goal = s.recGoal === null ? null : s.map.root.children.find((g) => g.slug === s.recGoal) ?? null;
+    const options = goal === null ? [] : [...new Set(goal.children.flatMap((c) => c.children.map((x) => x.option)))];
+    const option = options.includes(s.recOption) ? s.recOption : null;
+    const crit = goal === null ? null : goal.children.find((c) => c.slug === s.recCrit) ?? null;
+    if (level === 'reasons' && (option === null || crit === null)) level = 'options';
+    if (level === 'options' && (goal === null || (option === null && s.optMode !== 'compare' && options.length === 0))) level = 'criteria';
+    if (level === 'criteria' && goal === null) level = 'goals';
+    return { view, level, goal, option: option ?? (level === 'options' ? options[0] ?? null : null), crit, options };
+  }
+
+  // Move within the Record view; a reason panel open below closes.
+  recNav(patch) {
+    this.setState({ view: 'record', reason: null, ...PANEL_RESET, ...patch });
+  }
+
   // Every weight drag goes through here. In a record's Overall view, or while what-if weights are on, it edits the overlay instead of the file.
   setWeights(slugs, before, after, step = null) {
     const s = this.state;
     // A drag never takes a record weight to 0: that would turn a goal off, or drop a criterion from its bar.
     if (s.map.template === 'record') after = after.map((v, j) => (after[j] === before[j] ? v : Math.max(0.1, v)));
-    const recordView = RECORD_VIEWS.includes(s.view) ? s.view : 'overall';
-    if (s.map.template === 'record' && (s.whatIf !== null || recordView === 'overall')) {
+    const place = Component.recordPlace(s);
+    if (s.map.template === 'record' && (s.whatIf !== null || (place.view === 'record' && place.level === 'overview'))) {
       const next = { ...(s.whatIf ?? {}) };
       slugs.forEach((slug, j) => { if (after[j] !== before[j]) next[slug] = Math.round(after[j] * 10) / 10; });
       this.setWhatIf(next, step ?? (this.drag !== null ? (this.drag.step ??= `drag:${++this.stepSerial}`) : null));
@@ -3375,7 +3409,7 @@ class Component extends DCLogic {
     const B = Component.recordBlank;
     const node = B({ slug: goal, text: 'New goal', kind: 'goal', importance: Component.averageWeight(m.root.children), children: [B({ slug: crit, text: 'New criterion', kind: 'criterion', importance: 50 })] });
     this.edit((mm) => ({ ...mm, root: { ...mm.root, children: [...mm.root.children, node] } }));
-    this.setState({ goal, cell: null });
+    this.setState({ selGoal: goal, cell: null });
   }
 
   addCriterion(goalSlug) {
@@ -3561,7 +3595,9 @@ class Component extends DCLogic {
     const isRecordFile = map.template === 'record';
     const sameKind = mapB !== null && mapB.template === map.template;
     // A view from the URL or another file that this kind of file doesn't have falls back to its first view.
-    const view = isRecordFile ? (RECORD_VIEWS.includes(s.view) ? s.view : 'overall') : (MAP_VIEWS.includes(s.view) ? s.view : 'map');
+    const place = isRecordFile ? Component.recordPlace(s) : null;
+    const view = isRecordFile ? place.view : (MAP_VIEWS.includes(s.view) ? s.view : 'map');
+    const level = isRecordFile && view === 'record' ? place.level : null;
     /* No map: nothing opened yet (noMap), or a file whose markdown doesn't parse yet (only the source view shows). */
     const hasMap = map !== BLANK;
     const noMap = !hasMap && s.src === '';
@@ -3583,11 +3619,11 @@ class Component extends DCLogic {
       return { fg: impact < 0 ? P.con : P.pro, tint: impact < 0 ? P.conTint : P.proTint, glyph: impact < 0 ? '−' : impact > 0 ? '+' : '0', label: 'Fact', solid };
     };
 
-    const tabList = isRecordFile ? [['overall', 'Overall'], ['goals', 'Goals'], ['source', 'Markdown source'], ['compare', 'Compare']]
+    const tabList = isRecordFile ? [['record', 'Record'], ['source', 'Markdown source'], ['compare', 'Compare']]
       : [['pie', 'Pie view'], ['map', 'Bar view'], ['source', 'Markdown source'], ['diff', 'Compare two maps']];
     const tabs = tabList.map(([id, label]) => ({
       label, pressed: String(view === id),
-      isPie: id === 'pie', isTree: id === 'map', isSource: id === 'source', isDiff: id === 'diff' || id === 'compare', isOverall: id === 'overall', isGoals: id === 'goals',
+      isPie: id === 'pie', isTree: id === 'map', isSource: id === 'source', isDiff: id === 'diff' || id === 'compare', isOverall: id === 'record', isGoals: id === 'goals',
       fg: view === id ? P.ink : 'var(--ink3)', underline: view === id ? P.ink : 'transparent',
       pick: () => this.setState({ view: id, hover: null }),
     }));
@@ -4425,7 +4461,7 @@ class Component extends DCLogic {
     };
     const optTitle = (o) => (recModel ? recModel.options.get(o) ?? o : o);
     const fmt1 = (v) => v.toFixed(1);
-    const openGoal = (slug) => this.setState({ view: 'goals', goal: slug, cell: null, reason: null, confirmGoalDelete: false });
+    const openGoal = (slug) => this.recNav({ recLevel: 'criteria', recGoal: slug, cell: null, confirmGoalDelete: false });
     const goalsView = !isRecordFile ? { weights: wt('', [], () => ''), cards: [], addGoal: () => {} } : {
       weights: wt('Goal importance', map.root.children, (n) => goalFill(n.slug), null, openGoal),
       cards: recModel.goals.map((g) => {
@@ -4439,7 +4475,7 @@ class Component extends DCLogic {
       }),
       addGoal: () => this.addGoal(),
     };
-    const curGoal = isRecordFile && s.goal !== null ? recModel.goals.find((g) => g.node.slug === s.goal) ?? null : null;
+    const curGoal = isRecordFile && level !== null && level !== 'overview' && level !== 'goals' && place.goal !== null ? recModel.goals.find((g) => g.node.slug === place.goal.slug) ?? null : null;
     const cell = curGoal && s.cell && curGoal.options.includes(s.cell.option) && curGoal.criteria.some((c) => c.node.slug === s.cell.criterion) ? s.cell : null;
     const goalView = curGoal === null ? { has: false, grid: { headers: [], rows: [] }, existing: [], criteria: wt('', [], () => ''), crits: [], panel: { has: false, reasons: [] } } : (() => {
       const g = curGoal;
@@ -4448,7 +4484,7 @@ class Component extends DCLogic {
       return {
         has: true, slug: gs, title: g.node.text, desc: g.node.details ?? '',
         onTitle: (e) => this.setNodeText(gs, 'text', e.target.value), onDesc: (e) => this.setNodeText(gs, 'details', e.target.value), onBlur: () => this.endStep(),
-        back: () => this.setState({ goal: null, cell: null }),
+        back: () => this.recNav({ recLevel: 'goals', cell: null }),
         criteria: wt('Criteria', g.node.children, (n, i) => critFill(i)),
         crits: g.criteria.map((c) => ({
           slug: c.node.slug, title: c.node.text, onTitle: (e) => this.setNodeText(c.node.slug, 'text', e.target.value), onBlur: () => this.endStep(),
@@ -4482,7 +4518,7 @@ class Component extends DCLogic {
         onNewOptionKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addNewOption(gs); } },
         askDelete: !s.confirmGoalDelete, confirming: s.confirmGoalDelete,
         askDel: () => this.setState({ confirmGoalDelete: true }), cancelDel: () => this.setState({ confirmGoalDelete: false }),
-        doDel: () => { this.removeRecordNode(gs); this.setState({ goal: null, cell: null, confirmGoalDelete: false }); },
+        doDel: () => { this.removeRecordNode(gs); this.recNav({ recLevel: 'goals', recGoal: null, cell: null, confirmGoalDelete: false }); },
         canDelete: editable && recModel.goals.length > 1,
         panel: cell === null ? { has: false, reasons: [] } : (() => {
           const crit = g.criteria.find((c) => c.node.slug === cell.criterion);
@@ -4646,7 +4682,25 @@ class Component extends DCLogic {
       save: () => this.saveWhatIf(), reset: () => this.setWhatIf(null),
       text: s.whatIf !== null ? 'What-if weights · every view shows them, and nothing is saved until you save them' : '',
     };
-    const recPanels = !isRecordFile ? [] : view === 'overall' ? [overall.weights, overall.criteria] : view === 'goals' && curGoal !== null ? [goalView.criteria] : view === 'goals' ? [goalsView.weights] : [];
+    // Breadcrumbs: Overview › All goals › goal › option › criterion. Levels below the current one stay, faded, to step back down.
+    const recCrumbs = level === null ? [] : (() => {
+      const at = REC_LEVELS.indexOf(level);
+      const g = place.goal;
+      const optTitleOf = (o) => recModel.options.get(o) ?? o;
+      const option = place.option ?? (s.recOption !== null && place.options.includes(s.recOption) ? s.recOption : null);
+      const parts = [
+        { lv: 'overview', tier: 'Record', name: 'Overview' },
+        { lv: 'goals', tier: 'Goals', name: 'All goals' },
+        g && { lv: 'criteria', tier: 'Criteria of', name: g.text },
+        g && (option !== null || s.optMode === 'compare') && { lv: 'options', tier: 'Option', name: s.optMode === 'compare' && at <= 3 && option === null ? 'All options' : option !== null ? optTitleOf(option) : 'All options' },
+        g && option !== null && place.crit && { lv: 'reasons', tier: 'Reasons for', name: place.crit.text },
+      ].filter(Boolean);
+      return parts.map((p) => {
+        const k = REC_LEVELS.indexOf(p.lv);
+        return { tier: p.tier, name: p.name, current: k === at, ahead: k > at, currentAttr: k === at ? 'page' : 'false', opacity: k > at ? 0.5 : 1, weight: k === at ? 700 : 500, go: () => this.recNav({ recLevel: p.lv }) };
+      });
+    })();
+    const recPanels = !isRecordFile ? [] : level === 'overview' ? [overall.weights, overall.criteria] : level !== null && level !== 'goals' && curGoal !== null ? [goalView.criteria] : level === 'goals' ? [goalsView.weights] : [];
     return {
       title: map.title, tabs, tb, nm, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
       isFocusView: hasMap && (view === 'map' || view === 'pie'),
@@ -4663,8 +4717,9 @@ class Component extends DCLogic {
           save: choose(tb.save), download: choose(tb.download), settings: choose(stg.openIt),
         };
       })(),
-      recordChart, goalsView, goalView, recPanels, overall, whatIfBar, compare, dropAsk, isRecordView: hasMap && isRecordFile && view !== 'source' && view !== 'compare',
-      isOverall: hasMap && view === 'overall', isGoals: hasMap && view === 'goals' && curGoal === null, isGoal: hasMap && view === 'goals' && curGoal !== null, isCompare: hasMap && view === 'compare',
+      recordChart, goalsView, goalView, recPanels, overall, whatIfBar, compare, dropAsk, isRecordView: hasMap && isRecordFile && view === 'record',
+      isOverall: hasMap && level === 'overview', isGoals: hasMap && level === 'goals', isGoal: hasMap && curGoal !== null, isCompare: hasMap && view === 'compare',
+      isRecLevel: Object.fromEntries(REC_LEVELS.map((lv) => [lv, hasMap && level === lv])), recCrumbs, hasCrumbs: hasMap && level !== null,
       hasMap, isMap: hasMap && view === 'map', isPie: hasMap && view === 'pie', isDiff: hasMap && view === 'diff', isSource: !noMap && view === 'source',
       undoBtn: { disabled: locked || s.history.past.length === 0, opacity: locked || s.history.past.length === 0 ? 0.35 : 1, run: () => this.undo() },
       redoBtn: { disabled: locked || s.history.future.length === 0, opacity: locked || s.history.future.length === 0 ? 0.35 : 1, run: () => this.redo() },
