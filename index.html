@@ -31,7 +31,7 @@ input::placeholder,textarea::placeholder{color:var(--ink3)}
 .am-root[data-accent="teal"]{--accent-base:#0F766E}
 .am-root[data-accent="graphite"]{--accent-base:#4A4F58}
 button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-@media (max-width:700px){.am-recwrap{flex-direction:column;align-items:stretch!important}.am-rail{position:static!important;width:auto!important;height:auto!important;flex-direction:row!important;overflow-x:auto}.am-step{min-width:150px}}
+@media (max-width:700px){.am-recwrap{flex-direction:column;align-items:stretch!important}.am-recmain{flex:1 1 0}.am-rail{position:static!important;width:auto!important;height:auto!important;flex-direction:row!important;overflow-x:auto}.am-step{min-width:150px}}
 .am-title{border-radius:6px;padding:2px 6px!important;margin-left:-6px!important}
 .am-title:focus{outline:2px solid var(--accent);outline-offset:0;background:var(--accent-tint)!important}
 .tb{background:transparent}.tb:hover:not([disabled]){background:var(--sunk)}.tb[disabled]{cursor:not-allowed}
@@ -56,8 +56,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </helmet>
 <div class="am-root" data-theme="{{themeId}}" data-accent="{{accentId}}">
-<div style="min-height: 100vh; background: var(--bg); color: var(--ink); font-family: 'IBM Plex Sans', system-ui, sans-serif; box-sizing: border-box; padding: 24px 16px 64px">
-<div style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+<div style="min-height: 100vh; background: var(--bg); color: var(--ink); font-family: 'IBM Plex Sans', system-ui, sans-serif; box-sizing: border-box; padding: 24px 16px 64px; padding-bottom: {{shell.padBottom}}; height: {{shell.height}}; overflow: {{shell.overflow}}">
+<div style="max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; height: {{shell.innerHeight}}">
 
 <header style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 14px">
   <div style="flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column">
@@ -605,9 +605,9 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 
   <!-- ============ DIFF VIEW ============ -->
   <svg aria-hidden="true" style="position: absolute; width: 0; height: 0"><defs><pattern id="am-rec-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.5" height="10" style="fill: var(--ink); opacity: 0.3"></rect></pattern></defs></svg>
-  <div class="am-recwrap" style="display: flex; gap: 16px; align-items: flex-start">
+  <div class="am-recwrap" style="display: flex; gap: 16px; align-items: {{shell.align}}; flex: {{shell.wrapFlex}}; min-height: 0">
   <sc-if value="{{hasRail}}" hint-placeholder-val="{{ false }}">
-    <nav class="am-rail" aria-label="Steps" style="position: sticky; top: 16px; flex: none; width: 220px; height: calc(100vh - 32px); box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow-y: auto">
+    <nav class="am-rail" aria-label="Steps" style="position: {{shell.railPosition}}; top: 16px; flex: none; width: 220px; height: {{shell.railHeight}}; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow-y: auto">
       <sc-for list="{{recSteps}}" as="st" hint-placeholder-count="4">
         <button type="button" class="tb am-step" aria-current="{{st.currentAttr}}" onClick="{{st.go}}" style="display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px 10px; align-items: center; width: 100%; border: 0; border-radius: 10px; padding: 10px 8px; font: inherit; color: var(--ink); text-align: left; cursor: pointer; background: {{st.bg}}; opacity: {{st.opacity}}">
           <span aria-hidden="true" style="grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--ink); box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: {{st.dot}}; color: {{st.dotFg}}">{{st.n}}</span>
@@ -617,7 +617,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </sc-for>
     </nav>
   </sc-if>
-  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+  <div class="am-recmain" style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px; overflow-y: {{shell.mainOverflow}}; min-height: 0; padding-bottom: 48px; box-sizing: border-box">
   <sc-if value="{{dropAsk.shown}}" hint-placeholder-val="{{ false }}">
     <div role="alertdialog" aria-label="Drop what-if weights?" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 2px solid var(--warn-fg); font-size: 14px">
       <span style="flex: 1 1 260px; font-weight: 600">{{dropAsk.text}}</span>
@@ -4914,6 +4914,10 @@ class Component extends DCLogic {
           save: choose(tb.save), download: choose(tb.download), settings: choose(stg.openIt),
         };
       })(),
+      // On the Record step page the window is a fixed frame: the header and rail stay put and only the main column scrolls.
+      shell: hasMap && !nm.open && level !== null && level !== 'overview'
+        ? { height: '100vh', overflow: 'hidden', innerHeight: '100%', padBottom: '16px', wrapFlex: '1 1 0', align: 'stretch', mainOverflow: 'auto', railHeight: 'auto', railPosition: 'static' }
+        : { height: 'auto', overflow: 'visible', innerHeight: 'auto', padBottom: '64px', wrapFlex: '0 0 auto', align: 'flex-start', mainOverflow: 'visible', railHeight: 'auto', railPosition: 'static' },
       recordChart, optionsLevel, reasonsLevel, overall, whatIfBar, compare, dropAsk, isRecordView: hasMap && isRecordFile && view === 'record',
       goalsLevel, criteriaLevel, recLayout,
       isOverall: hasMap && level === 'overview', isCompare: hasMap && view === 'compare',

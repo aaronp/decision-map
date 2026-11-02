@@ -2225,6 +2225,17 @@ test('Recalculate sets a point\'s impact from its points, and undo puts it back'
   assert.equal(c.renderVals().health.canRecalc, false, 'the root has no impact of its own');
 });
 
+
+// ---------------------------------------------------------------- the record's step page is a fixed frame
+test('on the Record step page only the main column scrolls; elsewhere the page scrolls', () => {
+  const c = rec2({ recLevel: 'goals' });
+  assert.deepEqual(c.renderVals().shell, { height: '100vh', overflow: 'hidden', innerHeight: '100%', padBottom: '16px', wrapFlex: '1 1 0', align: 'stretch', mainOverflow: 'auto', railHeight: 'auto', railPosition: 'static' });
+  const o = rec2();
+  assert.equal(o.renderVals().shell.overflow, 'visible', 'the Overview scrolls as a page');
+  assert.equal(boot(MAP3).renderVals().shell.height, 'auto');
+  for (const name of ['shell.height', 'shell.mainOverflow', 'shell.railPosition']) assert.ok(template.includes(`{{${name}}}`), name);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
