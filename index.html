@@ -956,6 +956,26 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             </div>
           </sc-for>
         </section>
+        <section aria-label="Snapshots" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 1.05rem">Snapshots</h2>
+          <p style="margin: 0; font-size: 13px; color: var(--ink3)">A snapshot keeps a copy of this record as shown, what-if weights included, in this browser only. Use it in Compare, or load its weights here.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px">
+            <input type="text" aria-label="Snapshot name" placeholder="Snapshot name, e.g. Without replay" value="{{overall.snap.name}}" onChange="{{overall.snap.onName}}" onKeyDown="{{overall.snap.onNameKey}}" style="min-height: 36px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; flex: 1 1 200px; min-width: 0">
+            <button type="button" onClick="{{overall.snap.save}}" disabled="{{overall.snap.saveDisabled}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Save snapshot</button>
+          </div>
+          <sc-if value="{{overall.snap.hasNotice}}" hint-placeholder-val="{{ false }}"><p role="alert" style="margin: 0; font-size: 13px; color: var(--warn-fg)">{{overall.snap.notice}}</p></sc-if>
+          <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+            <sc-for list="{{overall.snap.items}}" as="x" hint-placeholder-count="1">
+              <li style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; background: var(--sunk); border-radius: 8px; padding: 6px 10px">
+                <input type="text" aria-label="Snapshot name" value="{{x.name}}" onChange="{{x.onRename}}" style="flex: 1 1 140px; min-width: 0; border: 0; background: transparent; padding: 0; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink)">
+                <span style="font-size: 12px; color: var(--ink3)">{{x.meta}}</span>
+                <button type="button" aria-label="{{x.loadLabel}}" onClick="{{x.load}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; min-height: 28px; font-size: 13px">Load weights</button>
+                <sc-if value="{{x.askDelete}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{x.askDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; min-height: 28px; font-size: 13px">Delete</button></sc-if>
+                <sc-if value="{{x.confirming}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{x.doDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; min-height: 28px; font-size: 13px; background: var(--con); color: var(--on-fill); border-color: var(--con)">Delete it</button><button type="button" onClick="{{x.cancelDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; min-height: 28px; font-size: 13px">Cancel</button></sc-if>
+              </li>
+            </sc-for>
+          </ul>
+        </section>
       </sc-if>
     </div>
   </div>
@@ -1517,6 +1537,9 @@ function readRecent(r) {
     return r.handle.getFile();
   }).then((f) => f.text()).then((text) => ({ name: r.name, text, handle: r.handle }));
 }
+/** Named snapshots of decision records, kept only in this browser, under 'snapshots' in the same store as Open recent. */
+const loadSnapshots = () => recentStore('readonly', (s) => s.get('snapshots')).then((v) => v ?? []);
+const storeSnapshots = (list) => recentStore('readwrite', (s) => s.put(list, 'snapshots'));
 /** How long edits must pause before autosave writes them. */
 const AUTOSAVE_MS = 1500;
 /** Write `text` over `handle`; asks for write permission unless `ask` is false (autosave), when it only writes if already allowed. */
@@ -1663,6 +1686,7 @@ class Component extends DCLogic {
     this.state = {
       history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
+      snapshots: [], snapName: '', snapNotice: '', confirmSnap: null,
       goal: QUERY.get('goal'), recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, cell: null, reason: null, newReasonText: '', newOptionText: '', confirmGoalDelete: false,
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
@@ -2207,6 +2231,37 @@ class Component extends DCLogic {
     const on = nodes.filter((n) => w(n) > 0);
     const T = on.reduce((t, n) => t + w(n), 0);
     return on.map((n) => ({ node: n, importance: w(n), share: T === 0 ? 0 : w(n) / T, impact: 0, contribution: 0, calculated: false }));
+  }
+
+  // The record with an overlay's weights written in; slugs it no longer has are skipped.
+  static applyWeights(map, overlay) {
+    if (overlay === null) return map;
+    const root = Object.entries(overlay).reduce((r, [slug, w]) => (Component.findPath(r, slug) === null ? r
+      : Component.mapNode(r, slug, (n) => ({ ...n, importance: w }))), map.root);
+    return { ...map, root };
+  }
+
+  // Snapshot lists: { id, name, file, root, title, at, src }, newest last.
+  static snapshotAdd(list, snap) {
+    let id = `snap-${snap.at}`;
+    for (let n = 2; list.some((x) => x.id === id); n++) id = `snap-${snap.at}-${n}`;
+    return [...list, { ...snap, id }];
+  }
+
+  static snapshotRename(list, id, name) { return list.map((x) => (x.id === id ? { ...x, name } : x)); }
+
+  static snapshotRemove(list, id) { return list.filter((x) => x.id !== id); }
+
+  static snapshotsFor(list, root) { return list.filter((x) => x.root === root); }
+
+  // A record's goal and criterion weights as an overlay for another record: only slugs both have.
+  static weightsOverlay(from, onto) {
+    const out = {};
+    for (const g of from.root.children) {
+      if (Component.findPath(onto.root, g.slug)) out[g.slug] = g.importance;
+      for (const c of g.children) if (Component.findPath(onto.root, c.slug)) out[c.slug] = c.importance;
+    }
+    return out;
   }
 
   static recordBlank(fields) {
@@ -2759,6 +2814,7 @@ class Component extends DCLogic {
       this.setState({ apiStatus: `This browser blocks storage here (${e.message}), so a key can only be kept until you close the page.` });
     }
     loadRecent().then((recent) => this.setState({ recent }));
+    loadSnapshots().then((snapshots) => this.setState({ snapshots }), () => {});
     window.addEventListener('keydown', this.onGlobalKey);
     this.syncQuery();
   }
@@ -3048,6 +3104,28 @@ class Component extends DCLogic {
     this.setImportances(slugs, before, after, step);
   }
 
+  // A snapshot copies the whole record as shown, what-if weights included. Storage failing keeps it for this session and says so.
+  saveSnapshot() {
+    const s = this.state;
+    const name = s.snapName.trim();
+    if (name === '') return Promise.resolve();
+    const snap = { name, file: s.fileName, root: s.map.root.slug, title: s.map.title, at: Date.now(), src: Component.serialize(Component.applyWeights(s.map, s.whatIf)) };
+    const list = Component.snapshotAdd(s.snapshots, snap);
+    this.setState({ snapshots: list, snapName: '', snapNotice: '' });
+    return this.persistSnapshots(list);
+  }
+
+  persistSnapshots(list) {
+    return storeSnapshots(list).catch((e) => this.setState({ snapNotice: `Snapshots can’t be kept in this browser (${e && e.message ? e.message : 'storage refused'}), so they last only until you close the page.` }));
+  }
+
+  loadSnapshot(id) {
+    const snap = this.state.snapshots.find((x) => x.id === id);
+    const r = Component.parse(snap.src);
+    if (r.errors.length) { this.setState({ snapNotice: `Snapshot “${snap.name}” doesn’t parse any more.` }); return; }
+    this.setWhatIf(Component.weightsOverlay(r.map, this.state.map));
+  }
+
   // What-if weights ({ slug: weight }, or null when off) are undoable but never written to the file until saved.
   setWhatIf(next, step = null) {
     this.setState((s) => ({ whatIf: next, history: Component.pushHistory(s, step) }));
@@ -3072,9 +3150,7 @@ class Component extends DCLogic {
   saveWhatIf() {
     this.setState((s) => {
       if (s.whatIf === null || s.srcErrors.length) return null;
-      const root = Object.entries(s.whatIf).reduce((r, [slug, w]) => (Component.findPath(r, slug) === null ? r
-        : Component.mapNode(r, slug, (n) => ({ ...n, importance: w }))), s.map.root);
-      const map = { ...s.map, root };
+      const map = Component.applyWeights(s.map, s.whatIf);
       return { map, src: Component.serialize(map), whatIf: null, history: Component.pushHistory(s, null) };
     });
   }
@@ -4262,7 +4338,7 @@ class Component extends DCLogic {
         })(),
       };
     })();
-    const overall = !isRecordFile ? { goals: [], ranking: [], weights: wt('', [], () => ''), criteria: wt('', [], () => '') } : (() => {
+    const overall = !isRecordFile ? { goals: [], ranking: [], weights: wt('', [], () => ''), criteria: wt('', [], () => ''), snap: { items: [] } } : (() => {
       const T = recModel.goals.reduce((t, g) => t + g.importance, 0);
       const sel = recModel.goals.find((g) => g.node.slug === s.overallGoal) ?? recModel.goals[0] ?? null;
       const goals = recModel.goals.map((g) => ({
@@ -4279,7 +4355,20 @@ class Component extends DCLogic {
         wins: r.wins.map((gs) => ({ title: `Wins ${recModel.goals.find((g) => g.node.slug === gs).node.text}` })),
         noWins: i === 0 && r.wins.length === 0,
       }));
-      return { goals, weights, criteria, ranking, legend: recModel.goals.filter((g) => g.on).map((g) => ({ title: g.node.text, fill: goalFill(g.node.slug) })) };
+      const snapItems = Component.snapshotsFor(s.snapshots, map.root.slug).map((x) => ({
+        id: x.id, name: x.name, meta: `${new Date(x.at).toLocaleString()} · ${x.file}`,
+        load: () => this.loadSnapshot(x.id), loadLabel: `Load the weights of ${x.name}`,
+        onRename: (e) => { const list = Component.snapshotRename(this.state.snapshots, x.id, e.target.value); this.setState({ snapshots: list }); this.persistSnapshots(list); },
+        askDelete: s.confirmSnap !== x.id, confirming: s.confirmSnap === x.id,
+        askDel: () => this.setState({ confirmSnap: x.id }), cancelDel: () => this.setState({ confirmSnap: null }),
+        doDel: () => { const list = Component.snapshotRemove(this.state.snapshots, x.id); this.setState({ snapshots: list, confirmSnap: null }); this.persistSnapshots(list); },
+      }));
+      const snap = {
+        name: s.snapName, onName: (e) => this.setState({ snapName: e.target.value }), save: () => this.saveSnapshot(),
+        onNameKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.saveSnapshot(); } },
+        saveDisabled: s.snapName.trim() === '', notice: s.snapNotice, hasNotice: s.snapNotice !== '', items: snapItems, has: snapItems.length > 0,
+      };
+      return { goals, weights, criteria, ranking, snap, legend: recModel.goals.filter((g) => g.on).map((g) => ({ title: g.node.text, fill: goalFill(g.node.slug) })) };
     })();
     const whatIfBar = {
       shown: isRecordFile && s.whatIf !== null,

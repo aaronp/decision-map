@@ -17,8 +17,14 @@ const Component = new Function('DCLogic', 'location', 'window', m[1] + '\n;retur
 
 let failed = 0;
 let passed = 0;
+const pending = [];
 function test(name, fn) {
-  try { fn(); passed++; } catch (e) { failed++; console.error(`FAIL ${name}\n  ${e.message}`); }
+  const fail = (e) => { failed++; console.error(`FAIL ${name}\n  ${e.message}`); };
+  try {
+    const r = fn();
+    if (r && typeof r.then === 'function') pending.push(r.then(() => { passed++; }, fail));
+    else passed++;
+  } catch (e) { fail(e); }
 }
 
 const NEW = `---\ntitle: T\n---\n\n# Root claim\nslug: root\nby: Me\n\nRoot details.\n\n## Good: a fact\nslug: a\nimportance: 60\nimpact: 0.8\nby: Sam\nconfidence: 4\nbasis: Would change if X\n\nLine one.\n\nLine two.\n\n- [ref] [Src](https://example.com) — shows it\n\n### Child\nslug: b\nimportance: 45.5\nimpact: -0.6\n`;
@@ -1614,5 +1620,38 @@ test('a top option that wins no goal says so', () => {
   assert.equal(top.noWins, top.wins.length === 0);
 });
 
-console.log(`${passed} passed, ${failed} failed`);
-if (failed) process.exit(1);
+// ---------------------------------------------------------------- snapshots
+test('snapshot list operations', () => {
+  let l = Component.snapshotAdd([], { name: 'A', file: 'x.md', root: 'store', title: 'Store', at: 1, src: REC });
+  l = Component.snapshotAdd(l, { name: 'B', file: 'y.md', root: 'other', title: 'O', at: 2, src: REC });
+  assert.deepEqual(Component.snapshotsFor(l, 'store').map((s) => s.name), ['A']);
+  l = Component.snapshotRename(l, 'snap-1', 'A2');
+  l = Component.snapshotRemove(l, 'snap-2');
+  assert.deepEqual(l.map((s) => s.name), ['A2']);
+});
+test('saving a snapshot copies the record as shown, what-if included, and loading it restores the weights', async () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  overallOf(c).goals[1].toggle();
+  overallOf(c).snap.onName({ target: { value: 'No cost' } });
+  await overallOf(c).snap.save();
+  const s = c.state.snapshots[0];
+  assert.match(s.src, /## Cost\nslug: cost\nimportance: 0/);
+  c.renderVals().whatIfBar.reset();
+  overallOf(c).snap.items[0].load();
+  assert.equal(c.state.whatIf.cost, 0);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+test('when the browser refuses storage, snapshots say so and nothing throws', async () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  overallOf(c).snap.onName({ target: { value: 'X' } });
+  await overallOf(c).snap.save(); // indexedDB is undefined in check.js
+  assert.match(c.renderVals().overall.snap.notice, /can’t be kept in this browser/);
+  assert.equal(c.state.snapshots.length, 1);
+});
+
+Promise.all(pending).then(() => {
+  console.log(`${passed} passed, ${failed} failed`);
+  if (failed) process.exit(1);
+});
