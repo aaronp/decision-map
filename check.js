@@ -1696,6 +1696,13 @@ test('comparing a record with a map explains itself', () => {
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
+// ---------------------------------------------------------------- example record
+test('the example record parses and round-trips', () => {
+  const src = fs.readFileSync('examples/event-store/record.md', 'utf8');
+  assert.deepEqual(Component.parse(src).errors, []);
+  assert.equal(Component.serialize(Component.parse(src).map), src);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);

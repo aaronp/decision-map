@@ -95,6 +95,55 @@ The same points as rings around the current point, sorted clockwise from the top
 - **Pin** the pie to keep it centred where it is. Clicking a slice then shows that point's details beside the pie, without moving the pie.
 - In edit mode, **hover a slice** for a **+** on each side, which adds a point beside it. A slice with no children also gets a **+** outside it for its first child.
 
+## Decision records
+
+A decision record is a template with fixed tiers, for decisions shaped as "which option best meets our goals?". Choose **Decision record** on the New card.
+
+- **Goals** have a title, a description and an importance relative to the other goals.
+- Each goal has its own **criteria**, weighted against each other.
+- Each goal has its own **options**: pick one already used elsewhere in the record, or add a new one. Each option gets a **score** from 0 to 10 on each criterion.
+- Each score can have **reasons**. A reason has a weight, which sets its emphasis but never changes the score, and the same extras as a point: by, basis, confidence and evidence.
+
+An option's **goal score** is the sum of each criterion's share of the goal × its score, out of 10. The best goal score wins that goal. The **overall score** is the sum of each goal's share of importance × the option's goal score. A goal that doesn't include an option adds nothing to it, so an option can come first overall without winning any single goal.
+
+```markdown
+---
+title: Event store for the billing service
+template: decision-record
+---
+
+# Event store for the billing service
+slug: billing-event-store
+
+## Reliability
+slug: reliability
+importance: 40
+
+### Durability
+slug: durability
+weight: 50
+
+#### DynamoDB
+option: dynamodb
+score: 9
+
+##### Multi-AZ replication by default
+slug: multi-az
+weight: 60
+```
+
+A score heading names its option with `option:` instead of a slug, because the same option appears under several criteria. An option has one title throughout the file. A missing score reads as 0.
+
+The views:
+
+- **Overall:** the ranking, with each option's bar split by what each goal adds. Goal weights and the selected goal's criteria weights use the bar or the pie, with Ctrl/⌘-click to choose what a resize changes, and a checkbox turns a goal off. Changes here are **what-if weights**: every view shows them, but nothing is saved until **Save as the record's weights**. **Reset** drops them. A goal saved while off gets `importance: 0`.
+- **Goals:** goal importance, and a card per goal with its winner. Open a goal to edit its criteria, add options and set scores. Click a score to change it and give its reasons.
+- **Compare:** two records side by side, from the open file, its what-if weights, a second file, or a snapshot. Choose goals, one goal's criteria or one goal's scores, as paired bars or as composite bars split into their parts. The biggest differences are listed first. Click a score row to see each side's reasons.
+
+**Snapshots** save a named copy of the record as shown, what-if weights included. They're kept only in this browser, in IndexedDB, and can be loaded back as what-if weights or used in Compare.
+
+**Undo and redo** (⌘Z and ⌘⇧Z, or the ↶ ↷ buttons) cover every edit in maps and records, including what-if weights. A drag is one step. History starts again when a file is opened.
+
 ## Run it
 
 ```sh
@@ -159,3 +208,5 @@ Keys are kept in this browser's localStorage, never in the markdown.
 `examples/votes-at-16` is a slim data repo: the markdown plus an
 `index.html` that redirects to the published mapper with `?src=` pointing at
 it. `make clone REPO=you/your-repo` there copies it into a new repo.
+
+`examples/event-store/record.md` is an example decision record.
