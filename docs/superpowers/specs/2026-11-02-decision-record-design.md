@@ -34,6 +34,13 @@ The author tried the first build and the prototype, and decided the following (2
 - The bar/pie switch stays for these weight bars. The prototype shows only the bar.
 - What-if weights work as built (Claude's call): a weight drag on the Overview starts them. While they're on, every level shows them and every weight drag edits them, under the "What-if weights" bar with Save and Reset. Otherwise the other levels edit the record directly.
 
+### Changed after trying it: a step rail (author's decision)
+
+- A new decision record opens on the **Goals** step. An existing record still opens on the Overview (Claude's call).
+- The breadcrumbs are replaced by a vertical step rail on the left, full height, which stays in place as the page scrolls: **Goals › Criteria › Options › Reasons**, each showing what's chosen there and clickable to jump to it.
+- The Overview isn't on the rail. It's its own header tab, so a record's tabs are **Overview**, **Record**, **Markdown source** and **Compare**. **Record** returns to the step you were last on, or Goals (Claude's call).
+- A step with nothing chosen yet picks the first goal, option or criterion. On screens under 700px wide, the rail becomes a row across the top (Claude's calls).
+
 ### Resizing: the border follows the pointer (maps too)
 
 This replaces the map's "drag as far as you like and the rest scale to fit", in the map's bar and pie as well as in records.

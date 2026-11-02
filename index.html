@@ -31,6 +31,7 @@ input::placeholder,textarea::placeholder{color:var(--ink3)}
 .am-root[data-accent="teal"]{--accent-base:#0F766E}
 .am-root[data-accent="graphite"]{--accent-base:#4A4F58}
 button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:700px){.am-recwrap{flex-direction:column;align-items:stretch!important}.am-rail{position:static!important;width:auto!important;height:auto!important;flex-direction:row!important;overflow-x:auto}.am-step{min-width:150px}}
 .tb{background:transparent}.tb:hover:not([disabled]){background:var(--sunk)}.tb[disabled]{cursor:not-allowed}
 label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
@@ -595,16 +596,19 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 
   <!-- ============ DIFF VIEW ============ -->
   <svg aria-hidden="true" style="position: absolute; width: 0; height: 0"><defs><pattern id="am-rec-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.5" height="10" style="fill: var(--ink); opacity: 0.3"></rect></pattern></defs></svg>
-  <sc-if value="{{hasCrumbs}}" hint-placeholder-val="{{ false }}">
-    <nav aria-label="Where you are in the record" style="display: flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; padding: 6px 8px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px">
-      <sc-for list="{{recCrumbs}}" as="cr" hint-placeholder-count="3">
-        <button type="button" class="tb" aria-current="{{cr.currentAttr}}" onClick="{{cr.go}}" style="display: flex; flex-direction: column; align-items: flex-start; max-width: 240px; min-height: 40px; border: 0; border-radius: 8px; padding: 4px 10px; font: inherit; color: var(--ink); text-align: left; cursor: pointer; opacity: {{cr.opacity}}">
-          <span style="font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">{{cr.tier}}</span>
-          <span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: {{cr.weight}}">{{cr.name}}</span>
+  <div class="am-recwrap" style="display: flex; gap: 16px; align-items: flex-start">
+  <sc-if value="{{hasRail}}" hint-placeholder-val="{{ false }}">
+    <nav class="am-rail" aria-label="Steps" style="position: sticky; top: 16px; flex: none; width: 220px; height: calc(100vh - 32px); box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 12px 10px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow-y: auto">
+      <sc-for list="{{recSteps}}" as="st" hint-placeholder-count="4">
+        <button type="button" class="tb am-step" aria-current="{{st.currentAttr}}" onClick="{{st.go}}" style="display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 2px 10px; align-items: center; width: 100%; border: 0; border-radius: 10px; padding: 10px 8px; font: inherit; color: var(--ink); text-align: left; cursor: pointer; background: {{st.bg}}; opacity: {{st.opacity}}">
+          <span aria-hidden="true" style="grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--ink); box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; background: {{st.dot}}; color: {{st.dotFg}}">{{st.n}}</span>
+          <span style="font-weight: {{st.weight}}">{{st.tier}}</span>
+          <span style="font-size: 13px; color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{st.detail}}</span>
         </button>
       </sc-for>
     </nav>
   </sc-if>
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px">
   <sc-if value="{{dropAsk.shown}}" hint-placeholder-val="{{ false }}">
     <div role="alertdialog" aria-label="Drop what-if weights?" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 2px solid var(--warn-fg); font-size: 14px">
       <span style="flex: 1 1 260px; font-weight: 600">{{dropAsk.text}}</span>
@@ -1029,6 +1033,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
     </div>
   </div>
   </sc-if>
+  </div>
+  </div>
   <sc-if value="{{isCompare}}" hint-placeholder-val="{{ false }}">
     <section aria-label="Compare records" style="display: flex; flex-direction: column; gap: 14px">
       <div style="display: flex; flex-direction: column; gap: 8px">
@@ -1831,7 +1837,7 @@ class Component extends DCLogic {
       history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
       dropPending: null, snapshots: [], snapName: '', snapNotice: '', confirmSnap: null,
-      recLevel: QUERY.get('view') === 'goals' ? 'goals' : 'overview', recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, optMode: 'edit',
+      recLevel: QUERY.get('view') === 'goals' ? 'goals' : 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, optMode: 'edit',
       recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, reason: null, newReasonText: '', newOptionText: '', confirmGoalDelete: false,
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
@@ -3091,7 +3097,7 @@ class Component extends DCLogic {
   loadA(text, name, url = null, force = false) {
     if (this.askBeforeDrop(`Open ${name}`, () => this.loadA(text, name, url, true), force)) return;
     const r = Component.parse(text);
-    const fresh = { history: Component.freshHistory(), whatIf: null, offWeights: {}, reason: null, recLevel: 'overview', recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, overallGoal: null, chosenFacts: [], cmpA: null, cmpB: null, cmpRow: null };
+    const fresh = { history: Component.freshHistory(), whatIf: null, offWeights: {}, reason: null, recLevel: 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, overallGoal: null, chosenFacts: [], cmpA: null, cmpB: null, cmpRow: null };
     replaceQuery({ src: url, ours: null, focus: null });
     const file = { fileName: name, fileUrl: url, savedSrc: text, research: null, rationale: null, newOpen: false };
     if (r.errors.length) {
@@ -3160,7 +3166,7 @@ class Component extends DCLogic {
     if (slug === '') throw new Error('bug: Create pressed with a title that has no letters or digits');
     const details = s.newDesc.trim();
     if (s.newKind === 'record') {
-      this.openNew(Component.newRecord(title, details), 'record', `New decision record · ${title}`);
+      this.openNew(Component.newRecord(title, details), 'record', `New decision record · ${title}`, false, 'goals');
       return;
     }
     const taken = new Set([slug]);
@@ -3173,12 +3179,12 @@ class Component extends DCLogic {
     this.openNew(map, 'map', `New map · ${title}`);
   }
 
-  openNew(map, view, status, force = false) {
-    if (this.askBeforeDrop('Start a new file', () => this.openNew(map, view, status, true), force)) return;
+  openNew(map, view, status, force = false, recLevel = 'overview') {
+    if (this.askBeforeDrop('Start a new file', () => this.openNew(map, view, status, true, recLevel), force)) return;
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
-      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: map.root.slug, view, recLevel: 'overview', recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, whatIf: null, offWeights: {}, reason: null, overallGoal: null, cmpA: null, cmpB: null, cmpRow: null,
+      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: map.root.slug, view, recLevel, railLevel: recLevel === 'overview' ? null : recLevel, recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, whatIf: null, offWeights: {}, reason: null, overallGoal: null, cmpA: null, cmpB: null, cmpRow: null,
       fileName: `${map.root.slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
       adding: null, draftText: '', chosenFacts: [], frozenOrder: null, pinned: null,
@@ -3301,7 +3307,8 @@ class Component extends DCLogic {
 
   // Move within the Record view; a reason panel open below closes.
   recNav(patch) {
-    this.setState({ view: 'record', reason: null, confirmGoalDelete: false, ...PANEL_RESET, ...patch });
+    const rail = patch.recLevel && patch.recLevel !== 'overview' ? { railLevel: patch.recLevel } : {};
+    this.setState({ view: 'record', reason: null, confirmGoalDelete: false, ...PANEL_RESET, ...rail, ...patch });
   }
 
   // Every weight drag goes through here. In a record's Overall view, or while what-if weights are on, it edits the overlay instead of the file.
@@ -3652,13 +3659,17 @@ class Component extends DCLogic {
       return { fg: impact < 0 ? P.con : P.pro, tint: impact < 0 ? P.conTint : P.proTint, glyph: impact < 0 ? '−' : impact > 0 ? '+' : '0', label: 'Fact', solid };
     };
 
-    const tabList = isRecordFile ? [['record', 'Record'], ['source', 'Markdown source'], ['compare', 'Compare']]
+    const tabList = isRecordFile ? [['overview', 'Overview'], ['record', 'Record'], ['source', 'Markdown source'], ['compare', 'Compare']]
       : [['pie', 'Pie view'], ['map', 'Bar view'], ['source', 'Markdown source'], ['diff', 'Compare two maps']];
+    // A record's Overview and Record tabs are both the record view: the Overview, or the step rail at the step you were last on.
+    const tabOn = (id) => (id === 'overview' ? view === 'record' && level === 'overview' : id === 'record' ? view === 'record' && level !== 'overview' : view === id);
     const tabs = tabList.map(([id, label]) => ({
-      label, pressed: String(view === id),
-      isPie: id === 'pie', isTree: id === 'map', isSource: id === 'source', isDiff: id === 'diff' || id === 'compare', isOverall: id === 'record', isGoals: id === 'goals',
-      fg: view === id ? P.ink : 'var(--ink3)', underline: view === id ? P.ink : 'transparent',
-      pick: () => this.setState({ view: id, hover: null }),
+      label, pressed: String(tabOn(id)),
+      isPie: id === 'pie', isTree: id === 'map', isSource: id === 'source', isDiff: id === 'diff' || id === 'compare', isOverall: id === 'overview', isGoals: id === 'record',
+      fg: tabOn(id) ? P.ink : 'var(--ink3)', underline: tabOn(id) ? P.ink : 'transparent',
+      pick: id === 'overview' ? () => this.recNav({ recLevel: 'overview', hover: null })
+        : id === 'record' ? () => this.recNav({ recLevel: s.railLevel ?? 'goals', hover: null })
+          : () => this.setState({ view: id, hover: null }),
     }));
 
     const crumbs = path.slice(0, -1).map((n, k, arr) => ({
@@ -4753,23 +4764,42 @@ class Component extends DCLogic {
       };
     })();
     const recLayout = level === 'overview' ? { left: '1 1 400px', right: '1.4 1 480px' } : { left: '1 1 100%', right: '1 1 100%' };
-    // Breadcrumbs: Overview › All goals › goal › option › criterion. Levels below the current one stay, faded, to step back down.
-    const recCrumbs = level === null ? [] : (() => {
+    // The step rail: Goals › Criteria › Options › Reasons, each with what's chosen there. A step with nothing chosen yet picks the first.
+    const recSteps = level === null || level === 'overview' ? [] : (() => {
       const at = REC_LEVELS.indexOf(level);
+      const goals = map.root.children;
       const g = place.goal;
-      const optTitleOf = (o) => recModel.options.get(o) ?? o;
+      const firstGoal = g ?? goals.find((x) => x.slug === s.selGoal) ?? goals[0] ?? null;
+      const optionsOf = (gn) => [...new Set(gn.children.flatMap((c) => c.children.map((x) => x.option)))];
       const option = place.option;
-      const parts = [
-        { lv: 'overview', tier: 'Record', name: 'Overview' },
-        { lv: 'goals', tier: 'Goals', name: 'All goals' },
-        g && { lv: 'criteria', tier: 'Criteria of', name: g.text },
-        g && (option !== null || (s.optMode === 'compare' && place.options.length > 0)) && { lv: 'options', tier: 'Option', name: s.optMode === 'compare' ? 'All options' : optTitleOf(option) },
-        g && option !== null && place.crit && { lv: 'reasons', tier: 'Reasons for', name: place.crit.text },
-      ].filter(Boolean);
-      return parts.map((p) => {
-        const k = REC_LEVELS.indexOf(p.lv);
-        return { tier: p.tier, name: p.name, current: k === at, ahead: k > at, currentAttr: k === at ? 'page' : 'false', opacity: k > at ? 0.5 : 1, weight: k === at ? 700 : 500, go: () => this.recNav({ recLevel: p.lv }) };
-      });
+      const crit = place.crit;
+      const optTitleOf = (o) => recModel.options.get(o) ?? o;
+      const toCriteria = () => (firstGoal ? this.recNav({ recLevel: 'criteria', recGoal: firstGoal.slug }) : this.recNav({ recLevel: 'goals' }));
+      const toOptions = () => {
+        if (!firstGoal) return this.recNav({ recLevel: 'goals' });
+        const opts = optionsOf(firstGoal);
+        const o = g && option !== null ? option : opts[0] ?? null;
+        return o === null ? toCriteria() : this.recNav({ recLevel: 'options', recGoal: firstGoal.slug, recOption: o, optMode: s.optMode === 'compare' && g ? 'compare' : 'edit' });
+      };
+      const toReasons = () => {
+        if (!firstGoal) return this.recNav({ recLevel: 'goals' });
+        const opts = optionsOf(firstGoal);
+        const o = g && option !== null ? option : opts[0] ?? null;
+        const c = g && crit ? crit : firstGoal.children[0] ?? null;
+        return o === null || c === null ? toOptions() : this.recNav({ recLevel: 'reasons', recGoal: firstGoal.slug, recOption: o, recCrit: c.slug, optMode: 'edit' });
+      };
+      const optionChosen = g !== null && (option !== null || (s.optMode === 'compare' && place.options.length > 0));
+      const steps = [
+        { tier: 'Goals', ready: true, detail: `${goals.length} goal${goals.length === 1 ? '' : 's'}`, go: () => this.recNav({ recLevel: 'goals' }) },
+        { tier: 'Criteria', ready: g !== null, detail: g ? g.text : 'Choose a goal first', go: toCriteria },
+        { tier: 'Options', ready: optionChosen, detail: !g ? 'Choose a goal first' : s.optMode === 'compare' && optionChosen ? 'All options' : option !== null ? optTitleOf(option) : 'Choose an option first', go: toOptions },
+        { tier: 'Reasons', ready: g !== null && option !== null && crit !== null && s.optMode !== 'compare', detail: g && option !== null && crit && s.optMode !== 'compare' ? `${crit.text} · ${optTitleOf(option)}` : 'Choose a criterion first', go: toReasons },
+      ];
+      return steps.map((x, k) => ({
+        ...x, n: String(k + 1), current: k + 1 === at, done: k + 1 < at, currentAttr: k + 1 === at ? 'step' : 'false',
+        dot: k + 1 <= at ? 'var(--ink)' : 'var(--card)', dotFg: k + 1 <= at ? 'var(--on-ink)' : 'var(--ink2)',
+        bg: k + 1 === at ? 'var(--sunk)' : 'transparent', weight: k + 1 === at ? 700 : 500, opacity: x.ready || k + 1 === at ? 1 : 0.55,
+      }));
     })();
     const recPanels = !isRecordFile ? [] : level === 'overview' ? [overall.weights, overall.criteria] : level === 'goals' ? [goalsLevel.weights] : level === 'criteria' ? [criteriaLevel.weights] : [];
     return {
@@ -4791,7 +4821,7 @@ class Component extends DCLogic {
       recordChart, recPanels, optionsLevel, reasonsLevel, overall, whatIfBar, compare, dropAsk, isRecordView: hasMap && isRecordFile && view === 'record',
       goalsLevel, criteriaLevel, recLayout,
       isOverall: hasMap && level === 'overview', isCompare: hasMap && view === 'compare',
-      isRecLevel: Object.fromEntries(REC_LEVELS.map((lv) => [lv, hasMap && level === lv])), recCrumbs, hasCrumbs: hasMap && level !== null,
+      isRecLevel: Object.fromEntries(REC_LEVELS.map((lv) => [lv, hasMap && level === lv])), recSteps, hasRail: hasMap && level !== null && level !== 'overview',
       hasMap, isMap: hasMap && view === 'map', isPie: hasMap && view === 'pie', isDiff: hasMap && view === 'diff', isSource: !noMap && view === 'source',
       undoBtn: { disabled: locked || s.history.past.length === 0, opacity: locked || s.history.past.length === 0 ? 0.35 : 1, run: () => this.undo() },
       redoBtn: { disabled: locked || s.history.future.length === 0, opacity: locked || s.history.future.length === 0 ? 0.35 : 1, run: () => this.redo() },

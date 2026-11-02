@@ -1439,7 +1439,7 @@ test('⌘Z outside text fields undoes; inside one the browser handles it', () =>
 });
 
 // ---------------------------------------------------------------- record views
-test('New can create a decision record, which opens on Overall', () => {
+test('New can create a decision record, which opens on the Goals step', () => {
   const c = boot(MAP3);
   const nm = () => c.renderVals().nm;
   nm().pickRecord();
@@ -1447,8 +1447,8 @@ test('New can create a decision record, which opens on Overall', () => {
   nm().create();
   assert.equal(c.state.map.template, 'record');
   assert.equal(c.state.view, 'record');
-  assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Record', 'Markdown source', 'Compare']);
-  assert.equal(c.renderVals().isRecLevel.overview, true);
+  assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Overview', 'Record', 'Markdown source', 'Compare']);
+  assert.equal(c.renderVals().isRecLevel.goals, true); // new records start on the Goals step
 });
 test('every record view renders with no unresolved bindings, and maps keep their views', () => {
   for (const view of ['overall', 'goals', 'source', 'compare']) {
@@ -1880,22 +1880,25 @@ test('setSummary creates a missing score, keeps one line, and refuses braces', (
 
 // ---------------------------------------------------------------- revision 2: record levels
 const rec2 = (patch = {}) => { const c = boot(REC); c.setState({ view: 'record', ...patch }); return c; };
-test('the Record view opens on Overview with one crumb, and old view names still work', () => {
+test('an existing record opens on the Overview with no rail, and old view names still work', () => {
   const c = rec2();
   assert.equal(c.renderVals().isRecLevel.overview, true);
-  assert.deepEqual(c.renderVals().recCrumbs.filter((x) => !x.ahead).map((x) => x.name), ['Overview']);
+  assert.equal(c.renderVals().hasRail, false);
   const g = rec2({ view: 'goals' });
   assert.equal(g.renderVals().isRecLevel.goals, true);
-  assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Record', 'Markdown source', 'Compare']);
+  assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Overview', 'Record', 'Markdown source', 'Compare']);
 });
-test('crumbs list the path, and a click goes back up while deeper crumbs stay, faded', () => {
+test('the rail lists four steps with what is chosen at each, and a click jumps to a step', () => {
   const c = rec2();
   c.recNav({ recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
-  const cr = () => c.renderVals().recCrumbs;
-  assert.deepEqual(cr().map((x) => x.name), ['Overview', 'All goals', 'Reliability', 'Postgres', 'Durability']);
-  cr()[2].go();
+  const st = () => c.renderVals().recSteps;
+  assert.equal(c.renderVals().hasRail, true);
+  assert.deepEqual(st().map((x) => x.tier), ['Goals', 'Criteria', 'Options', 'Reasons']);
+  assert.deepEqual(st().map((x) => x.detail), ['2 goals', 'Reliability', 'Postgres', 'Durability · Postgres']);
+  st()[1].go();
   assert.equal(c.renderVals().isRecLevel.criteria, true);
-  assert.deepEqual(cr().map((x) => x.ahead), [false, false, false, true, true]);
+  assert.deepEqual(st().map((x) => x.current), [false, true, false, false]);
+  assert.deepEqual(st().map((x) => x.done), [true, false, false, false]);
 });
 test('a level whose goal, option or criterion is gone falls back, with every binding resolved', () => {
   const c = rec2();
@@ -1976,7 +1979,7 @@ test('r2 review: a delete armed on one goal is not armed on the next goal opened
   const c = rec2();
   c.recNav({ recLevel: 'criteria', recGoal: 'reliability' });
   c.renderVals().criteriaLevel.askDel();
-  c.renderVals().recCrumbs[1].go();
+  c.renderVals().recSteps[0].go();
   c.setState({ selGoal: 'cost' });
   c.renderVals().goalsLevel.detail.open();
   assert.equal(c.renderVals().criteriaLevel.confirming, false);
@@ -1985,7 +1988,7 @@ test('r2 review: the open option gone falls back to the goal; compare with no op
   const c = rec2();
   c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'gone', optMode: 'edit', recCrit: 'durability' });
   assert.equal(c.renderVals().isRecLevel.criteria, true);
-  assert.ok(!c.renderVals().recCrumbs.some((x) => x.name === 'Durability'), 'no crumb that leads nowhere');
+  assert.equal(c.renderVals().recSteps[3].ready, false, 'Reasons waits for an option');
   const d = rec2();
   d.setSummary('bill', 'dynamodb', 'x'); // keep Cost's only option
   d.recNav({ recLevel: 'options', recGoal: 'cost', optMode: 'compare' });
@@ -1999,7 +2002,7 @@ test('r2 review: Compare all is titled and crumbed All options', () => {
   const c = rec2();
   c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: null, optMode: 'compare' });
   assert.equal(c.renderVals().optionsLevel.title, 'All options');
-  assert.equal(c.renderVals().recCrumbs[3].name, 'All options');
+  assert.equal(c.renderVals().recSteps[2].detail, 'All options');
 });
 test('r2 review: record bar segments have no padding of their own, so drags track the pointer', () => {
   const seg = template.slice(template.indexOf('<sc-for list="{{w.segments}}"'), template.indexOf('<sc-if value="{{g.hasDivider}}"'));
@@ -2024,6 +2027,40 @@ test('r2 review: status text describes the per-side rule, and Compare says Overv
   const r = rec2({ recLevel: 'goals' });
   r.renderVals().goalsLevel.weights.segments[0].down(ev({ metaKey: true }));
   assert.ok(!/only those$/.test(r.renderVals().goalsLevel.weights.status));
+});
+
+
+// ---------------------------------------------------------------- the step rail
+test('a new decision record opens on the Goals step', () => {
+  const c = boot(MAP3);
+  c.renderVals().nm.pickRecord();
+  c.renderVals().nm.onTitle({ target: { value: 'Pick a store' } });
+  c.renderVals().nm.create();
+  assert.equal(c.renderVals().isRecLevel.goals, true);
+  assert.equal(c.renderVals().hasRail, true);
+});
+test('the Overview and Record tabs: Record returns to the step you were on', () => {
+  const c = rec2();
+  const tab = (label) => c.renderVals().tabs.find((t) => t.label === label);
+  tab('Record').pick();
+  assert.equal(c.renderVals().isRecLevel.goals, true);
+  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'postgres' });
+  tab('Overview').pick();
+  assert.equal(c.renderVals().isRecLevel.overview, true);
+  assert.equal(tab('Overview').pressed, 'true');
+  tab('Record').pick();
+  assert.equal(c.renderVals().isRecLevel.options, true);
+  assert.equal(tab('Record').pressed, 'true');
+});
+test('a step with nothing chosen yet picks the first goal, option and criterion', () => {
+  const c = rec2({ recLevel: 'goals' });
+  const st = () => c.renderVals().recSteps;
+  assert.equal(st()[1].ready, false);
+  assert.match(st()[1].detail, /Choose a goal/);
+  st()[3].go();
+  assert.equal(c.renderVals().isRecLevel.reasons, true);
+  assert.deepEqual([c.state.recGoal, c.state.recOption, c.state.recCrit], ['reliability', 'postgres', 'durability']);
+  assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
 Promise.all(pending).then(() => {
