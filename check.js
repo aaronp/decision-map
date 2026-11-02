@@ -1567,5 +1567,52 @@ test('a reason has the same extras as a point', () => {
   assert.deepEqual(Component.parse(c.state.src).errors, []);
 });
 
+// ---------------------------------------------------------------- overall and what-if
+const overallOf = (c) => c.renderVals().overall;
+test('what-if weights move the ranking without touching the file, and Save writes them', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  const before = c.state.src;
+  overallOf(c).goals[1].toggle(); // Cost off
+  assert.equal(overallOf(c).ranking[0].option, 'postgres');
+  assert.equal(c.state.src, before);
+  assert.equal(c.renderVals().whatIfBar.shown, true);
+  c.renderVals().whatIfBar.save();
+  assert.equal(nodeOf(c, 'cost').importance, 0);
+  assert.equal(c.state.whatIf, null);
+  c.undo();
+  assert.equal(nodeOf(c, 'cost').importance, 60);
+});
+test('turning a goal back on restores its weight', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  overallOf(c).goals[1].toggle();
+  overallOf(c).goals[1].toggle();
+  assert.equal(c.state.whatIf.cost, 60);
+});
+test('selecting a goal shows its criteria editor', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  overallOf(c).goals[0].select();
+  assert.deepEqual(overallOf(c).criteria.segments.map((x) => x.label), ['Durability', 'Ops']);
+});
+test('while what-if is on, every view shows it, and a Source edit is picked up', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  overallOf(c).goals[1].toggle();
+  c.setState({ view: 'goals' });
+  assert.deepEqual(goalsWt(c).segments.map((x) => x.label), ['Reliability']);
+  c.onSrc(c.state.src.replace(/## Cost[\s\S]*$/, '## Speed\nslug: speed\nimportance: 30\n\n### Fast\nslug: fast\nweight: 1\n'));
+  c.renderVals().whatIfBar.save();
+  assert.ok(!Component.findPath(c.state.map.root, 'cost'));
+  assert.equal(nodeOf(c, 'speed').importance, 30);
+});
+test('a top option that wins no goal says so', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  const top = overallOf(c).ranking[0];
+  assert.equal(top.noWins, top.wins.length === 0);
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
