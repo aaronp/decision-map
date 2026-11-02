@@ -1380,5 +1380,47 @@ test('opening a diff row goes through the normal focus change', () => {
   assert.deepEqual(c.state.chosenFacts, ['pay-tax'], 'choices are kept across levels');
 });
 
+// ---------------------------------------------------------------- decision record
+const REC = `---\ntitle: Store\ntemplate: decision-record\ntheme: paper\naccent: blue\nshow-confidence: false\nshow-evidence: false\nshow-good-faith: false\n---\n\n# Store\nslug: store\n\n## Reliability\nslug: reliability\nimportance: 40\n\n### Durability\nslug: durability\nweight: 50\n\n#### Postgres\noption: postgres\nscore: 8\n\n##### Runbooks exist\nslug: runbooks\nweight: 60\nby: Sam\nconfidence: 4\nbasis: We run 14 clusters\n\n- [ref] [Wiki](https://example.com) — the runbooks\n\n#### DynamoDB\noption: dynamodb\nscore: 9\n\n### Ops\nslug: ops\nweight: 50\n\n#### Postgres\noption: postgres\nscore: 6\n\n## Cost\nslug: cost\nimportance: 60\n\n### Bill\nslug: bill\nweight: 1\n\n#### DynamoDB\noption: dynamodb\nscore: 4\n`;
+const recOf = (src = REC) => Component.parse(src).map;
+
+test('a record round-trips byte for byte', () => assert.equal(Component.serialize(recOf()), REC));
+test('maps never gain a template line', () => {
+  for (const f of [NEW, LEGACY_A]) assert.ok(!Component.serialize(Component.parse(f).map).includes('template:'));
+});
+test('goal scores weigh criteria by share, and a missing score is 0', () => {
+  const g = Component.recordModel(recOf()).goals[0];
+  near(g.goalScores.postgres, 0.5 * 8 + 0.5 * 6);
+  near(g.goalScores.dynamodb, 0.5 * 9 + 0.5 * 0);
+  assert.equal(g.winner, 'postgres');
+});
+test('overall: an option missing from a goal scores 0 there, and wins are listed', () => {
+  const r = Component.recordModel(recOf()).ranking;
+  near(r.find((x) => x.option === 'postgres').total, 0.4 * 7);
+  near(r.find((x) => x.option === 'dynamodb').total, 0.4 * 4.5 + 0.6 * 4);
+  assert.deepEqual(r.map((x) => x.option), ['dynamodb', 'postgres']);
+  assert.deepEqual(r[0].wins, ['cost']);
+});
+test('an overlay replaces goal and criterion weights; importance 0 turns a goal off', () => {
+  const m = Component.recordModel(recOf(), { cost: 0, ops: 0, nope: 5 });
+  assert.equal(m.goals[1].on, false);
+  near(m.ranking.find((x) => x.option === 'postgres').total, 8);
+});
+test('record parse errors', () => {
+  const bad = (from, to) => Component.parse(REC.replace(from, to)).errors.map((e) => e.msg).join(' | ');
+  assert.match(bad('score: 8', 'score: 11'), /score "11" must be a whole number from 0 to 10/);
+  assert.match(bad('score: 8', 'score: 7.5'), /whole number/);
+  assert.match(bad('#### DynamoDB\noption: dynamodb\nscore: 4', '#### Dynamo\noption: dynamodb\nscore: 4'), /option "dynamodb" is called "DynamoDB" elsewhere/);
+  assert.match(bad('option: postgres\nscore: 6', 'score: 6'), /missing option/);
+  assert.match(bad('weight: 60', 'impact: 1'), /unknown property "impact"/);
+  assert.match(bad('template: decision-record', 'template: other'), /template "other"/);
+});
+test('newRecord has one goal with one criterion, slugs from the title', () => {
+  const m = Component.newRecord('Pick a store', '');
+  assert.equal(m.template, 'record');
+  assert.equal(m.root.slug, 'pick-a-store');
+  assert.deepEqual(Component.parse(Component.serialize(m)).errors, []);
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

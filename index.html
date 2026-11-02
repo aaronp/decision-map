@@ -1250,7 +1250,7 @@ async function researchEvidence(key, model, arg, parent) {
 
 /** Stands in for the map until one is opened or parses; the views that would show it are hidden meanwhile. */
 const BLANK = Object.freeze({
-  title: 'Untitled', display: { theme: 'paper', accent: 'blue', confidence: false, evidence: false, goodFaith: false },
+  title: 'Untitled', template: 'map', display: { theme: 'paper', accent: 'blue', confidence: false, evidence: false, goodFaith: false },
   root: { slug: 'untitled', text: '', kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [] },
 });
 
@@ -1315,6 +1315,7 @@ class Component extends DCLogic {
     }
     i++;
     let title = null;
+    let template = 'map';
     // Display preferences: documented defaults when a key is absent (light theme, every overlay off).
     const display = { theme: 'paper', accent: 'blue', confidence: false, evidence: false, goodFaith: false };
     const boolKeys = { 'show-confidence': 'confidence', 'show-evidence': 'evidence', 'show-good-faith': 'goodFaith' };
@@ -1327,6 +1328,7 @@ class Component extends DCLogic {
       else {
         seenKeys.add(m[1]);
         if (m[1] === 'title') { if (m[2] === '') err(i, 'title is empty'); else title = m[2]; }
+        else if (m[1] === 'template') { if (m[2] !== 'decision-record') err(i, `template "${m[2]}" must be decision-record`); else template = 'record'; }
         else if (m[1] === 'theme') {
           const t = { light: 'paper', dark: 'night' }[m[2]] ?? m[2];
           if (!THEMES.some((x) => x.id === t)) err(i, `theme "${m[2]}" must be one of ${THEMES.map((x) => x.id).join(', ')}`);
@@ -1337,7 +1339,7 @@ class Component extends DCLogic {
         } else if (Object.prototype.hasOwnProperty.call(boolKeys, m[1])) {
           if (m[2] !== 'true' && m[2] !== 'false') err(i, `${m[1]} must be true or false`);
           else display[boolKeys[m[1]]] = m[2] === 'true';
-        } else err(i, `unknown front-matter key "${m[1]}" (allowed: title, theme, accent, show-confidence, show-evidence, show-good-faith)`);
+        } else err(i, `unknown front-matter key "${m[1]}" (allowed: title, template, theme, accent, show-confidence, show-evidence, show-good-faith)`);
       }
       i++;
     }
@@ -1350,14 +1352,18 @@ class Component extends DCLogic {
       return { map: null, errors };
     }
     const legacy = Component.endsInSlugBlock(lines[i]);
-    const root = legacy ? Component.parseLegacy(lines, i, err) : Component.parseHeadings(lines, i, err);
+    if (legacy && template === 'record') { err(i, 'a decision record uses headings, not the old list format'); return { map: null, errors }; }
+    const root = legacy ? Component.parseLegacy(lines, i, err) : Component.parseHeadings(lines, i, err, template);
     if (errors.length) return { map: null, errors };
-    return { map: { title, display, root }, errors: [] };
+    return { map: { title, template, display, root }, errors: [] };
   }
 
   // The current format: "#" headings for hierarchy, "key: value" lines directly under each, then free text and evidence.
-  static parseHeadings(lines, start, err) {
+  static parseHeadings(lines, start, err, template = 'map') {
     const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    const isRecord = template === 'record';
+    const allowed = isRecord ? ['slug', 'importance', 'weight', 'option', 'score', 'by', 'confidence', 'basis'] : ['slug', 'importance', 'impact', 'by', 'confidence', 'basis', 'kind'];
+    const optionTitles = new Map();
     const seen = new Set();
     const stack = [];
     let root = null;
@@ -1376,12 +1382,21 @@ class Component extends DCLogic {
       for (i++; i < lines.length && lines[i].trim() !== '' && !headingAt(i); i++) {
         const kv = lines[i].match(/^([a-z][a-z-]*):\s*(.*?)\s*$/);
         if (!kv) { err(i, 'lines directly under a heading look like "key: value"; leave a blank line before free text'); continue; }
-        if (!['slug', 'importance', 'impact', 'by', 'confidence', 'basis', 'kind'].includes(kv[1])) { err(i, `unknown property "${kv[1]}" (allowed: slug, importance, impact, by, confidence, basis, kind)`); continue; }
+        if (!allowed.includes(kv[1])) { err(i, `unknown property "${kv[1]}" (allowed: ${allowed.join(', ')})`); continue; }
         if (has(attrs, kv[1])) { err(i, `property "${kv[1]}" appears twice`); continue; }
         attrs[kv[1]] = kv[2];
       }
-      const node = Component.headingNode(text, attrs, depth, at, err);
-      if (node.slug !== null) {
+      const node = isRecord ? Component.recordNode(text, attrs, depth, at, err) : Component.headingNode(text, attrs, depth, at, err);
+      if (node.kind === 'score' && node.option !== null) {
+        // A score's slug isn't in the file: it's its criterion's slug and its option, joined by "--", which no real slug can contain.
+        const crit = stack[depth - 2];
+        node.slug = crit && crit.slug !== null ? `${crit.slug}--${node.option}` : null;
+        const first = optionTitles.get(node.option);
+        if (first === undefined) optionTitles.set(node.option, text);
+        else if (first !== text) err(at, `option "${node.option}" is called "${first}" elsewhere; an option has one title throughout the file`);
+        if (node.slug !== null && seen.has(node.slug)) err(at, `option "${node.option}" appears twice under this criterion`);
+        if (node.slug !== null) seen.add(node.slug);
+      } else if (node.slug !== null) {
         if (seen.has(node.slug)) err(at, `duplicate slug "${node.slug}"`);
         seen.add(node.slug);
       }
@@ -1389,7 +1404,7 @@ class Component extends DCLogic {
       for (; i < lines.length && !headingAt(i); i++) {
         const line = lines[i];
         if (line.startsWith('- [ref] ')) {
-          if (node.kind !== 'fact') { err(i, 'evidence ([ref]) can only sit under a fact, not the root or a premise'); continue; }
+          if (node.kind !== 'fact' && node.kind !== 'reason') { err(i, isRecord ? 'evidence ([ref]) can only sit under a reason' : 'evidence ([ref]) can only sit under a fact, not the root or a premise'); continue; }
           const ref = Component.parseRef(line.slice(8), i, err);
           if (ref) node.refs.push(ref);
         } else body.push(line.startsWith('\\') ? line.slice(1) : line);
@@ -1401,7 +1416,7 @@ class Component extends DCLogic {
       stack.length = Math.min(stack.length, depth - 1);
       const parent = stack[stack.length - 1];
       if (node.kind === 'premise' && parent !== root) err(at, 'premises can only sit directly under the root');
-      if (parent === root && root.children.some((c) => (c.kind === 'premise') !== (node.kind === 'premise'))) {
+      if (!isRecord && parent === root && root.children.some((c) => (c.kind === 'premise') !== (node.kind === 'premise'))) {
         err(at, 'the root holds either premises or facts, not both');
       }
       parent.children.push(node);
@@ -1442,6 +1457,50 @@ class Component extends DCLogic {
     return {
       slug, text, kind, importance, impact, by: has('by') && attrs.by !== '' ? attrs.by : null,
       basis: kind === 'fact' && has('basis') && attrs.basis !== '' ? attrs.basis : null, confidence, details: null, refs: [], children: [],
+    };
+  }
+
+  // A decision record's heading: root, goal, criterion, score (an option's score on that criterion) or reason, by depth.
+  static recordNode(text, attrs, depth, i, err) {
+    const has = (k) => Object.prototype.hasOwnProperty.call(attrs, k);
+    const kinds = ['root', 'goal', 'criterion', 'score', 'reason'];
+    if (depth > kinds.length) err(i, 'a decision record goes at most five levels deep: goal, criterion, option, reason');
+    const kind = kinds[Math.min(depth, kinds.length) - 1];
+    const own = { root: ['slug', 'by'], goal: ['slug', 'importance', 'by'], criterion: ['slug', 'weight', 'by'], score: ['option', 'score'], reason: ['slug', 'weight', 'by', 'confidence', 'basis'] }[kind];
+    for (const k of Object.keys(attrs)) if (!own.includes(k)) err(i, `a ${kind === 'score' ? 'score' : kind} can't have "${k}"`);
+    const slugOk = (v) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(v);
+    let slug = null;
+    let option = null;
+    if (kind === 'score') {
+      if (!has('option')) err(i, 'missing option: put "option: my-option" directly under the heading');
+      else if (!slugOk(attrs.option)) err(i, `option "${attrs.option}" may only use lower-case letters, digits and single hyphens`);
+      else option = attrs.option;
+    } else if (!has('slug')) err(i, 'missing slug: put "slug: my-goal" directly under the heading');
+    else if (!slugOk(attrs.slug)) err(i, `slug "${attrs.slug}" may only use lower-case letters, digits and single hyphens`);
+    else slug = attrs.slug;
+    const numKey = { goal: 'importance', criterion: 'weight', reason: 'weight' }[kind];
+    let importance = null;
+    if (numKey) {
+      if (!has(numKey)) err(i, `missing ${numKey} (a number of 0 or more)`);
+      else if (!/^\d+(\.\d+)?$/.test(attrs[numKey])) err(i, `${numKey} "${attrs[numKey]}" must be a number of 0 or more`);
+      else importance = Number(attrs[numKey]);
+    }
+    let score = null;
+    if (kind === 'score') {
+      if (!has('score')) err(i, 'missing score (a whole number from 0 to 10)');
+      else if (!/^(10|\d)$/.test(attrs.score)) err(i, `score "${attrs.score}" must be a whole number from 0 to 10`);
+      else score = Number(attrs.score);
+    }
+    let confidence = null;
+    if (has('confidence') && own.includes('confidence')) {
+      if (!/^[1-5]$/.test(attrs.confidence)) err(i, `confidence "${attrs.confidence}" must be a whole number from 1 to 5`);
+      else confidence = Number(attrs.confidence);
+    }
+    if (has('by') && attrs.by === '') err(i, '"by" is empty; remove it or give a name');
+    if (has('basis') && attrs.basis === '') err(i, 'basis is empty; remove it or give some text');
+    return {
+      slug, text, kind, importance, impact: null, option, score, by: has('by') && attrs.by !== '' ? attrs.by : null,
+      basis: has('basis') && attrs.basis !== '' ? attrs.basis : null, confidence, details: null, refs: [], children: [],
     };
   }
 
@@ -1591,9 +1650,14 @@ class Component extends DCLogic {
 
   static serialize(map) {
     const dp = map.display;
-    const out = ['---', `title: ${map.title}`, `theme: ${dp.theme}`, `accent: ${dp.accent}`, `show-confidence: ${dp.confidence}`, `show-evidence: ${dp.evidence}`, `show-good-faith: ${dp.goodFaith}`, '---', ''];
+    const isRecord = map.template === 'record';
+    const out = ['---', `title: ${map.title}`, ...(isRecord ? ['template: decision-record'] : []), `theme: ${dp.theme}`, `accent: ${dp.accent}`, `show-confidence: ${dp.confidence}`, `show-evidence: ${dp.evidence}`, `show-good-faith: ${dp.goodFaith}`, '---', ''];
     const walk = (n, depth) => {
-      out.push(`${'#'.repeat(depth)} ${n.text.trim()}`, `slug: ${n.slug}`);
+      out.push(`${'#'.repeat(depth)} ${n.text.trim()}`);
+      if (n.kind === 'score') out.push(`option: ${n.option}`, `score: ${n.score}`);
+      else out.push(`slug: ${n.slug}`);
+      if (n.kind === 'goal') out.push(`importance: ${Number(n.importance.toFixed(1))}`);
+      if (n.kind === 'criterion' || n.kind === 'reason') out.push(`weight: ${Number(n.importance.toFixed(1))}`);
       if (n.kind === 'premise') out.push('kind: premise');
       if (n.kind === 'fact') out.push(`importance: ${Number(n.importance.toFixed(1))}`, `impact: ${Number(n.impact.toFixed(2))}`);
       if (n.by !== null) out.push(`by: ${n.by}`);
@@ -1714,6 +1778,56 @@ class Component extends DCLogic {
     };
     visit(root);
     return out;
+  }
+
+  /**
+   * A decision record's numbers. overlay ({ slug: weight }) replaces goal and criterion weights; unknown slugs are ignored.
+   * Goal score: Σ criterion share × score (a missing score is 0). Overall: Σ goal share × goal score (a goal without the option adds 0).
+   */
+  static recordModel(map, overlay = null) {
+    const w = (n) => (overlay !== null && Object.prototype.hasOwnProperty.call(overlay, n.slug) ? overlay[n.slug] : n.importance);
+    const options = new Map();
+    const goals = map.root.children.map((g) => {
+      const raw = g.children.map((c) => ({ node: c, importance: w(c) }));
+      const W = raw.reduce((t, c) => t + c.importance, 0);
+      const criteria = raw.map((c) => ({ ...c, share: W === 0 ? 0 : c.importance / W }));
+      const opts = [];
+      const scores = {};
+      for (const c of g.children) {
+        for (const sc of c.children) {
+          if (!options.has(sc.option)) options.set(sc.option, sc.text);
+          if (!opts.includes(sc.option)) opts.push(sc.option);
+          (scores[sc.option] ??= {})[c.slug] = sc.score;
+        }
+      }
+      const goalScores = Object.fromEntries(opts.map((o) => [o, criteria.reduce((t, c) => t + c.share * (scores[o][c.node.slug] ?? 0), 0)]));
+      const winner = opts.reduce((best, o) => (best === null || goalScores[o] > goalScores[best] ? o : best), null);
+      const importance = w(g);
+      return { node: g, importance, on: importance > 0, criteria, options: opts, scores, goalScores, winner };
+    });
+    const T = goals.reduce((t, g) => t + g.importance, 0);
+    const ranking = [...options.keys()].map((o) => {
+      const parts = goals.map((g) => ({ goal: g.node.slug, value: T === 0 ? 0 : (g.importance / T) * (g.goalScores[o] ?? 0) }));
+      return { option: o, total: parts.reduce((t, p) => t + p.value, 0), parts, wins: goals.filter((g) => g.on && g.winner === o).map((g) => g.node.slug) };
+    }).sort((a, b) => b.total - a.total);
+    return { options, goals, ranking };
+  }
+
+  static recordBlank(fields) {
+    return { slug: null, text: '', kind: 'goal', importance: null, impact: null, option: null, score: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [], ...fields };
+  }
+
+  static newRecord(title, details) {
+    const slug = Component.slugBase(title);
+    const taken = new Set([slug]);
+    const goal = Component.slugify('First goal', taken);
+    taken.add(goal);
+    const crit = Component.slugify('First criterion', taken);
+    const B = Component.recordBlank;
+    const root = B({ slug, text: title, kind: 'root', details: details === '' ? null : details, children: [
+      B({ slug: goal, text: 'First goal', kind: 'goal', importance: 1, children: [B({ slug: crit, text: 'First criterion', kind: 'criterion', importance: 1 })] }),
+    ] });
+    return { title, template: 'record', display: { ...BLANK.display }, root };
   }
 
   // The chart's columns, sorted most negative first. `order` (slugs) holds the positions still during an edit.
@@ -2364,7 +2478,7 @@ class Component extends DCLogic {
       taken.add(optionSlug);
       return { slug: optionSlug, text, kind: 'premise', importance: null, impact: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [] };
     });
-    const map = { title, display: s.map.display, root: { slug, text: title, kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: details === '' ? null : details, refs: [], children } };
+    const map = { title, template: 'map', display: s.map.display, root: { slug, text: title, kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: details === '' ? null : details, refs: [], children } };
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
