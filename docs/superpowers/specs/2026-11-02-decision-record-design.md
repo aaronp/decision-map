@@ -8,6 +8,44 @@ A decision map is free-form: any point can hold any points, to any depth. Many r
 
 The point is to make the choice visible and arguable. Each author works through goals → criteria → options → reasons, a winner falls out per goal and overall, and changing any weight shows straight away how the ranking moves. Comparing two authors' records shows exactly which tier they disagree on.
 
+## Revision 2: views you drill into, and resizing that follows the pointer
+
+The author tried the first build and the prototype, and decided the following (2026-11-02). It replaces the Overall and Goals view descriptions below wherever they disagree. The prototype (version 5 at the link above, copied next to this file) shows it.
+
+### Record views: one path from the overview down to reasons
+
+- The header's views for a record are **Record**, **Source** and **Compare**.
+- **Record** has a sub-header of breadcrumbs: **Overview › All goals › *goal* › *option* › *criterion***.
+  - Each crumb has a small tier label above its name (Goals, Criteria of, Option, Reasons for).
+  - Every crumb is clickable. Levels below the current one stay in the trail, faded, so you can step back down to where you were.
+- **Overview:** the ranked options, with the what-if goal and criteria weights, the goal checkboxes and snapshots, as described under "Overall view" below.
+- **All goals:** the map's bar style, short (about 150px).
+  - Each column has its title in a chip at the top and its % in a chip at the bottom, in the goal's colour.
+  - Dividers drag, Ctrl/⌘-click chooses, and a dashed **+** column on the right adds a goal.
+  - Clicking a goal shows its title and description below, edited in place, with its winner, its counts and a button to open it.
+- **A goal (its criteria):** the same short bar of the goal's criteria by weight, with **+**.
+  - Clicking a criterion shows its title and description below. Criteria now have descriptions, kept as the free text under the criterion heading.
+  - Below that, the goal's options are listed by goal score with a winner marker, with **Compare all**, and controls to add an existing option or a new one. Clicking an option opens it.
+- **An option:** a switch between **Edit one** and **Compare all**.
+  - *Edit one:* chips to switch option. Then one row per criterion: its weight, a 0–10 slider, an optional short reason ("Why this score?", one line of plain text), and a **Reasons ›** button. A button removes the option from the goal.
+  - *Compare all:* the grid of options × criteria, each cell showing its score and the start of its short reason. Clicking a cell edits that option.
+- **A criterion's reasons for that option:** the score with its slider and short reason, then the full reasons, largest weight first. Each has a weight slider, the extras (by, basis, confidence, evidence) and remove.
+- The short reason is stored on the score as `summary: …` (one line, no braces). It's separate from the full reasons and optional.
+- The bar/pie switch stays for these weight bars. The prototype shows only the bar.
+- What-if weights work as built (Claude's call): a weight drag on the Overview starts them. While they're on, every level shows them and every weight drag edits them, under the "What-if weights" bar with Save and Reset. Otherwise the other levels edit the record directly.
+
+### Resizing: the border follows the pointer (maps too)
+
+This replaces the map's "drag as far as you like and the rest scale to fit", in the map's bar and pie as well as in records.
+
+One rule covers every case: **each side of the border changes its chosen columns if it has any, otherwise the column next to the border.** The left side grows by exactly what the right side shrinks, so the border always stays under the pointer.
+
+- **Nothing chosen:** the two columns either side of the border trade. Nothing else moves.
+- **Chosen columns all on one side of the border:** they take the change, in proportion to their size, and the neighbour on the far side takes the opposite change. Columns between the chosen ones and the border slide along unchanged. Example: with Cost chosen, dragging the Developer speed | Replay and audit border left grows Replay and audit, shrinks Cost, and slides Developer speed left. This example was decided by the author.
+- **Chosen columns on both sides:** the chosen columns on the left take the change one way, and the chosen columns on the right take it the other way. Unchosen columns, the neighbours included, slide along unchanged. Claude's call, after the builder check found the first wording contradictory: it's the same rule, and it keeps the border under the pointer.
+- A drag stops when any column that's changing would go below a 2% share. A record weight never reaches 0.
+- In a pie, "left" means counter-clockwise, and the same rules apply to each ring.
+
 ## Goals
 
 - A decision record template with four fixed tiers: goals, criteria, options with scores, and reasons.
@@ -87,8 +125,8 @@ The author saw most of these in the prototype and did not object, but didn't dec
 
 ### Views
 
-- For a record, the header's views are **Overall**, **Goals**, **Source** and **Compare**. Compare replaces Diff for records. For maps, nothing changes.
-- **Goals:** the goal-importance bar or pie, plus a card per goal showing its winner. Opening a goal shows its title and description (edited in place), its criteria bar or pie, a grid of options × criteria with scores and goal scores, and a panel for the selected score: a 0–10 slider and its reasons.
+- *(Superseded by Revision 2.)* For a record, the header's views are **Overall**, **Goals**, **Source** and **Compare**. Compare replaces Diff for records. For maps, nothing changes.
+- *(Superseded by Revision 2.)* **Goals:** the goal-importance bar or pie, plus a card per goal showing its winner. Opening a goal shows its title and description (edited in place), its criteria bar or pie, a grid of options × criteria with scores and goal scores, and a panel for the selected score: a 0–10 slider and its reasons.
 - Reasons are shown largest weight first, sized by weight. Each reason can be opened to edit its extras, like a point's More section today.
 - The bar/pie choice is shared across the app's views.
 - Choices (what a resize changes) belong to each weight set separately: the goals, and each goal's criteria. They last until Clear, as in the map.

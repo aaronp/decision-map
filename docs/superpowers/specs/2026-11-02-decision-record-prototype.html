@@ -98,6 +98,40 @@ h2{margin:0 0 4px;font-size:1.05rem}
 .comp i{display:flex;align-items:center;min-width:0;overflow:hidden;color:#fff;font-style:normal;font-size:12px;font-weight:600;border-right:2px solid var(--card)}
 .comp i span{padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (prefers-reduced-motion:no-preference){.comp i{transition:width .18s ease}}
+.wrow{display:flex;gap:8px;align-items:stretch}
+.wrow .wbar{flex:1;min-width:0}
+.wplus{flex:none;width:56px;border:1.5px dashed var(--control);border-radius:12px;background:transparent;color:var(--ink2);font-size:26px;font-weight:300}
+.wplus:hover{border-color:var(--ink);color:var(--ink)}
+.wseg{justify-content:space-between}
+.wchip{align-self:flex-start;max-width:100%;background:color-mix(in srgb,var(--card) 88%,transparent);color:var(--ink)!important;border-radius:4px;padding:1px 6px;font-size:13px!important;font-weight:500;opacity:1!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:8px 10px;background:var(--card);border:1px solid var(--rule);border-radius:12px}
+.crumb{display:flex;flex-direction:column;align-items:flex-start;border:0;background:none;border-radius:8px;padding:4px 10px;text-align:left;max-width:240px}
+.crumb small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+.crumb span{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.crumb:hover{background:var(--soft)}
+.crumb.cur{background:var(--soft)}
+.crumb.cur span{font-weight:700}
+.crumbbar .sep{color:var(--ink3)}
+.crumb.ahead{opacity:.5}
+.crumb.ahead:hover{opacity:1}
+.detail{display:flex;flex-direction:column;gap:6px}
+.in.big{font-size:1.6rem;font-weight:700;letter-spacing:-.01em}
+.detail .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.optrow{display:grid;grid-template-columns:minmax(90px,160px) auto 1fr 44px 14px;gap:10px;align-items:center;width:100%;border:0;border-top:1px solid var(--soft);background:none;padding:10px 4px;text-align:left}
+.optrow:hover{background:var(--soft)}
+.optbar{height:12px;border-radius:4px;background:var(--soft);overflow:hidden}
+.optbar i{display:block;height:100%;background:rgba(var(--score),.85)}
+.addrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.optpick{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip.on{background:var(--ink);color:var(--on-ink);border:0}
+.optpick .chip{border:0;cursor:pointer}
+.scorelist{display:flex;flex-direction:column;gap:2px}
+.scorerow{display:grid;grid-template-columns:minmax(140px,200px) minmax(160px,1fr) minmax(160px,1.2fr) auto;gap:8px 14px;align-items:center;padding:10px 0;border-top:1px solid var(--soft)}
+.sr-head{display:flex;flex-direction:column}
+.sr-slider{display:flex;gap:10px;align-items:center}
+.sr-slider input{flex:1;accent-color:rgb(var(--score))}
+.mono.big{font-size:20px;font-weight:500;width:2.5ch;text-align:right}
+@media (max-width:760px){.scorerow{grid-template-columns:1fr}.optrow{grid-template-columns:1fr auto 44px}.optrow .optbar{grid-column:1/-1}}
 /* grid */
 .gridwrap{overflow-x:auto}
 table{border-collapse:separate;border-spacing:4px;width:100%}
@@ -184,6 +218,9 @@ const youRecord = {
     'audit|esdb|replay': ['Streams and projections are the core model'],
   },
 };
+youRecord.summaries = { 'rel|ddb|dur': 'Multi-AZ by default', 'rel|pg|ops': 'We run 14 clusters', 'rel|esdb|ops': 'Never run in production', 'cost|ddb|bill': 'On-demand gets pricey' };
+youRecord.goals.forEach((g) => g.criteria.forEach((c) => { c.desc = c.desc || ''; }));
+youRecord.goals[0].criteria[0].desc = 'No acknowledged event is ever lost, even across a region failure.';
 const samRecord = {
   goals: [
     { id: 'rel', title: 'Reliability', desc: '', imp: 30,
@@ -244,13 +281,20 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 let nextId = 1;
 const newId = (p) => `${p}${nextId++}`;
 
-// Resize weights[side] across the divider right of weights[i]. Chosen indices absorb the change; with nothing chosen, all the others do.
+// Resize weights[side] across the divider right of weights[i]. Chosen indices absorb the change; with nothing chosen, the neighbour does.
 const MIN_W = 0.5;
 function resizeWeights(ws, i, side, delta, chosen) {
-  const r = side;
+  // With chosen columns all on one side of the border, resize the neighbour on the far side: the columns in between slide along unchanged,
+  // so the border stays under the pointer and the chosen columns take the difference.
+  let r = side;
+  if (chosen.length && side === i) {
+    if (chosen.every((j) => j <= i)) r = i + 1;
+    else if (chosen.every((j) => j > i)) r = i;
+  }
   let pool = chosen.filter((j) => j !== r);
   if (chosen.length && !pool.length) return resizeWeights(ws, i, r === i ? i + 1 : i, delta, chosen);
-  if (!chosen.length) pool = ws.map((_, j) => j).filter((j) => j !== r);
+  // Nothing chosen: trade with the neighbour across the border, so the border follows the pointer and nothing else moves.
+  if (!chosen.length) pool = [r === i ? i + 1 : i];
   const d = r === i ? delta : -delta;
   const P = pool.reduce((t, j) => t + ws[j], 0);
   const nd = Math.max(MIN_W - ws[r], Math.min(P - MIN_W * pool.length, d));
@@ -269,7 +313,7 @@ function arcPath(r0, r1, a0, a1) {
 }
 
 // The app's bar or pie: drag a divider (bar) or a ⇔ handle (pie) to resize; Ctrl/⌘/Shift-click chooses what absorbs it.
-function WeightEditor({ items, mode, chosen, onToggle, onClear, onStart, onChange, onSelect, selected, colorOf, height = 84 }) {
+function WeightEditor({ items, mode, chosen, onToggle, onClear, onStart, onChange, onSelect, selected, colorOf, height = 84, onAdd, addLabel }) {
   const box = useRef(null);
   const drag = useRef(null);
   const suppress = useRef(false);
@@ -312,17 +356,17 @@ function WeightEditor({ items, mode, chosen, onToggle, onClear, onStart, onChang
   if (!items.length) return html`<p class="note">Nothing to weigh.</p>`;
   if (mode === 'bar') {
     return html`<div>
-      <div class="wbar" ref=${box} style=${{ height }}>
+      <div class="wrow"><div class="wbar" ref=${box} style=${{ height }}>
         ${items.map((x, i) => html`<${React.Fragment} key=${x.id}>
           <button type="button" class=${'wseg' + (chosen.includes(x.id) ? ' chosen' : '') + (selected === x.id ? ' sel' : '')} style=${{ flex: `${x.w} 1 0`, background: colorOf(x, i) }}
             aria-label=${label(x)} aria-pressed=${String(chosen.includes(x.id))} title=${x.label}
             onPointerDown=${(e) => segDown(x.id, e)} onClick=${() => segClick(x.id)} onKeyDown=${(e) => segKey(x.id, e)} onContextMenu=${(e) => e.ctrlKey && e.preventDefault()}>
-            <b>${x.label}</b><span class="mono">${pct(x.w, T)}%</span>
+            <b class="wchip">${x.label}</b><span class="wchip mono">${pct(x.w, T)}%</span>
           </button>
           ${i < items.length - 1 && html`<div class="wdiv" role="separator" tabIndex="0" aria-label=${`Resize ${x.label} against ${items[i + 1].label}`}
             onPointerDown=${(e) => start(i, e)} onPointerMove=${move} onPointerUp=${end} onPointerCancel=${end} onKeyDown=${(e) => key(i, e)}></div>`}
         <//>`)}
-      </div>${status}
+      </div>${onAdd && html`<button type="button" class="wplus" style=${{ height }} aria-label=${addLabel} title=${addLabel} onClick=${onAdd}>+</button>`}</div>${status}
     </div>`;
   }
   let a = 0;
@@ -362,6 +406,7 @@ function App() {
     people: { you: clone(youRecord), sam: clone(samRecord) }, pool: clone(OPTIONS),
     active: 'you', view: 'overall', goal: 'rel', cell: { opt: 'esdb', crit: 'ops' }, whatIf: null,
     mode: 'bar', chosen: {},
+    nav: { level: 'goals', goal: 'rel', selGoal: 'rel', selCrit: 'dur', option: 'pg', crit: 'dur', optMode: 'edit' },
     snapshots: [{ id: 'snap0', owner: 'you', name: 'Before the cost review', at: 'Oct 28', rec: clone(youRecord) }],
     cmpA: 'you', cmpB: 'sam', cmpTier: 'goals', cmpGoal: 'rel', cmpRow: null, cmpStyle: 'side',
   });
@@ -402,12 +447,13 @@ function App() {
   const modeSwitch = html`<div class="seg" role="group" aria-label="Chart">
     ${[['bar', 'Bar'], ['pie', 'Pie']].map(([m, l]) => html`<button key=${m} type="button" aria-pressed=${String(st.mode === m)} onClick=${() => go({ mode: m })}>${l}</button>`)}
   </div>`;
-  const ctx = { rec, st, live, commit, checkpoint, editRec, editGoal, colorOfGoal, go, choose, modeSwitch };
+  const nav = (patch) => setSt((s) => ({ ...s, view: 'overall', nav: { ...s.nav, ...patch } }));
+  const ctx = { rec, st, live, commit, checkpoint, editRec, editGoal, colorOfGoal, go, choose, modeSwitch, nav };
 
   const header = html`<header class="top">
     <div class="brand">Event store for the billing service<small>decision record · billing-event-store.md</small></div>
     <nav class="tabs" aria-label="Views">
-      ${[['overall', 'Overall'], ['goals', 'Goals'], ['compare', 'Compare']].map(([v, l]) => html`<button key=${v} type="button" aria-pressed=${String(st.view === v || (v === 'goals' && st.view === 'goal'))} onClick=${() => go({ view: v })}>${l}</button>`)}
+      ${[['overall', 'Record'], ['compare', 'Compare']].map(([v, l]) => html`<button key=${v} type="button" aria-pressed=${String(st.view === v)} onClick=${() => go({ view: v })}>${l}</button>`)}
     </nav>
     <div class="seg" role="group" aria-label="Whose record">
       ${[['you', 'You'], ['sam', 'Sam']].map(([p, l]) => html`<button key=${p} type="button" aria-pressed=${String(st.active === p)} onClick=${() => go({ active: p, whatIf: null })}>${l}</button>`)}
@@ -417,10 +463,13 @@ function App() {
   </header>`;
 
   let body;
-  if (st.view === 'overall') body = html`<${Overall} ...${ctx} />`;
-  else if (st.view === 'goals') body = html`<${Goals} ...${ctx} />`;
-  else if (st.view === 'goal') body = html`<${GoalView} ...${ctx} />`;
-  else body = html`<${Compare} ...${ctx} />`;
+  if (st.view === 'compare') body = html`<${Compare} ...${ctx} />`;
+  else {
+    const L = st.nav.level;
+    const level = L === 'overview' ? html`<${Overall} ...${ctx} />` : L === 'goals' ? html`<${GoalsLevel} ...${ctx} />` : L === 'criteria' ? html`<${CriteriaLevel} ...${ctx} />`
+      : L === 'options' ? html`<${OptionsLevel} ...${ctx} />` : html`<${ReasonsLevel} ...${ctx} />`;
+    body = html`<${Crumbs} st=${st} rec=${rec} nav=${nav} />${level}`;
+  }
   return html`${header}<main>${body}</main>`;
 }
 
@@ -440,7 +489,7 @@ function Overall({ rec, st, live, commit, checkpoint, colorOfGoal, go, choose, m
   const mine = st.snapshots.filter((x) => x.owner === st.active);
   return html`
     <section>
-      <p class="lbl">Overall ranking · ${st.active === 'you' ? 'your record' : 'Sam’s record'}</p>
+      <p class="lbl">Overview · ${st.active === 'you' ? 'your record' : 'Sam’s record'}</p>
       <h1>Which option comes out ahead across every goal?</h1>
       <p class="sub">Each option’s goal scores, weighted by goal importance. An option a goal doesn’t consider scores zero for that goal.</p>
     </section>
@@ -506,147 +555,189 @@ function Overall({ rec, st, live, commit, checkpoint, colorOfGoal, go, choose, m
     </div>`;
 }
 
-function Goals({ rec, st, editRec, checkpoint, colorOfGoal, go, choose, modeSwitch }) {
-  const T = rec.goals.reduce((t, g) => t + g.imp, 0);
+// ---------------------------------------------------------------- drill-down levels: Overview › Goals › goal's criteria › option › criterion's reasons
+const LEVELS = ['overview', 'goals', 'criteria', 'options', 'reasons'];
+
+function Crumbs({ st, rec, nav }) {
+  const n = st.nav;
+  const g = rec.goals.find((x) => x.id === n.goal);
+  const c = g && g.criteria.find((x) => x.id === n.crit);
+  const parts = [
+    { level: 'overview', tier: 'Record', name: 'Overview' },
+    { level: 'goals', tier: 'Goals', name: 'All goals' },
+    g && { level: 'criteria', tier: 'Criteria of', name: g.title },
+    g && { level: 'options', tier: 'Option', name: n.optMode === 'compare' ? 'All options' : optName(n.option, st.pool) },
+    g && c && n.optMode === 'edit' && { level: 'reasons', tier: 'Reasons for', name: c.title },
+  ].filter(Boolean);
+  const at = LEVELS.indexOf(n.level);
+  // Levels past the current one stay in the trail, dimmed, so you can step back down to where you were.
+  return html`<nav class="crumbbar" aria-label="Where you are">
+    ${parts.map((p, i) => html`<${React.Fragment} key=${p.level}>
+      ${i > 0 && html`<span class="sep" aria-hidden="true">›</span>`}
+      <button type="button" class=${'crumb' + (p.level === n.level ? ' cur' : '') + (LEVELS.indexOf(p.level) > at ? ' ahead' : '')} aria-current=${p.level === n.level ? 'page' : null} onClick=${() => nav({ level: p.level })}>
+        <small>${p.tier}</small><span>${p.name}</span>
+      </button>
+    <//>`)}
+  </nav>`;
+}
+
+// The map's bar, short: columns with chips for title and %, dividers to drag, Ctrl/⌘-click to choose, and a "+" column to add.
+function ShortBar(props) {
+  return html`<${WeightEditor} ...${props} mode="bar" height=${props.height ?? 150} />`;
+}
+
+function DetailCard({ title, desc, onTitle, onDesc, onFocus, meta, actions }) {
+  return html`<div class="card detail">
+    <input class="in big" aria-label="Title" value=${title} onFocus=${onFocus} onChange=${(e) => onTitle(e.target.value)} />
+    <input class="in sub" aria-label="Description" placeholder="Add a description (optional)" value=${desc || ''} onFocus=${onFocus} onChange=${(e) => onDesc(e.target.value)} />
+    ${meta && html`<div class="meta">${meta}</div>`}
+    ${actions && html`<div class="actions">${actions}</div>`}
+  </div>`;
+}
+
+function GoalsLevel({ rec, st, editRec, checkpoint, colorOfGoal, nav, choose }) {
+  const sel = rec.goals.find((g) => g.id === st.nav.selGoal) ?? rec.goals[0];
+  const s = goalScores(sel);
+  const w = goalWinner(sel);
   return html`
-    <section>
-      <p class="lbl">Goals</p>
-      <h1>What matters, and how much?</h1>
-      <p class="sub">Drag a divider to change how much each goal counts. Click a goal to set its criteria, options and scores.</p>
-    </section>
+    <${ShortBar} items=${rec.goals.filter((g) => g.imp > 0).map((g) => ({ id: g.id, label: g.title, w: g.imp }))} colorOf=${(x) => colorOfGoal(x.id)}
+      selected=${sel.id} onSelect=${(id) => nav({ selGoal: id })} ...${choose('goals')} onStart=${checkpoint}
+      onChange=${(ws) => editRec((r) => r.goals.filter((g) => g.imp > 0).forEach((g, i) => { g.imp = ws[i]; }), true)}
+      onAdd=${() => { const id = newId('goal'); editRec((r) => r.goals.push({ id, title: 'New goal', desc: '', imp: 50, criteria: [{ id: newId('c'), title: 'New criterion', desc: '', w: 50 }], options: [], scores: {} })); nav({ selGoal: id }); }} addLabel="Add a goal" />
+    <${DetailCard} title=${sel.title} desc=${sel.desc} onFocus=${checkpoint}
+      onTitle=${(v) => editRec((r) => { r.goals.find((g) => g.id === sel.id).title = v; }, true)}
+      onDesc=${(v) => editRec((r) => { r.goals.find((g) => g.id === sel.id).desc = v; }, true)}
+      meta=${html`${w ? html`<span class="chip win">Winner: ${optName(w, st.pool)} · ${fmt(s[w])}</span>` : html`<span class="chip plain">No options yet</span>`}<span class="note">${sel.criteria.length} criteria · ${sel.options.length} options</span>`}
+      actions=${html`<button type="button" class="btn primary" onClick=${() => nav({ level: 'criteria', goal: sel.id, selCrit: sel.criteria[0]?.id })}>Criteria and options ›</button>`} />`;
+}
+
+function CriteriaLevel({ rec, st, editGoal, commit, checkpoint, nav, choose }) {
+  const g = rec.goals.find((x) => x.id === st.nav.goal);
+  const sel = g.criteria.find((c) => c.id === st.nav.selCrit) ?? g.criteria[0];
+  const s = goalScores(g);
+  const winner = goalWinner(g);
+  const ranked = [...g.options].sort((a, b) => s[b] - s[a]);
+  const [newOpt, setNewOpt] = useState('');
+  const available = st.pool.filter((o) => !g.options.includes(o.id));
+  return html`
+    <p class="lbl">Criteria of ${g.title}</p>
+    <${ShortBar} height=${120} items=${g.criteria.map((c) => ({ id: c.id, label: c.title, w: c.w }))} colorOf=${(x, i) => CRIT_COLORS[i % CRIT_COLORS.length]}
+      selected=${sel && sel.id} onSelect=${(id) => nav({ selCrit: id })} ...${choose('crit:' + g.id)} onStart=${checkpoint}
+      onChange=${(ws) => editGoal(g.id, (x) => x.criteria.forEach((c, i) => { c.w = ws[i]; }), true)}
+      onAdd=${() => { const id = newId('c'); editGoal(g.id, (x) => x.criteria.push({ id, title: 'New criterion', desc: '', w: 50 })); nav({ selCrit: id }); }} addLabel="Add a criterion" />
+    ${sel && html`<${DetailCard} title=${sel.title} desc=${sel.desc} onFocus=${checkpoint}
+      onTitle=${(v) => editGoal(g.id, (x) => { x.criteria.find((c) => c.id === sel.id).title = v; }, true)}
+      onDesc=${(v) => editGoal(g.id, (x) => { x.criteria.find((c) => c.id === sel.id).desc = v; }, true)} />`}
     <div class="card">
-      <div class="hrow" style=${{ marginBottom: 10 }}><h2>Importance</h2>${modeSwitch}</div>
-      <${WeightEditor} mode=${st.mode} items=${rec.goals.filter((g) => g.imp > 0).map((g) => ({ id: g.id, label: g.title, w: g.imp }))} colorOf=${(x) => colorOfGoal(x.id)}
-        ...${choose('goals')} onStart=${checkpoint} onSelect=${(id) => go({ view: 'goal', goal: id })}
-        onChange=${(ws) => editRec((r) => r.goals.filter((g) => g.imp > 0).forEach((g, i) => { g.imp = ws[i]; }), true)} />
-    </div>
-    <div class="row">
-      ${rec.goals.map((g) => {
-        const s = goalScores(g);
-        const w = goalWinner(g);
-        return html`<div class="card" key=${g.id} style=${{ flex: '1 1 260px', borderTop: `4px solid ${colorOfGoal(g.id)}` }}>
-          <div style=${{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><h2>${g.title}</h2><span class="mono note">${pct(g.imp, T)}%</span></div>
-          <p class="sub" style=${{ fontSize: 14, minHeight: '1.4em' }}>${g.desc || html`<span class="note">No description</span>`}</p>
-          <p style=${{ margin: '10px 0' }}>${w && html`<span class="chip win">${optName(w, st.pool)} · ${fmt(s[w])}</span>`}</p>
-          <p class="note" style=${{ margin: '0 0 10px' }}>${g.criteria.length} criteria · ${g.options.length} options</p>
-          <button type="button" class="btn" onClick=${() => go({ view: 'goal', goal: g.id })}>Open</button>
-        </div>`;
-      })}
-      <button type="button" class="ghost" style=${{ flex: '1 1 200px', minHeight: 120 }} onClick=${() => {
-        const id = newId('goal');
-        editRec((r) => r.goals.push({ id, title: 'New goal', desc: '', imp: 20, criteria: [{ id: newId('c'), title: 'New criterion', w: 50 }], options: [], scores: {} }));
-        go({ view: 'goal', goal: id });
-      }}>+ Add a goal</button>
+      <div class="hrow"><h2>Options</h2><button type="button" class="btn" onClick=${() => nav({ level: 'options', optMode: 'compare' })}>Compare all ›</button></div>
+      <p class="note">Each option’s score for this goal, out of 10. Open one to score it on every criterion.</p>
+      ${ranked.map((o) => html`<button type="button" key=${o} class="optrow" onClick=${() => nav({ level: 'options', option: o, optMode: 'edit' })}>
+        <b>${optName(o, st.pool)}</b>${o === winner && html`<span class="chip win">Winner</span>`}
+        <span class="optbar"><i style=${{ width: `${s[o] * 10}%` }}></i></span>
+        <span class="mono">${fmt(s[o])}</span><span aria-hidden="true">›</span>
+      </button>`)}
+      <div class="addrow">
+        ${available.map((o) => html`<button type="button" key=${o.id} class="ghost" onClick=${() => editGoal(g.id, (x) => x.options.push(o.id))}>+ ${o.name}</button>`)}
+        <form style=${{ display: 'flex', gap: 6, flex: '1 1 220px' }} onSubmit=${(e) => {
+          e.preventDefault();
+          const name = newOpt.trim();
+          if (!name) return;
+          const id = newId('o');
+          commit((s0) => { const r = clone(s0.people[s0.active]); r.goals.find((x) => x.id === g.id).options.push(id); return { ...s0, pool: [...s0.pool, { id, name }], people: { ...s0.people, [s0.active]: r } }; });
+          setNewOpt('');
+        }}>
+          <input class="field" style=${{ flex: 1, minWidth: 0 }} placeholder="New option" aria-label="New option" value=${newOpt} onChange=${(e) => setNewOpt(e.target.value)} />
+          <button class="btn" type="submit" disabled=${!newOpt.trim()}>Add</button>
+        </form>
+      </div>
     </div>`;
 }
 
-function GoalView({ rec, st, editGoal, editRec, checkpoint, go, commit, choose, modeSwitch }) {
-  const g = rec.goals.find((x) => x.id === st.goal) ?? rec.goals[0];
-  const [newOpt, setNewOpt] = useState('');
-  const [newReason, setNewReason] = useState('');
+function OptionsLevel({ rec, st, editGoal, editRec, checkpoint, nav }) {
+  const g = rec.goals.find((x) => x.id === st.nav.goal);
   const s = goalScores(g);
-  const winner = goalWinner(g);
   const W = g.criteria.reduce((t, c) => t + c.w, 0);
+  const opt = g.options.includes(st.nav.option) ? st.nav.option : g.options[0];
   const ranked = [...g.options].sort((a, b) => s[b] - s[a]);
-  const cell = st.cell && g.options.includes(st.cell.opt) && g.criteria.some((c) => c.id === st.cell.crit) ? st.cell : null;
-  const rkey = cell && `${g.id}|${cell.opt}|${cell.crit}`;
-  const reasons = (rkey && rec.reasons[rkey]) || [];
-  const available = st.pool.filter((o) => !g.options.includes(o.id));
-  const addOption = (value) => {
-    if (!value) return;
-    if (value.startsWith('pool:')) { editGoal(g.id, (x) => x.options.push(value.slice(5))); return; }
-  };
-  return html`
-    <nav class="crumbs"><button type="button" onClick=${() => go({ view: 'goals' })}>Goals</button><span>›</span><span>${g.title}</span></nav>
-    <section>
-      <input class="in" style=${{ fontSize: '1.9rem', fontWeight: 700, letterSpacing: '-.01em' }} aria-label="Goal title" value=${g.title} onFocus=${checkpoint} onChange=${(e) => editGoal(g.id, (x) => { x.title = e.target.value; }, true)} />
-      <input class="in sub" style=${{ fontSize: '1.05rem' }} aria-label="Goal description" placeholder="Add a description (optional)" value=${g.desc} onFocus=${checkpoint} onChange=${(e) => editGoal(g.id, (x) => { x.desc = e.target.value; }, true)} />
-    </section>
-    <div class="card">
-      <div class="hrow" style=${{ marginBottom: 10 }}><h2>Criteria</h2>${modeSwitch}</div>
-      <${WeightEditor} mode=${st.mode} height=${64} items=${g.criteria.map((c) => ({ id: c.id, label: c.title, w: c.w }))} colorOf=${(x, i) => CRIT_COLORS[i % CRIT_COLORS.length]}
-        ...${choose('crit:' + g.id)} onStart=${checkpoint}
-        onChange=${(ws) => editGoal(g.id, (x) => x.criteria.forEach((c, i) => { c.w = ws[i]; }), true)} />
-      <div style=${{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-        ${g.criteria.map((c) => html`<span key=${c.id} class="chip plain" style=${{ padding: '2px 4px 2px 6px' }}>
-          <input class="in" style=${{ width: `${Math.max(8, c.title.length + 1)}ch`, fontWeight: 600 }} aria-label="Criterion title" value=${c.title} onFocus=${checkpoint} onChange=${(e) => editGoal(g.id, (x) => { x.criteria.find((k) => k.id === c.id).title = e.target.value; }, true)} />
-          <button type="button" class="x" aria-label=${`Remove ${c.title}`} onClick=${() => editGoal(g.id, (x) => { x.criteria = x.criteria.filter((k) => k.id !== c.id); })}>×</button>
-        </span>`)}
-        <button type="button" class="ghost" onClick=${() => editGoal(g.id, (x) => x.criteria.push({ id: newId('c'), title: 'New criterion', w: Math.round(W / Math.max(1, x.criteria.length)) || 50 }))}>+ Criterion</button>
-      </div>
-    </div>
-    <div class="row">
-      <div class="card grow">
-        <h2>Options and scores</h2>
-        <p class="note" style=${{ margin: '0 0 8px' }}>Score each option 0–10 on each criterion. Click a score to change it and give reasons.</p>
-        <div class="gridwrap">
-          <table>
-            <thead><tr><th></th>${g.criteria.map((c) => html`<th key=${c.id}>${c.title}<span class="w mono">${pct(c.w, W)}%</span></th>`)}<th style=${{ textAlign: 'right' }}>Goal score</th></tr></thead>
-            <tbody>
-              ${ranked.map((o) => html`<tr key=${o}>
-                <td class="opt">${optName(o, st.pool)} ${o === winner && html`<span class="chip win">Winner</span>`}
-                  <button type="button" class="x" aria-label=${`Remove ${optName(o, st.pool)} from this goal`} onClick=${() => editGoal(g.id, (x) => { x.options = x.options.filter((k) => k !== o); })}>×</button></td>
-                ${g.criteria.map((c) => {
-                  const n = g.scores[o]?.[c.id] ?? 0;
-                  const rc = (rec.reasons[`${g.id}|${o}|${c.id}`] || []).length;
-                  const on = cell && cell.opt === o && cell.crit === c.id;
-                  return html`<td key=${c.id}><button type="button" class="cell" aria-pressed=${String(!!on)} style=${{ background: scoreBg(n), color: scoreFg(n) }} onClick=${() => go({ cell: { opt: o, crit: c.id } })} aria-label=${`${optName(o, st.pool)}, ${c.title}: ${n} out of 10, ${rc} reasons`}>
-                    <span class="n">${n}</span><span class="r">${rc ? `${rc} reason${rc > 1 ? 's' : ''}` : '—'}</span></button></td>`;
-                })}
-                <td class="tot">${fmt(s[o])}</td>
-              </tr>`)}
-            </tbody>
-          </table>
-        </div>
-        <div style=${{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select class="field" aria-label="Add an existing option" value="" onChange=${(e) => addOption(e.target.value)}>
-            <option value="">+ Add an existing option…</option>
-            ${available.map((o) => html`<option key=${o.id} value=${`pool:${o.id}`}>${o.name}</option>`)}
-          </select>
-          <form style=${{ display: 'flex', gap: 6 }} onSubmit=${(e) => {
-            e.preventDefault();
-            const name = newOpt.trim();
-            if (!name) return;
-            const id = newId('o');
-            commit((s0) => {
-              const r = clone(s0.people[s0.active]);
-              r.goals.find((x) => x.id === g.id).options.push(id);
-              return { ...s0, pool: [...s0.pool, { id, name }], people: { ...s0.people, [s0.active]: r } };
-            });
-            setNewOpt('');
-          }}>
-            <input class="field" placeholder="or a new option" aria-label="New option name" value=${newOpt} onChange=${(e) => setNewOpt(e.target.value)} />
-            <button class="btn" type="submit" disabled=${!newOpt.trim()}>Add</button>
-          </form>
-        </div>
-      </div>
-      <div class="card side">
-        ${cell ? html`
-          <p class="lbl">Score</p>
-          <h2>${optName(cell.opt, st.pool)} · ${g.criteria.find((c) => c.id === cell.crit).title}</h2>
-          <div style=${{ display: 'flex', gap: 10, alignItems: 'center', margin: '8px 0 4px' }}>
-            <input type="range" min="0" max="10" step="1" style=${{ flex: 1 }} aria-label="Score" value=${g.scores[cell.opt]?.[cell.crit] ?? 0}
-              onPointerDown=${checkpoint} onKeyDown=${checkpoint}
-              onChange=${(e) => editGoal(g.id, (x) => { x.scores[cell.opt] = { ...(x.scores[cell.opt] || {}), [cell.crit]: +e.target.value }; }, true)} />
-            <span class="mono" style=${{ fontSize: 22, fontWeight: 500, width: '3ch', textAlign: 'right' }}>${g.scores[cell.opt]?.[cell.crit] ?? 0}</span>
-          </div>
-          <p class="lbl" style=${{ marginTop: 16 }}>Reasons</p>
-          ${reasons.length ? html`<ul class="reasons">${reasons.map((t, i) => html`<li key=${i}><span>${t}</span><button type="button" class="x" aria-label="Remove reason" onClick=${() => editRec((r) => { r.reasons[rkey] = r.reasons[rkey].filter((_, j) => j !== i); })}>×</button></li>`)}</ul>`
-            : html`<p class="note">No reasons yet. A score can have none, one or many.</p>`}
-          <form style=${{ display: 'flex', gap: 6, marginTop: 10 }} onSubmit=${(e) => {
-            e.preventDefault();
-            const t = newReason.trim();
-            if (!t) return;
-            editRec((r) => { r.reasons[rkey] = [...(r.reasons[rkey] || []), t]; });
-            setNewReason('');
-          }}>
-            <input class="field" style=${{ flex: 1, minWidth: 0 }} placeholder="Add a reason" aria-label="New reason" value=${newReason} onChange=${(e) => setNewReason(e.target.value)} />
-            <button class="btn" type="submit" disabled=${!newReason.trim()}>Add</button>
-          </form>
-        ` : html`<p class="note">Click a score to change it and see its reasons.</p>`}
-      </div>
+  const winner = goalWinner(g);
+  const sumKey = (o, c) => `${g.id}|${o}|${c}`;
+  const toggle = html`<div class="seg" role="group" aria-label="Options view">
+    ${[['edit', 'Edit one'], ['compare', 'Compare all']].map(([m, l]) => html`<button key=${m} type="button" aria-pressed=${String(st.nav.optMode === m)} onClick=${() => nav({ optMode: m, option: opt })}>${l}</button>`)}
+  </div>`;
+  if (st.nav.optMode === 'compare') {
+    return html`<div class="card">
+      <div class="hrow"><h2>All options · ${g.title}</h2>${toggle}</div>
+      <p class="note">Click a score to edit that option.</p>
+      <div class="gridwrap"><table>
+        <thead><tr><th></th>${g.criteria.map((c) => html`<th key=${c.id}>${c.title}<span class="w mono">${pct(c.w, W)}%</span></th>`)}<th style=${{ textAlign: 'right' }}>Goal score</th></tr></thead>
+        <tbody>${ranked.map((o) => html`<tr key=${o}>
+          <td class="opt">${optName(o, st.pool)} ${o === winner && html`<span class="chip win">Winner</span>`}</td>
+          ${g.criteria.map((c) => { const n = g.scores[o]?.[c.id] ?? 0; const why = rec.summaries?.[sumKey(o, c.id)]; return html`<td key=${c.id}>
+            <button type="button" class="cell" style=${{ background: scoreBg(n), color: scoreFg(n) }} title=${why || ''} onClick=${() => nav({ optMode: 'edit', option: o })}>
+              <span class="n">${n}</span><span class="r">${why ? (why.length > 16 ? why.slice(0, 15) + '…' : why) : '—'}</span></button></td>`; })}
+          <td class="tot">${fmt(s[o])}</td></tr>`)}</tbody>
+      </table></div>
     </div>`;
+  }
+  return html`<div class="card">
+    <div class="hrow"><h2>${optName(opt, st.pool)} · ${g.title}</h2>${toggle}</div>
+    <div class="optpick">${ranked.map((o) => html`<button key=${o} type="button" class=${'chip ' + (o === opt ? 'on' : 'plain')} onClick=${() => nav({ option: o })}>${optName(o, st.pool)} · ${fmt(s[o])}</button>`)}</div>
+    <p class="note">Goal score <b class="mono">${fmt(s[opt])}</b> of 10${opt === winner ? ' · winner' : ''}. Give a score on each criterion, and an optional short reason.</p>
+    <div class="scorelist">
+      ${g.criteria.map((c) => {
+        const n = g.scores[opt]?.[c.id] ?? 0;
+        const rs = (rec.reasons[sumKey(opt, c.id)] || []).length;
+        return html`<div class="scorerow" key=${c.id}>
+          <div class="sr-head"><b>${c.title}</b><span class="mono note">${pct(c.w, W)}% of the goal</span></div>
+          <div class="sr-slider">
+            <input type="range" min="0" max="10" step="1" value=${n} aria-label=${`${c.title} score`} onPointerDown=${checkpoint} onKeyDown=${checkpoint}
+              onChange=${(e) => editGoal(g.id, (x) => { x.scores[opt] = { ...(x.scores[opt] || {}), [c.id]: +e.target.value }; }, true)} />
+            <span class="mono big">${n}</span>
+          </div>
+          <input class="field" placeholder="Why this score? (optional)" aria-label=${`Why ${optName(opt, st.pool)} scores ${n} on ${c.title}`} value=${rec.summaries?.[sumKey(opt, c.id)] || ''} onFocus=${checkpoint}
+            onChange=${(e) => editRec((r) => { r.summaries = { ...(r.summaries || {}), [sumKey(opt, c.id)]: e.target.value }; }, true)} />
+          <button type="button" class="btn" onClick=${() => nav({ level: 'reasons', crit: c.id, option: opt })}>Reasons${rs ? ` (${rs})` : ''} ›</button>
+        </div>`;
+      })}
+    </div>
+    <div class="actions"><button type="button" class="btn" onClick=${() => { editGoal(g.id, (x) => { x.options = x.options.filter((k) => k !== opt); }); nav({ level: 'criteria' }); }}>Remove ${optName(opt, st.pool)} from this goal</button></div>
+  </div>`;
 }
+
+function ReasonsLevel({ rec, st, editGoal, editRec, checkpoint }) {
+  const g = rec.goals.find((x) => x.id === st.nav.goal);
+  const c = g.criteria.find((x) => x.id === st.nav.crit);
+  const o = st.nav.option;
+  const key = `${g.id}|${o}|${c.id}`;
+  const n = g.scores[o]?.[c.id] ?? 0;
+  const list = (rec.reasons[key] || []).map((t, i) => ({ t: typeof t === 'string' ? t : t.t, w: typeof t === 'string' ? 50 : t.w, i }));
+  const RT = list.reduce((a, r) => a + r.w, 0) || 1;
+  const sorted = [...list].sort((a, b) => b.w - a.w);
+  const [draft, setDraft] = useState('');
+  const setList = (fn) => editRec((r) => { const cur = (r.reasons[key] || []).map((t) => (typeof t === 'string' ? { t, w: 50 } : t)); r.reasons[key] = fn(cur); });
+  return html`<div class="card">
+    <h2>${optName(o, st.pool)} on ${c.title}</h2>
+    <div class="sr-slider" style=${{ margin: '8px 0' }}>
+      <input type="range" min="0" max="10" step="1" value=${n} aria-label="Score" onPointerDown=${checkpoint} onKeyDown=${checkpoint}
+        onChange=${(e) => editGoal(g.id, (x) => { x.scores[o] = { ...(x.scores[o] || {}), [c.id]: +e.target.value }; }, true)} />
+      <span class="mono big">${n}</span>
+    </div>
+    ${rec.summaries?.[key] && html`<p class="sub">“${rec.summaries[key]}”</p>`}
+    <p class="lbl" style=${{ marginTop: 14 }}>Reasons</p>
+    ${sorted.length ? html`<ul class="reasons">${sorted.map((r) => html`<li key=${r.i} style=${{ fontSize: `${14 + (r.w / RT) * 6}px` }}>
+      <span>${r.t}</span>
+      <label class="note" style=${{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>Weight
+        <input type="range" min="0" max="100" value=${r.w} onPointerDown=${checkpoint} onChange=${(e) => editRec((rr) => { const cur = (rr.reasons[key] || []).map((t) => (typeof t === 'string' ? { t, w: 50 } : t)); cur[r.i] = { ...cur[r.i], w: +e.target.value }; rr.reasons[key] = cur; }, true)} />
+        <span class="mono">${pct(r.w, RT)}%</span></label>
+      <button type="button" class="x" aria-label="Remove reason" onClick=${() => setList((cur) => cur.filter((_, j) => j !== r.i))}>×</button>
+    </li>`)}</ul>` : html`<p class="note">No reasons yet. A score can have none, one or many, each with a weight and evidence.</p>`}
+    <form style=${{ display: 'flex', gap: 6, marginTop: 10 }} onSubmit=${(e) => { e.preventDefault(); const t = draft.trim(); if (!t) return; setList((cur) => [...cur, { t, w: 50 }]); setDraft(''); }}>
+      <input class="field" style=${{ flex: 1, minWidth: 0 }} placeholder="Add a reason" aria-label="New reason" value=${draft} onChange=${(e) => setDraft(e.target.value)} />
+      <button class="btn" type="submit" disabled=${!draft.trim()}>Add</button>
+    </form>
+  </div>`;
+}
+
 
 // Compare: two records (people or snapshots), tier by tier, biggest differences first.
 function Compare({ st, go, colorOfGoal }) {
