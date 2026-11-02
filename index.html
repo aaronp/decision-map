@@ -73,6 +73,12 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       <sc-if value="{{t.isTree}}" hint-placeholder-val="{{ false }}">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="2.5" width="7" height="5" rx="1"></rect><rect x="2.5" y="16.5" width="7" height="5" rx="1"></rect><rect x="14.5" y="16.5" width="7" height="5" rx="1"></rect><path d="M12 7.5v4M6 16.5v-2.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2.5"></path></svg>
       </sc-if>
+      <sc-if value="{{t.isOverall}}" hint-placeholder-val="{{ false }}">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg>
+      </sc-if>
+      <sc-if value="{{t.isGoals}}" hint-placeholder-val="{{ false }}">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle></svg>
+      </sc-if>
       <sc-if value="{{t.isSource}}" hint-placeholder-val="{{ false }}">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M5.5 15V9l3 3 3-3v6M16.5 9v6M14 12.5l2.5 2.5 2.5-2.5"></path></svg>
       </sc-if>
@@ -156,7 +162,12 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 </sc-if>
 
 <sc-if value="{{nm.open}}" hint-placeholder-val="{{ false }}">
-<section aria-label="New map" style="background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: clamp(28px, 7vh, 80px) clamp(24px, 7vw, 96px); min-height: calc(100vh - 150px); box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+<section aria-label="New" style="background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: clamp(28px, 7vh, 80px) clamp(24px, 7vw, 96px); min-height: calc(100vh - 150px); box-sizing: border-box; display: flex; flex-direction: column; gap: 18px">
+  <div role="group" aria-label="Kind" style="display: flex; gap: 2px; align-self: flex-start; background: var(--sunk, color-mix(in srgb, var(--ink) 5%, var(--card))); border-radius: 8px; padding: 2px">
+    <sc-for list="{{nm.kinds}}" as="k" hint-placeholder-count="2">
+      <button type="button" aria-pressed="{{k.pressed}}" onClick="{{k.pick}}" style="min-height: 34px; padding: 0 14px; border: 0; border-radius: 6px; font: inherit; font-size: 14px; cursor: pointer; background: {{k.bg}}; color: {{k.fg}}">{{k.label}}</button>
+    </sc-for>
+  </div>
   <input type="text" aria-label="Title" autoFocus="{{ true }}" autocomplete="off" placeholder="What are you deciding?" value="{{nm.title}}" onChange="{{nm.onTitle}}" onKeyDown="{{nm.onTitleKey}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; font: inherit; font-size: 2.25rem; line-height: 1.15; font-weight: 700; letter-spacing: -0.01em">
   <textarea aria-label="Description" rows="3" placeholder="Add a description (optional)" value="{{nm.desc}}" onChange="{{nm.onDesc}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; font: inherit; font-size: 1.15rem; color: var(--ink2); resize: none"></textarea>
   <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink3); min-height: 16px">{{nm.slugLine}}</code>
@@ -583,6 +594,18 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   </sc-if>
 
   <!-- ============ DIFF VIEW ============ -->
+  <sc-if value="{{isOverall}}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Overall ranking"><h2 style="margin: 0; font-size: 1.4rem">Overall</h2></section>
+  </sc-if>
+  <sc-if value="{{isGoals}}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Goals"><h2 style="margin: 0; font-size: 1.4rem">Goals</h2></section>
+  </sc-if>
+  <sc-if value="{{isGoal}}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Goal"><h2 style="margin: 0; font-size: 1.4rem">Goal</h2></section>
+  </sc-if>
+  <sc-if value="{{isCompare}}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Compare records"><h2 style="margin: 0; font-size: 1.4rem">Compare</h2></section>
+  </sc-if>
   <sc-if value="{{isDiff}}" hint-placeholder-val="{{ false }}">
   <div style="display: flex; flex-direction: column; gap: 16px">
     <section aria-label="Compare" style="background: var(--card); border: 1px solid var(--rule); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px">
@@ -1059,7 +1082,9 @@ const ACCENTS = Object.freeze([
   { id: 'teal', label: 'Teal', hex: '#0F766E' },
   { id: 'graphite', label: 'Graphite', hex: '#4A4F58' },
 ]);
-const VIEWS = ['map', 'pie', 'source', 'diff'];
+const VIEWS = ['map', 'pie', 'source', 'diff', 'overall', 'goals', 'compare'];
+const MAP_VIEWS = ['map', 'pie', 'source', 'diff'];
+const RECORD_VIEWS = ['overall', 'goals', 'source', 'compare'];
 
 // ---------------------------------------------------------------- query string: ?src (alias ?ours), ?theirs, ?view, ?focus, ?theme
 const QUERY = new URLSearchParams(location.search);
@@ -1280,7 +1305,8 @@ class Component extends DCLogic {
     this.onGlobalKey = this.onGlobalKey.bind(this);
     this.state = {
       history: Component.freshHistory(),
-      fileStatus: '', openTarget: 'A', newOpen: false, newTitle: '', newDesc: '', newOptions: [],
+      fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
+      goal: QUERY.get('goal'),
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
       themeQ: THEMES.some((t) => t.id === qTheme) ? qTheme : null,
@@ -2385,7 +2411,8 @@ class Component extends DCLogic {
   syncQuery() {
     const s = this.state;
     replaceQuery({
-      view: s.view === 'map' ? null : s.view,
+      view: s.view === 'map' || s.view === 'overall' ? null : s.view,
+      goal: s.map.template === 'record' && s.view === 'goals' ? s.goal : null,
       focus: s.focus === s.map.root.slug || s.map === BLANK ? null : s.focus,
       theme: s.themeQ === null || s.themeQ === s.map.display.theme ? null : s.themeQ,
     });
@@ -2522,6 +2549,10 @@ class Component extends DCLogic {
     const slug = Component.slugBase(title);
     if (slug === '') throw new Error('bug: Create pressed with a title that has no letters or digits');
     const details = s.newDesc.trim();
+    if (s.newKind === 'record') {
+      this.openNew(Component.newRecord(title, details), 'overall', `New decision record · ${title}`);
+      return;
+    }
     const taken = new Set([slug]);
     const children = s.newOptions.map((o) => o.trim().replace(/\s+/g, ' ')).filter((text) => Component.slugBase(text) !== '').map((text) => {
       const optionSlug = Component.slugify(text, taken);
@@ -2529,14 +2560,18 @@ class Component extends DCLogic {
       return { slug: optionSlug, text, kind: 'premise', importance: null, impact: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [] };
     });
     const map = { title, template: 'map', display: s.map.display, root: { slug, text: title, kind: 'root', importance: null, impact: null, by: null, basis: null, confidence: null, details: details === '' ? null : details, refs: [], children } };
+    this.openNew(map, 'map', `New map · ${title}`);
+  }
+
+  openNew(map, view, status) {
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
-      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: slug, view: 'map',
-      fileName: `${slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
+      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: map.root.slug, view, goal: null,
+      fileName: `${map.root.slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
       adding: null, draftText: '', chosenFacts: [], frozenOrder: null, pinned: null,
-      confirmDelete: false, hover: null, notice: null, fileStatus: `New map · ${title}`,
+      confirmDelete: false, hover: null, notice: null, fileStatus: status,
     });
   }
 
@@ -2773,6 +2808,9 @@ class Component extends DCLogic {
     const thr = this.props.diffThreshold ?? 10;
     const map = s.map;
     const mapB = s.mapB;
+    const isRecordFile = map.template === 'record';
+    // A view from the URL or another file that this kind of file doesn't have falls back to its first view.
+    const view = isRecordFile ? (RECORD_VIEWS.includes(s.view) ? s.view : 'overall') : (MAP_VIEWS.includes(s.view) ? s.view : 'map');
     /* No map: nothing opened yet (noMap), or a file whose markdown doesn't parse yet (only the source view shows). */
     const hasMap = map !== BLANK;
     const noMap = !hasMap && s.src === '';
@@ -2794,10 +2832,12 @@ class Component extends DCLogic {
       return { fg: impact < 0 ? P.con : P.pro, tint: impact < 0 ? P.conTint : P.proTint, glyph: impact < 0 ? '−' : impact > 0 ? '+' : '0', label: 'Fact', solid };
     };
 
-    const tabs = [['pie', 'Pie view'], ['map', 'Bar view'], ['source', 'Markdown source'], ['diff', 'Compare two maps']].map(([id, label]) => ({
-      label, pressed: String(s.view === id),
-      isPie: id === 'pie', isTree: id === 'map', isSource: id === 'source', isDiff: id === 'diff',
-      fg: s.view === id ? P.ink : 'var(--ink3)', underline: s.view === id ? P.ink : 'transparent',
+    const tabList = isRecordFile ? [['overall', 'Overall'], ['goals', 'Goals'], ['source', 'Markdown source'], ['compare', 'Compare']]
+      : [['pie', 'Pie view'], ['map', 'Bar view'], ['source', 'Markdown source'], ['diff', 'Compare two maps']];
+    const tabs = tabList.map(([id, label]) => ({
+      label, pressed: String(view === id),
+      isPie: id === 'pie', isTree: id === 'map', isSource: id === 'source', isDiff: id === 'diff' || id === 'compare', isOverall: id === 'overall', isGoals: id === 'goals',
+      fg: view === id ? P.ink : 'var(--ink3)', underline: view === id ? P.ink : 'transparent',
       pick: () => this.setState({ view: id, hover: null }),
     }));
 
@@ -2820,7 +2860,7 @@ class Component extends DCLogic {
     const isPinned = pinPath !== null;
     const pieRoot = isPinned ? pinPath[pinPath.length - 1] : focus;
     const pieRows = Component.factRows(pieRoot, values);
-    const inPie = s.view === 'pie';
+    const inPie = view === 'pie';
     const addIsPremise = s.adding !== null && s.adding.isPremise;
     const canCommit = Component.slugBase(s.draftText) !== '';
     const add = {
@@ -2910,7 +2950,7 @@ class Component extends DCLogic {
     const chosenCount = s.chosenFacts.filter((x) => Component.findPath(map.root, x) !== null).length;
     const chart = {
       depth: { has: depthCells.length > 0, gutter: editable ? 56 : 0, height: depthRows * DEPTH_ROW, cells: depthCells },
-      hasCols: rows.length > 0, barShown: s.view === 'map' && rows.length > 0, pieShown: inPie && pieRows.length > 0,
+      hasCols: rows.length > 0, barShown: view === 'map' && rows.length > 0, pieShown: inPie && pieRows.length > 0,
       hintShown: (inPie ? pieRows : rows).length > 0,
       empty: (inPie ? pieRows : rows).length === 0 && editable, emptyReadOnly: (inPie ? pieRows : rows).length === 0 && !editable,
       cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
@@ -3077,7 +3117,7 @@ class Component extends DCLogic {
       has: false, stale: false, crumbs: [], shareA: '', shareB: '', ratioCaption: '', barA: 50, barB: 50, cards: [],
       clear: () => this.setState({ diffSel: null }),
     };
-    if (s.view === 'diff' && mapB !== null) {
+    if (view === 'diff' && mapB !== null) {
       const { rows, ia, ib } = Component.diff(map, mapB, thr);
       const valuesB = Component.allValues(mapB.root);
       diff.leans = [['A', values, map.root.slug], ['B', valuesB, mapB.root.slug]].map(([label, vals, slug]) => {
@@ -3330,7 +3370,7 @@ class Component extends DCLogic {
       /* Open: drop, pick or fetch a .md file; openFiles reads the latest state, since these finish later. */
       toggleOpen: () => this.setState({ openOpen: !s.openOpen, openTarget: 'A', openError: '', dropActive: false, newOpen: false }), openExpanded: String(s.openOpen && s.openTarget === 'A'),
       /* The panel also stands in for a diff with no B. */
-      openOpen: s.openOpen || (s.view === 'diff' && hasMap && s.srcB === ''),
+      openOpen: s.openOpen || (view === 'diff' && hasMap && s.srcB === ''),
       openTitle: target === 'B' ? 'Choose map B to compare with' : 'Open a map',
       openNote: target === 'B' ? 'B is compared with the current map, fact by fact (matched by slug). Opening a URL puts it in the address bar as ?theirs=.'
         : 'The file replaces the current map. A file opened from this computer can be saved back to it. Opening a URL puts it in the address bar as ?src=, so the link opens this map.',
@@ -3379,7 +3419,12 @@ class Component extends DCLogic {
       onTitle: (e) => newText(e.target.value, (newTitle) => this.setState({ newTitle })),
       onTitleKey: (e) => { if (e.key === 'Enter' && !createDisabled) this.createMap(); },
       onDesc: (e) => this.setState({ newDesc: e.target.value }),
-      showOptionsToggle: s.newOptions.length === 0, hasOptions: s.newOptions.length > 0,
+      showOptionsToggle: s.newKind === 'map' && s.newOptions.length === 0, hasOptions: s.newKind === 'map' && s.newOptions.length > 0,
+      pickMap: () => this.setState({ newKind: 'map' }), pickRecord: () => this.setState({ newKind: 'record' }),
+      kinds: [['map', 'Decision map'], ['record', 'Decision record']].map(([k, label]) => ({
+        label, pressed: String(s.newKind === k), bg: s.newKind === k ? 'var(--ink)' : 'transparent', fg: s.newKind === k ? 'var(--on-ink)' : 'var(--ink2)',
+        pick: () => this.setState({ newKind: k }),
+      })),
       startOptions: () => this.setState({ newOptions: ['', ''] }),
       addOption: () => this.setState((st) => ({ newOptions: [...st.newOptions, ''] })),
       options: s.newOptions.map((value, i) => ({
@@ -3504,7 +3549,7 @@ class Component extends DCLogic {
       ev: s.fEv, onEv: (e) => this.setState({ fEv: e.target.value }),
       reset: () => this.setState({ q: '', fConf: 'any', fEv: 'any' }),
       active: filterActive,
-      summary: `${shownArgs} of ${totalArgs} facts match` + (s.view === 'map' ? ' · others are dimmed' : ''),
+      summary: `${shownArgs} of ${totalArgs} facts match` + (view === 'map' ? ' · others are dimmed' : ''),
     };
 
     // settings
@@ -3558,10 +3603,10 @@ class Component extends DCLogic {
 
     return {
       title: map.title, tabs, tb, nm, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
-      isFocusView: hasMap && (s.view === 'map' || s.view === 'pie'),
+      isFocusView: hasMap && (view === 'map' || view === 'pie'),
       focusLayout: inPie ? { dir: 'row', align: 'flex-start', detailsFlex: '1 1 360px', pointsFlex: '2 1 480px' } : { dir: 'column', align: 'stretch', detailsFlex: '0 0 auto', pointsFlex: '0 0 auto' },
-      hintText: s.view === 'pie' ? pie.hint : chart.hint,
-      pageDisplay, headerControls: hasMap && !nm.open, chartViewsShown: hasMap && !nm.open && s.view === 'map',
+      hintText: view === 'pie' ? pie.hint : chart.hint,
+      pageDisplay, headerControls: hasMap && !nm.open, chartViewsShown: hasMap && !nm.open && view === 'map',
       menu: (() => {
         const choose = (fn) => () => { this.setState({ menuOpen: false }); fn(); };
         return {
@@ -3572,7 +3617,8 @@ class Component extends DCLogic {
           save: choose(tb.save), download: choose(tb.download), settings: choose(stg.openIt),
         };
       })(),
-      hasMap, isMap: hasMap && s.view === 'map', isPie: hasMap && s.view === 'pie', isDiff: hasMap && s.view === 'diff', isSource: !noMap && s.view === 'source',
+      isOverall: hasMap && view === 'overall', isGoals: hasMap && view === 'goals' && s.goal === null, isGoal: hasMap && view === 'goals' && s.goal !== null, isCompare: hasMap && view === 'compare',
+      hasMap, isMap: hasMap && view === 'map', isPie: hasMap && view === 'pie', isDiff: hasMap && view === 'diff', isSource: !noMap && view === 'source',
       undoBtn: { disabled: locked || s.history.past.length === 0, opacity: locked || s.history.past.length === 0 ? 0.35 : 1, run: () => this.undo() },
       redoBtn: { disabled: locked || s.history.future.length === 0, opacity: locked || s.history.future.length === 0 ? 0.35 : 1, run: () => this.redo() },
       hasNotice: s.notice !== null, notice: s.notice === null ? '' : s.notice, clearNotice: () => this.setState({ notice: null }),
@@ -3591,7 +3637,7 @@ class Component extends DCLogic {
       src: s.src, onSrc: (e) => this.onSrc(e.target.value),
       srcBorder: locked ? P.con : P.line, srcOk: !locked,
       srcErrors: s.srcErrors.map((e) => ({ text: `Line ${e.line} · ${e.msg}` })),
-      json: s.view === 'source' && s.sourceTab === 'json' ? JSON.stringify(map, null, 2) : '',
+      json: view === 'source' && s.sourceTab === 'json' ? JSON.stringify(map, null, 2) : '',
     };
   }
 }

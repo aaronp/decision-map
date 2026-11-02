@@ -1468,5 +1468,30 @@ test('⌘Z outside text fields undoes; inside one the browser handles it', () =>
   assert.deepEqual(imps(c), [10, 30, 60]);
 });
 
+// ---------------------------------------------------------------- record views
+test('New can create a decision record, which opens on Overall', () => {
+  const c = boot(MAP3);
+  const nm = () => c.renderVals().nm;
+  nm().pickRecord();
+  nm().onTitle({ target: { value: 'Pick a store' } });
+  nm().create();
+  assert.equal(c.state.map.template, 'record');
+  assert.equal(c.state.view, 'overall');
+  assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Overall', 'Goals', 'Markdown source', 'Compare']);
+});
+test('every record view renders with no unresolved bindings, and maps keep their views', () => {
+  for (const view of ['overall', 'goals', 'source', 'compare']) {
+    const c = boot(REC);
+    c.setState({ view });
+    assert.deepEqual(unresolved(c.renderVals()), [], view);
+  }
+  const c = boot(REC);
+  c.setState({ view: 'goals', goal: 'reliability' });
+  assert.deepEqual(unresolved(c.renderVals()), [], 'goal');
+  const m = boot(MAP3);
+  m.setState({ view: 'overall' });
+  assert.equal(m.renderVals().isMap, true);
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
