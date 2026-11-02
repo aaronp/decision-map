@@ -981,7 +981,97 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   </div>
   </sc-if>
   <sc-if value="{{isCompare}}" hint-placeholder-val="{{ false }}">
-    <section aria-label="Compare records"><h2 style="margin: 0; font-size: 1.4rem">Compare</h2></section>
+    <section aria-label="Compare records" style="display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">Compare</span>
+        <h2 style="margin: 0; font-size: 1.6rem; line-height: 1.2; text-wrap: balance">{{compare.heading}}</h2>
+        <div style="display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; font-size: 13px; color: var(--ink2)">
+          <span>First</span><div role="group" style="display: flex; flex-wrap: wrap; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px"><sc-for list="{{compare.pickA}}" as="pa" hint-placeholder-count="2"><button type="button" aria-pressed="{{pa.pressed}}" onClick="{{pa.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; background: {{pa.bg}}; color: {{pa.fg}}">{{pa.name}}</button></sc-for></div>
+          <span>Second</span><div role="group" style="display: flex; flex-wrap: wrap; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px"><sc-for list="{{compare.pickB}}" as="pb" hint-placeholder-count="2"><button type="button" aria-pressed="{{pb.pressed}}" onClick="{{pb.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; background: {{pb.bg}}; color: {{pb.fg}}">{{pb.name}}</button></sc-for></div>
+        </div>
+        <div><button type="button" onClick="{{compare.openB}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Open a second record…</button></div>
+        <sc-if value="{{compare.hasNotice}}" hint-placeholder-val="{{ false }}"><p role="status" style="margin: 0; font-size: 14px; color: var(--warn-fg)">{{compare.notice}}</p></sc-if>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px">
+        <sc-for list="{{compare.top}}" as="t" hint-placeholder-count="3">
+          <button type="button" onClick="{{t.go}}" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; padding: 12px 14px; text-align: left; font: inherit; color: var(--ink); cursor: pointer; display: flex; flex-direction: column; gap: 4px">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">{{t.where}}</span><b>{{t.headline}}</b><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink2)">{{t.text}}</span>
+          </button>
+        </sc-for>
+        <sc-if value="{{compare.noTop}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: var(--ink3)">These two are the same.</p></sc-if>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start">
+        <div style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; flex: 1.6 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+            <div role="group" style="display: flex; flex-wrap: wrap; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px"><sc-for list="{{compare.tiers}}" as="ti" hint-placeholder-count="2"><button type="button" aria-pressed="{{ti.pressed}}" onClick="{{ti.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; background: {{ti.bg}}; color: {{ti.fg}}">{{ti.label}}</button></sc-for></div>
+            <sc-if value="{{compare.showGoals}}" hint-placeholder-val="{{ false }}"><div role="group" style="display: flex; flex-wrap: wrap; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px"><sc-for list="{{compare.goals}}" as="go" hint-placeholder-count="2"><button type="button" aria-pressed="{{go.pressed}}" onClick="{{go.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; background: {{go.bg}}; color: {{go.fg}}">{{go.label}}</button></sc-for></div></sc-if>
+            <span style="margin-left: auto"><div role="group" style="display: flex; flex-wrap: wrap; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px"><sc-for list="{{compare.styles}}" as="st" hint-placeholder-count="2"><button type="button" aria-pressed="{{st.pressed}}" onClick="{{st.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; background: {{st.bg}}; color: {{st.fg}}">{{st.label}}</button></sc-for></div></span>
+          </div>
+          <sc-if value="{{compare.isSide}}" hint-placeholder-val="{{ true }}">
+            <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink2)"><span><span aria-hidden="true" style="display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--ink); margin-right: 5px"></span>{{compare.nameA}}</span><span><span aria-hidden="true" style="display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--side-b, var(--accent)); margin-right: 5px"></span>{{compare.nameB}}</span></div>
+            <sc-for list="{{compare.rows}}" as="r" hint-placeholder-count="4">
+              <button type="button" aria-pressed="{{r.pressed}}" onClick="{{r.pick}}" style="display: grid; grid-template-columns: minmax(110px, 200px) minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 6px 4px; border: 0; border-top: 1px solid var(--rule-soft); background: transparent; font: inherit; color: var(--ink); text-align: left; cursor: pointer">
+                <span style="min-width: 0"><b style="font-weight: 500">{{r.label}}</b><span style="display: block; font-size: 12px; color: var(--ink3)">{{r.sub}}</span></span>
+                <span style="display: flex; flex-direction: column; gap: 3px" title="{{r.aText}} · {{r.bText}}">
+                  <span style="display: block; height: 12px; min-width: 2px; border-radius: 3px; width: {{r.aWidth}}; background: var(--ink)"></span>
+                  <span style="display: block; height: 12px; min-width: 2px; border-radius: 3px; width: {{r.bWidth}}; background: var(--side-b, var(--accent))"></span>
+                </span>
+                <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 12px; text-align: right">
+                  <sc-if value="{{r.big}}" hint-placeholder-val="{{ false }}"><span style="border-radius: 99px; padding: 1px 8px; font-weight: 600; background: color-mix(in srgb, var(--warn-fg) 16%, var(--card)); color: var(--ink)">{{r.gapText}}</span></sc-if>
+                  <sc-if value="{{r.small}}" hint-placeholder-val="{{ true }}"><span style="color: var(--ink3)">{{r.gapText}}</span></sc-if>
+                </span>
+              </button>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{compare.isComposite}}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{compare.composite.isWeights}}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{compare.composite.sides}}" as="cs" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: minmax(80px, 180px) minmax(0, 1fr); gap: 10px; align-items: center; font-size: 13px">
+                  <span style="color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{cs.name}}</span>
+                  <span style="display: flex; height: 30px; border-radius: 6px; overflow: hidden; background: var(--sunk)">
+                    <sc-for list="{{cs.parts}}" as="p" hint-placeholder-count="3"><span title="{{p.title}}" style="display: flex; align-items: center; min-width: 0; overflow: hidden; width: {{p.width}}; background: {{p.fill}}; color: var(--on-fill); font-size: 12px; font-weight: 600; border-right: 2px solid var(--card); white-space: nowrap; padding: 0 6px; box-sizing: border-box">{{p.text}}</span></sc-for>
+                  </span>
+                </div>
+              </sc-for>
+            </sc-if>
+            <sc-if value="{{compare.composite.isScores}}" hint-placeholder-val="{{ false }}">
+              <sc-for list="{{compare.composite.options}}" as="co" hint-placeholder-count="2">
+                <div style="display: flex; flex-direction: column; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--rule-soft)">
+                  <b>{{co.title}}</b>
+                  <sc-for list="{{co.sides}}" as="cs" hint-placeholder-count="2">
+                    <div style="display: grid; grid-template-columns: minmax(80px, 180px) minmax(0, 1fr) 40px; gap: 10px; align-items: center; font-size: 13px">
+                      <span style="color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{cs.name}}</span>
+                      <span style="display: flex; height: 26px; border-radius: 6px; overflow: hidden; background: var(--sunk)">
+                        <sc-for list="{{cs.parts}}" as="p" hint-placeholder-count="2"><span title="{{p.title}}" style="display: flex; align-items: center; min-width: 0; overflow: hidden; width: {{p.width}}; background: {{p.fill}}; color: var(--on-fill); font-size: 12px; font-weight: 600; border-right: 2px solid var(--card); white-space: nowrap; padding: 0 6px; box-sizing: border-box">{{p.text}}</span></sc-for>
+                      </span>
+                      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right">{{cs.total}}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </sc-if>
+            <p style="margin: 0; font-size: 13px; color: var(--ink3)">{{compare.compositeNote}}</p>
+          </sc-if>
+        </div>
+        <div style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">Why the scores differ</span>
+          <sc-if value="{{compare.sel.has}}" hint-placeholder-val="{{ false }}">
+            <h3 style="margin: 0; font-size: 1rem">{{compare.sel.title}}</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px">
+              <div><b style="font-size: 14px">{{compare.nameA}}</b> <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums">{{compare.sel.aScore}}</span>
+                <sc-if value="{{compare.sel.aNone}}" hint-placeholder-val="{{ false }}"><p style="margin: 6px 0 0; font-size: 13px; color: var(--ink3)">No reasons given.</p></sc-if>
+                <ul style="list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px"><sc-for list="{{compare.sel.a}}" as="x" hint-placeholder-count="1"><li style="background: var(--sunk); border-radius: 8px; padding: 6px 10px; font-size: 14px">{{x.text}}<span style="display: block; font-size: 12px; color: var(--ink3)">{{x.meta}}</span></li></sc-for></ul>
+              </div>
+              <div><b style="font-size: 14px">{{compare.nameB}}</b> <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums">{{compare.sel.bScore}}</span>
+                <sc-if value="{{compare.sel.bNone}}" hint-placeholder-val="{{ false }}"><p style="margin: 6px 0 0; font-size: 13px; color: var(--ink3)">No reasons given.</p></sc-if>
+                <ul style="list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px"><sc-for list="{{compare.sel.b}}" as="x" hint-placeholder-count="1"><li style="background: var(--sunk); border-radius: 8px; padding: 6px 10px; font-size: 14px">{{x.text}}<span style="display: block; font-size: 12px; color: var(--ink3)">{{x.meta}}</span></li></sc-for></ul>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{compare.sel.none}}" hint-placeholder-val="{{ true }}"><p style="margin: 0; font-size: 13px; color: var(--ink3)">{{compare.selHint}}</p></sc-if>
+        </div>
+      </div>
+    </section>
   </sc-if>
   <sc-if value="{{isDiff}}" hint-placeholder-val="{{ false }}">
   <div style="display: flex; flex-direction: column; gap: 16px">
@@ -1694,7 +1784,8 @@ class Component extends DCLogic {
       orKey: loadSetting(OR_KEY_STORE), orKeySaved: loadSetting(OR_KEY_STORE), orShow: false, orStatus: '', orModel: loadSetting(OR_MODEL_STORE) || OR_DEFAULT_MODEL,
       research: null, rationale: null,
       src: A.text, map, srcErrors: a.errors,
-      view: a.errors.length ? 'source' : VIEWS.includes(qView) ? qView : window.AM_B ? 'diff' : props.startView ?? 'map',
+      view: a.errors.length ? 'source' : VIEWS.includes(qView) ? qView : window.AM_B ? (map.template === 'record' ? 'compare' : 'diff') : props.startView ?? 'map',
+      cmpA: null, cmpB: null, cmpTier: 'goals', cmpGoal: null, cmpStyle: 'side', cmpRow: null,
       focus: qFocus !== null && Component.findPath(map.root, qFocus) !== null ? qFocus : map.root.slug,
       sourceTab: 'md',
       adding: null, draftText: '', draftDetails: '', draftImpact: 0, bornSlug: null, pinned: null,
@@ -2262,6 +2353,44 @@ class Component extends DCLogic {
       for (const c of g.children) if (Component.findPath(onto.root, c.slug)) out[c.slug] = c.importance;
     }
     return out;
+  }
+
+  // Compare rows for one tier: goals (% of importance), criteria (% within a goal) or scores (0–10). Items only one side has are 0 on the other.
+  static compareRows(A, B, tier, goal = null) {
+    const union = (xs, ys, key) => { const out = [...xs]; ys.forEach((y) => { if (!out.some((x) => key(x) === key(y))) out.push(y); }); return out; };
+    // Gaps are rounded so equal differences that floating point makes unequal keep file order.
+    const sort = (rows) => rows.map((r, i) => [{ ...r, gap: Math.round((Math.abs(r.a - r.b) / r.max) * 1e9) / 1e9 }, i]).sort((x, y) => y[0].gap - x[0].gap || x[1] - y[1]).map(([r]) => r);
+    const share = (list, slug) => { const T = list.reduce((t, x) => t + x.importance, 0); const x = list.find((k) => k.node.slug === slug); return x && T > 0 ? (x.importance / T) * 100 : 0; };
+    if (tier === 'goals') {
+      const all = union(A.goals, B.goals, (g) => g.node.slug);
+      return sort(all.map((g) => ({ id: g.node.slug, label: g.node.text, sub: '', a: share(A.goals, g.node.slug), b: share(B.goals, g.node.slug), max: 100, unit: '%' })));
+    }
+    const ga = A.goals.find((g) => g.node.slug === goal);
+    const gb = B.goals.find((g) => g.node.slug === goal);
+    const ca = ga ? ga.criteria : [];
+    const cb = gb ? gb.criteria : [];
+    const crits = union(ca, cb, (c) => c.node.slug);
+    if (tier === 'criteria') return sort(crits.map((c) => ({ id: c.node.slug, label: c.node.text, sub: '', a: share(ca, c.node.slug), b: share(cb, c.node.slug), max: 100, unit: '%' })));
+    const opts = [...new Set([...(ga ? ga.options : []), ...(gb ? gb.options : [])])];
+    const score = (g, o, c) => (g && g.scores[o] ? g.scores[o][c] ?? 0 : 0);
+    const title = (o) => A.options.get(o) ?? B.options.get(o) ?? o;
+    return sort(opts.flatMap((o) => crits.map((c) => ({ id: `${o}|${c.node.slug}`, option: o, criterion: c.node.slug, label: title(o), sub: c.node.text, a: score(ga, o, c.node.slug), b: score(gb, o, c.node.slug), max: 10, unit: '' }))));
+  }
+
+  // The largest differences across every tier, as a share of each tier's scale.
+  static topDifferences(A, B, n = 4) {
+    const goals = [...new Set([...A.goals, ...B.goals].map((g) => g.node.slug))];
+    const all = [
+      ...Component.compareRows(A, B, 'goals').map((r) => ({ ...r, tier: 'goals', goal: null, where: 'Goal importance' })),
+      ...goals.flatMap((gs) => {
+        const name = (A.goals.find((g) => g.node.slug === gs) ?? B.goals.find((g) => g.node.slug === gs)).node.text;
+        return [
+          ...Component.compareRows(A, B, 'criteria', gs).map((r) => ({ ...r, tier: 'criteria', goal: gs, where: `${name} · criterion weight` })),
+          ...Component.compareRows(A, B, 'scores', gs).map((r) => ({ ...r, tier: 'scores', goal: gs, where: `${name} · score` })),
+        ];
+      }),
+    ];
+    return all.map((r, i) => [r, i]).filter(([r]) => r.gap > 0).sort((x, y) => y[0].gap - x[0].gap || x[1] - y[1]).slice(0, n).map(([r]) => r);
   }
 
   static recordBlank(fields) {
@@ -2917,7 +3046,7 @@ class Component extends DCLogic {
     replaceQuery({ theirs: url });
     this.setState(r.errors.length
       ? { srcB: text, mapB: null, errorsB: r.errors, showSrcB: true, fileNameB: name, fileStatus: `Opened ${name} as B · it has errors` }
-      : { srcB: text, mapB: r.map, errorsB: [], fileNameB: name, fileStatus: `Opened ${name} as B` });
+      : { srcB: text, mapB: r.map, errorsB: [], fileNameB: name, cmpB: null, cmpRow: null, fileStatus: `Opened ${name} as B` });
   }
 
   /** Research: sources for the selected fact, offered as evidence to add. */
@@ -4370,6 +4499,96 @@ class Component extends DCLogic {
       };
       return { goals, weights, criteria, ranking, snap, legend: recModel.goals.filter((g) => g.on).map((g) => ({ title: g.node.text, fill: goalFill(g.node.slug) })) };
     })();
+
+    // Compare: two records (the open file, its what-if weights, a second file, or snapshots), tier by tier.
+    const compare = (() => {
+      const empty = { sources: [], rows: [], top: [], notice: '', hasNotice: false, ok: false, composite: { sides: [], options: [] } };
+      if (!isRecordFile) return empty;
+      const sources = [{ key: 'a', name: `${s.fileName} (open)`, map }];
+      if (s.whatIf !== null) sources.push({ key: 'a-whatif', name: 'Open file (what-if)', map: Component.applyWeights(map, s.whatIf) });
+      const bIsRecord = mapB !== null && mapB.template === 'record';
+      if (bIsRecord) sources.push({ key: 'b', name: s.fileNameB || 'Second file', map: mapB });
+      for (const x of s.snapshots) {
+        const r = Component.parse(x.src);
+        if (!r.errors.length && r.map.template === 'record') sources.push({ key: x.id, name: `${x.name} · ${x.file}`, map: r.map });
+      }
+      const pickKey = (k, fallback) => (sources.some((x) => x.key === k) ? k : fallback);
+      const newestSnap = sources.filter((x) => x.key.startsWith('snap-')).pop();
+      const keyA = pickKey(s.cmpA, 'a');
+      const keyB = pickKey(s.cmpB, bIsRecord ? 'b' : newestSnap ? newestSnap.key : 'a');
+      const SA = sources.find((x) => x.key === keyA);
+      const SB = sources.find((x) => x.key === keyB);
+      const A = Component.recordModel(SA.map);
+      const B = Component.recordModel(SB.map);
+      const goalKeys = [...new Set([...A.goals, ...B.goals].map((g) => g.node.slug))];
+      const goal = goalKeys.includes(s.cmpGoal) ? s.cmpGoal : goalKeys[0] ?? null;
+      const tier = s.cmpTier;
+      const rows = Component.compareRows(A, B, tier, goal).map((r) => {
+        const show = (v) => (r.unit === '%' ? `${Math.round(v)}%` : String(v));
+        const diff = Math.abs(r.a - r.b);
+        return {
+          ...r, aText: show(r.a), bText: show(r.b), aWidth: `${(r.a / r.max) * 100}%`, bWidth: `${(r.b / r.max) * 100}%`,
+          big: r.gap >= 0.15, small: r.gap < 0.15, gapText: r.unit === '%' ? `${Math.round(diff)} pts` : `${diff} apart`,
+          pressed: String(s.cmpRow === r.id), pick: () => this.setState({ cmpRow: r.id }),
+        };
+      });
+      const reasonsOf = (m, row) => {
+        const crit = Component.findPath(m.root, row.criterion);
+        const sc = crit ? crit[crit.length - 1].children.find((x) => x.option === row.option) : null;
+        return sc ? [...sc.children].sort((x, y) => y.importance - x.importance).map((r) => ({ text: r.text, meta: [r.by, r.refs.length ? `📎 ${r.refs.length}` : null].filter(Boolean).join(' · ') })) : [];
+      };
+      const sel = tier === 'scores' ? rows.find((r) => r.id === s.cmpRow) ?? null : null;
+      const fillFor = tier === 'goals' ? (slug) => goalFill(slug) : (slug) => critFill(Math.max(0, (A.goals.find((g) => g.node.slug === goal) ?? B.goals.find((g) => g.node.slug === goal)).criteria.findIndex((c) => c.node.slug === slug)));
+      const sideParts = (M) => {
+        const list = tier === 'goals' ? M.goals : (M.goals.find((g) => g.node.slug === goal) ?? { criteria: [] }).criteria;
+        const T = list.reduce((t, x) => t + x.importance, 0);
+        return list.filter((x) => x.importance > 0).map((x) => {
+          const pct = T > 0 ? Math.round((x.importance / T) * 100) : 0;
+          return { label: x.node.text, pct, width: `${T > 0 ? (x.importance / T) * 100 : 0}%`, fill: fillFor(x.node.slug), text: pct >= 12 ? `${x.node.text} ${pct}%` : '', title: `${x.node.text}: ${pct}%` };
+        });
+      };
+      const optionBars = () => {
+        const ga = A.goals.find((g) => g.node.slug === goal);
+        const gb = B.goals.find((g) => g.node.slug === goal);
+        const opts = [...new Set([...(ga ? ga.options : []), ...(gb ? gb.options : [])])];
+        const bar = (g, o) => (!g || !g.options.includes(o) ? [] : g.criteria.map((c, i) => {
+          const v = c.share * (g.scores[o][c.node.slug] ?? 0);
+          return { label: c.node.text, width: `${v * 10}%`, fill: critFill(i), text: v >= 1.2 ? c.node.text : '', title: `${c.node.text}: +${fmt1(v)}` };
+        }));
+        return opts.map((o) => ({
+          title: A.options.get(o) ?? B.options.get(o) ?? o,
+          sides: [[SA, ga], [SB, gb]].map(([src, g]) => ({ name: src.name, parts: bar(g, o), total: g && g.options.includes(o) ? fmt1(g.goalScores[o]) : '—' })),
+        }));
+      };
+      const chip = (on) => ({ bg: on ? 'var(--ink)' : 'transparent', fg: on ? 'var(--on-ink)' : 'var(--ink2)', pressed: String(on) });
+      return {
+        ok: true, notice: mapB !== null && !bIsRecord ? 'The second file is a decision map. Open another decision record to compare.' : sources.length < 2 ? 'Open a second record, or save a snapshot in Overall, to compare with.' : '',
+        hasNotice: (mapB !== null && !bIsRecord) || sources.length < 2,
+        heading: `Where do ${SA.name} and ${SB.name} differ?`, nameA: SA.name, nameB: SB.name,
+        sources: sources.map((x) => ({ key: x.key, name: x.name })),
+        pickA: sources.map((x) => ({ name: x.name, ...chip(x.key === keyA), pick: () => this.setState({ cmpA: x.key, cmpRow: null }) })),
+        pickB: sources.map((x) => ({ name: x.name, ...chip(x.key === keyB), pick: () => this.setState({ cmpB: x.key, cmpRow: null }) })),
+        openB: () => this.setState({ openOpen: true, openTarget: 'B', openError: '', newOpen: false }),
+        tiers: [['goals', 'Goals'], ['criteria', 'Criteria'], ['scores', 'Scores']].map(([t, label]) => ({ label, ...chip(tier === t), pick: () => this.setState({ cmpTier: t, cmpRow: null }) })),
+        pickTier: (t) => this.setState({ cmpTier: t, cmpRow: null }), pickGoal: (g) => this.setState({ cmpGoal: g, cmpRow: null }),
+        pickStyle: (st) => this.setState({ cmpStyle: st }),
+        showGoals: tier !== 'goals',
+        goals: goalKeys.map((gs) => ({ label: (A.goals.find((g) => g.node.slug === gs) ?? B.goals.find((g) => g.node.slug === gs)).node.text, ...chip(gs === goal), pick: () => this.setState({ cmpGoal: gs, cmpRow: null }) })),
+        styles: [['side', 'Side by side'], ['composite', 'Composite']].map(([st, label]) => ({ label, ...chip(s.cmpStyle === st), pick: () => this.setState({ cmpStyle: st }) })),
+        isSide: s.cmpStyle === 'side', isComposite: s.cmpStyle === 'composite',
+        rows, noRows: rows.length === 0,
+        top: Component.topDifferences(A, B).map((r) => ({
+          ...r, text: `${SA.name.split(' · ')[0]} ${r.unit === '%' ? Math.round(r.a) + '%' : r.a} · ${SB.name.split(' · ')[0]} ${r.unit === '%' ? Math.round(r.b) + '%' : r.b}`,
+          headline: r.sub ? `${r.label} · ${r.sub}` : r.label,
+          go: () => this.setState({ cmpTier: r.tier, cmpGoal: r.goal ?? s.cmpGoal, cmpRow: r.id, cmpStyle: 'side' }),
+        })),
+        noTop: Component.topDifferences(A, B).length === 0,
+        composite: { isScores: tier === 'scores', isWeights: tier !== 'scores', sides: tier === 'scores' ? [] : [[SA, A], [SB, B]].map(([src, M]) => ({ name: src.name, parts: sideParts(M) })), options: tier === 'scores' ? optionBars() : [] },
+        compositeNote: tier === 'scores' ? 'Each bar is the option’s goal score out of 10, split by what each criterion adds.' : 'Each bar is the whole, split by relative weight.',
+        sel: sel === null ? { has: false, none: true, title: '', a: [], b: [] } : { has: true, none: false, title: `${sel.label} · ${sel.sub}`, aScore: `${sel.a}/10`, bScore: `${sel.b}/10`, a: reasonsOf(SA.map, sel), b: reasonsOf(SB.map, sel), aNone: reasonsOf(SA.map, sel).length === 0, bNone: reasonsOf(SB.map, sel).length === 0 },
+        selHint: tier === 'scores' ? 'Click a score row to see the reasons behind each side’s score.' : 'In Scores, click a row to see the reasons behind each side’s score.',
+      };
+    })();
     const whatIfBar = {
       shown: isRecordFile && s.whatIf !== null,
       save: () => this.saveWhatIf(), reset: () => this.setWhatIf(null),
@@ -4392,7 +4611,7 @@ class Component extends DCLogic {
           save: choose(tb.save), download: choose(tb.download), settings: choose(stg.openIt),
         };
       })(),
-      recordChart, goalsView, goalView, recPanels, overall, whatIfBar, isRecordView: hasMap && isRecordFile && view !== 'source' && view !== 'compare',
+      recordChart, goalsView, goalView, recPanels, overall, whatIfBar, compare, isRecordView: hasMap && isRecordFile && view !== 'source' && view !== 'compare',
       isOverall: hasMap && view === 'overall', isGoals: hasMap && view === 'goals' && s.goal === null, isGoal: hasMap && view === 'goals' && s.goal !== null, isCompare: hasMap && view === 'compare',
       hasMap, isMap: hasMap && view === 'map', isPie: hasMap && view === 'pie', isDiff: hasMap && view === 'diff', isSource: !noMap && view === 'source',
       undoBtn: { disabled: locked || s.history.past.length === 0, opacity: locked || s.history.past.length === 0 ? 0.35 : 1, run: () => this.undo() },

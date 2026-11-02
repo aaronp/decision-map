@@ -1651,6 +1651,51 @@ test('when the browser refuses storage, snapshots say so and nothing throws', as
   assert.equal(c.state.snapshots.length, 1);
 });
 
+// ---------------------------------------------------------------- compare
+const REC_B = REC.replace('importance: 40', 'importance: 80').replace('score: 9', 'score: 3');
+test('Compare lines up two records by slug, biggest differences first', () => {
+  const c = boot(REC, REC_B);
+  c.setState({ view: 'compare' });
+  const cmp = () => c.renderVals().compare;
+  assert.equal(cmp().rows[0].label, 'Reliability');
+  near(cmp().rows[0].a, 40);
+  cmp().pickTier('scores');
+  cmp().pickGoal('reliability');
+  assert.equal(cmp().rows[0].label, 'DynamoDB');
+  assert.equal(cmp().rows[0].sub, 'Durability');
+  assert.equal(cmp().top.length, 3);
+  assert.equal(cmp().top[0].label, 'DynamoDB'); // 6 of 10 apart beats 17 of 100
+});
+test('composite bars split each side into its parts', () => {
+  const c = boot(REC, REC_B);
+  c.setState({ view: 'compare' });
+  c.renderVals().compare.pickStyle('composite');
+  const sides = c.renderVals().compare.composite.sides;
+  assert.deepEqual(sides.map((s) => s.parts.map((p) => p.pct)), [[40, 60], [57, 43]]);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+  c.renderVals().compare.pickTier('scores');
+  assert.equal(c.renderVals().compare.composite.options.length, 2);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+  c.renderVals().compare.pickStyle('side');
+  c.renderVals().compare.rows[0].pick();
+  assert.equal(c.renderVals().compare.sel.has, true);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+test('a snapshot or the what-if weights can be either side', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall', snapshots: Component.snapshotAdd([], { name: 'Old', file: 'x.md', root: 'store', title: 'Store', at: 1, src: REC_B }) });
+  overallOf(c).goals[1].toggle();
+  c.setState({ view: 'compare' });
+  const keys = c.renderVals().compare.sources.map((x) => x.key);
+  assert.deepEqual(keys, ['a', 'a-whatif', 'snap-1']);
+});
+test('comparing a record with a map explains itself', () => {
+  const c = boot(REC, MAP3);
+  c.setState({ view: 'compare' });
+  assert.match(c.renderVals().compare.notice, /decision map/);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
