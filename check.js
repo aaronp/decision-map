@@ -1988,14 +1988,6 @@ test('compare all: the grid, and a cell edits that option', () => {
 
 
 // ---------------------------------------------------------------- revision 2 review fixes
-test('r2 review: a delete armed on one goal is not armed on the next goal opened', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'criteria', recGoal: 'reliability' });
-  c.renderVals().criteriaLevel.askDel();
-  c.renderVals().goalsLevel.weights.segments[1].pick();
-  assert.equal(c.state.recGoal, 'cost');
-  assert.equal(c.renderVals().criteriaLevel.confirming, false);
-});
 test('r2 review: the open option gone falls back to the goal; compare with no options too', () => {
   const c = rec2();
   c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'gone', optMode: 'edit', recCrit: 'durability' });
@@ -2116,6 +2108,46 @@ test('selecting or adding an option selects it and focuses its title, which rena
 });
 test('the three title fields carry the ids that focus looks for', () => {
   for (const id of ['rec-goal-title', 'rec-crit-title', 'rec-option-title']) assert.ok(template.includes(`id="${id}"`), id);
+});
+
+
+// ---------------------------------------------------------------- deleting, and criterion colours
+test('a goal deletes in one click, clears the selection, says how to undo, and undo brings it back', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'cost', recOption: 'dynamodb' });
+  c.renderVals().goalsLevel.detail.remove();
+  assert.equal(Component.findPath(c.state.map.root, 'cost'), null);
+  assert.equal(c.renderVals().isRecLevel.criteria, false);
+  assert.match(c.state.notice, /Deleted “Cost”.*undo/i);
+  c.undo();
+  assert.ok(Component.findPath(c.state.map.root, 'cost'));
+});
+test('a criterion deletes in one click, but a goal keeps at least one', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recCrit: 'ops' });
+  assert.equal(c.renderVals().criteriaLevel.detail.canRemove, true);
+  c.renderVals().criteriaLevel.detail.remove();
+  assert.equal(Component.findPath(c.state.map.root, 'ops'), null);
+  assert.equal(c.state.recCrit, null);
+  c.recNav({ recCrit: 'durability' });
+  assert.equal(c.renderVals().criteriaLevel.detail.canRemove, false);
+});
+test('an option deletes from its goal in one click', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recOption: 'dynamodb', optMode: 'edit' });
+  c.renderVals().optionsLevel.remove();
+  assert.deepEqual(Component.recordModel(c.state.map).goals[0].options, ['postgres']);
+  assert.equal(c.state.recOption, null);
+  assert.match(c.state.notice, /Deleted “DynamoDB” from Reliability/);
+});
+test('criteria get distinct auto-colours, from the same palette as goals', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'reliability' });
+  for (let k = 0; k < 4; k++) c.addCriterion('reliability');
+  const crit = c.renderVals().criteriaLevel.weights.segments.map((x) => x.fill);
+  const goals = c.renderVals().goalsLevel.weights.segments.map((x) => x.fill);
+  assert.equal(new Set(crit).size, crit.length);
+  assert.deepEqual(goals, crit.slice(0, goals.length));
 });
 
 Promise.all(pending).then(() => {

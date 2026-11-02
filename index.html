@@ -715,6 +715,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px">
             <sc-if value="{{goalsLevel.detail.hasWinner}}" hint-placeholder-val="{{ true }}"><span style="border-radius: 99px; padding: 2px 9px; font-size: 12px; font-weight: 600; background: var(--pro-tint); color: var(--pro)">{{goalsLevel.detail.winner}}</span></sc-if>
             <span style="font-size: 13px; color: var(--ink3)">{{goalsLevel.detail.counts}}</span>
+            <sc-if value="{{goalsLevel.detail.canRemove}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{goalsLevel.detail.remove}}" aria-label="{{goalsLevel.detail.removeLabel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--con); font: inherit; font-size: 14px; cursor: pointer; margin-left: auto">Delete goal</button></sc-if>
           </div>
         </section>
         </sc-if>
@@ -724,14 +725,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
         <section aria-label="Criterion details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
           <input type="text" id="rec-crit-title" class="am-title" aria-label="Criterion title" value="{{criteriaLevel.detail.title}}" onChange="{{criteriaLevel.detail.onTitle}}" onBlur="{{criteriaLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); font-size: 1.3rem">
           <input type="text" aria-label="Criterion description" placeholder="Add a description (optional)" value="{{criteriaLevel.detail.desc}}" onChange="{{criteriaLevel.detail.onDesc}}" onBlur="{{criteriaLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.05rem; color: var(--ink2)">
-          <sc-if value="{{criteriaLevel.detail.canRemove}}" hint-placeholder-val="{{ false }}"><div><button type="button" onClick="{{criteriaLevel.detail.remove}}" aria-label="{{criteriaLevel.detail.removeLabel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; margin-top: 6px">Remove this criterion</button></div></sc-if>
+          <sc-if value="{{criteriaLevel.detail.canRemove}}" hint-placeholder-val="{{ false }}"><div><button type="button" onClick="{{criteriaLevel.detail.remove}}" aria-label="{{criteriaLevel.detail.removeLabel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--con); font: inherit; font-size: 14px; cursor: pointer; margin-top: 6px">Delete criterion</button></div></sc-if><sc-if value="{{criteriaLevel.detail.onlyOne}}" hint-placeholder-val="{{ false }}"><p style="margin: 6px 0 0; font-size: 13px; color: var(--ink3)">A goal needs at least one criterion, so this one can’t be deleted.</p></sc-if>
         </section>
-        </sc-if>
-        <sc-if value="{{criteriaLevel.canDelete}}" hint-placeholder-val="{{ false }}">
-          <div style="display: flex; gap: 8px; align-items: center">
-            <sc-if value="{{criteriaLevel.askDelete}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{criteriaLevel.askDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; color: var(--con)">Delete this goal</button></sc-if>
-            <sc-if value="{{criteriaLevel.confirming}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px">Delete this goal and everything in it?</span><button type="button" onClick="{{criteriaLevel.doDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; background: var(--con); color: var(--on-fill); border-color: var(--con)">Delete</button><button type="button" onClick="{{criteriaLevel.cancelDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Cancel</button></sc-if>
-          </div>
         </sc-if>
           </sc-if>
           <sc-if value="{{sec.isOptions}}" hint-placeholder-val="{{ false }}">
@@ -768,7 +763,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
                 <span><button type="button" onClick="{{r.openReasons}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">{{r.reasonsLabel}}</button></span>
               </div>
             </sc-for>
-            <sc-if value="{{optionsLevel.canRemove}}" hint-placeholder-val="{{ false }}"><div><button type="button" onClick="{{optionsLevel.remove}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">{{optionsLevel.removeLabel}}</button></div></sc-if>
+            <sc-if value="{{optionsLevel.canRemove}}" hint-placeholder-val="{{ false }}"><div><button type="button" onClick="{{optionsLevel.remove}}" aria-label="{{optionsLevel.removeLabel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--con); font: inherit; font-size: 14px; cursor: pointer">Delete option</button></div></sc-if>
           </sc-if>
           <sc-if value="{{optionsLevel.isCompare}}" hint-placeholder-val="{{ false }}">
             <p style="margin: 0; font-size: 13px; color: var(--ink3)">Click a score to edit that option.</p>
@@ -1835,7 +1830,7 @@ class Component extends DCLogic {
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
       dropPending: null, snapshots: [], snapName: '', snapNotice: '', confirmSnap: null,
       recLevel: QUERY.get('view') === 'goals' ? 'goals' : 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, optMode: 'edit',
-      recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, reason: null, newReasonText: '', newOptionText: '', confirmGoalDelete: false,
+      recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, reason: null, newReasonText: '', newOptionText: '',
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
       themeQ: THEMES.some((t) => t.id === qTheme) ? qTheme : null,
@@ -3325,7 +3320,7 @@ class Component extends DCLogic {
   // Move within the Record view; a reason panel open below closes.
   recNav(patch) {
     const rail = patch.recLevel && patch.recLevel !== 'overview' ? { railLevel: patch.recLevel } : {};
-    this.setState({ view: 'record', reason: null, confirmGoalDelete: false, ...PANEL_RESET, ...rail, ...patch });
+    this.setState({ view: 'record', reason: null, ...PANEL_RESET, ...rail, ...patch });
   }
 
   // Every weight drag goes through here. In a record's Overall view, or while what-if weights are on, it edits the overlay instead of the file.
@@ -3482,6 +3477,27 @@ class Component extends DCLogic {
 
   removeRecordNode(slug) {
     this.edit((m) => ({ ...m, root: Component.removeNode(m.root, slug) }));
+  }
+
+  // Deleting is one click: undo brings it back, and the notice says so.
+  deleteGoal(slug) {
+    const title = Component.findPath(this.state.map.root, slug).at(-1).text;
+    this.removeRecordNode(slug);
+    this.recNav({ recLevel: 'goals', recGoal: null, recCrit: null, recOption: null, notice: `Deleted “${title}”. To undo, press ⌘Z or ↶.` });
+  }
+
+  deleteCriterion(slug) {
+    const title = Component.findPath(this.state.map.root, slug).at(-1).text;
+    this.removeRecordNode(slug);
+    this.recNav({ recLevel: 'goals', recCrit: null, notice: `Deleted “${title}”. To undo, press ⌘Z or ↶.` });
+  }
+
+  deleteOptionFromGoal(goalSlug, option) {
+    const model = Component.recordModel(this.state.map);
+    const title = model.options.get(option) ?? option;
+    const goal = model.goals.find((g) => g.node.slug === goalSlug).node.text;
+    this.removeOptionFromGoal(goalSlug, option);
+    this.recNav({ recLevel: 'goals', recOption: null, notice: `Deleted “${title}” from ${goal}. To undo, press ⌘Z or ↶.` });
   }
 
   // An option has one title in the file, so renaming it renames every score heading for it.
@@ -4467,9 +4483,11 @@ class Component extends DCLogic {
 
     // ---------------------------------------------------------------- decision record
     const recModel = isRecordFile ? Component.recordModel(map, s.whatIf) : null;
-    const GOAL_FILLS = ['var(--accent)', 'var(--prem)', 'var(--pro)', 'var(--con)', 'var(--ink3)'];
-    const goalFill = (slug) => GOAL_FILLS[Math.max(0, map.root.children.findIndex((g) => g.slug === slug)) % GOAL_FILLS.length];
-    const critFill = (i) => `color-mix(in srgb, var(--accent) ${[100, 72, 50, 32, 16][i % 5]}%, var(--ink2))`;
+    // One palette of auto-colours, by position, for goals and for each goal's criteria.
+    const FILLS = ['var(--accent)', 'var(--prem)', 'var(--pro)', 'var(--con)', 'color-mix(in srgb, var(--accent) 50%, var(--pro))', 'color-mix(in srgb, var(--prem) 55%, var(--con))', 'color-mix(in srgb, var(--pro) 55%, var(--ink2))', 'var(--ink3)'];
+    const fillAt = (i) => FILLS[i % FILLS.length];
+    const goalFill = (slug) => fillAt(Math.max(0, map.root.children.findIndex((g) => g.slug === slug)));
+    const critFill = (i) => fillAt(i);
     const recordChart = {
       isPie: s.recordChart === 'pie',
       pick: (m) => this.setState({ recordChart: m }),
@@ -4726,8 +4744,8 @@ class Component extends DCLogic {
             openReasons: () => this.recNav({ recLevel: 'reasons', recCrit: cs, recOption: opt }),
           };
         }),
-        canRemove: editable && opt !== null, removeLabel: opt === null ? '' : `Remove ${optTitle(opt)} from this goal`,
-        remove: () => { this.removeOptionFromGoal(gs, opt); this.recNav({ recLevel: 'criteria' }); },
+        canRemove: editable && opt !== null, removeLabel: opt === null ? '' : `Delete ${optTitle(opt)} from this goal`,
+        remove: () => this.deleteOptionFromGoal(gs, opt),
         grid: {
           headers: g.criteria.map((c) => ({ title: c.node.text, pct: `${Math.round(c.share * 100)}%` })),
           rows: ranked.map((o) => ({
@@ -4762,6 +4780,7 @@ class Component extends DCLogic {
           slug: gs, title: sel.node.text, desc: sel.node.details ?? '',
           onTitle: (e) => this.setNodeText(gs, 'text', e.target.value), onDesc: (e) => this.setNodeText(gs, 'details', e.target.value), onBlur: () => this.endStep(),
           hasWinner: sel.winner !== null, winner: sel.winner === null ? '' : `Winner: ${optTitle(sel.winner)} · ${fmt1(sel.goalScores[sel.winner])}`,
+          canRemove: editable, remove: () => this.deleteGoal(gs), removeLabel: `Delete goal ${sel.node.text}`,
           counts: `${sel.criteria.length} criteria · ${sel.options.length} options${sel.on ? '' : ' · turned off'}`,
         },
       };
@@ -4779,7 +4798,8 @@ class Component extends DCLogic {
         detail: sel === null ? {} : {
           title: sel.node.text, desc: sel.node.details ?? '',
           onTitle: (e) => this.setNodeText(sel.node.slug, 'text', e.target.value), onDesc: (e) => this.setNodeText(sel.node.slug, 'details', e.target.value), onBlur: () => this.endStep(),
-          canRemove: editable && g.criteria.length > 1, remove: () => this.removeRecordNode(sel.node.slug), removeLabel: `Remove criterion ${sel.node.text}`,
+          canRemove: editable && g.criteria.length > 1, remove: () => this.deleteCriterion(sel.node.slug), removeLabel: `Delete criterion ${sel.node.text}`,
+          onlyOne: g.criteria.length === 1,
         },
         options: ranked.map((o) => {
           const on = place.option === o && s.optMode !== 'compare';
@@ -4796,9 +4816,6 @@ class Component extends DCLogic {
         newOption: s.newOptionText, onNewOption: (e) => this.setState({ newOptionText: e.target.value }),
         addNewOption: () => this.addNewOption(gs), newOptionDisabled: Component.slugBase(s.newOptionText) === '',
         onNewOptionKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addNewOption(gs); } },
-        canDelete: editable && recModel.goals.length > 1, askDelete: !s.confirmGoalDelete, confirming: s.confirmGoalDelete,
-        askDel: () => this.setState({ confirmGoalDelete: true }), cancelDel: () => this.setState({ confirmGoalDelete: false }),
-        doDel: () => { this.removeRecordNode(gs); this.recNav({ recLevel: 'goals', recGoal: null, confirmGoalDelete: false }); },
       };
     })();
     // The Record page's sections, top to bottom: each selection reveals the next, after a divider and a heading.
