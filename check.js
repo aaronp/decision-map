@@ -1468,9 +1468,9 @@ test('⌘Z outside text fields undoes; inside one the browser handles it', () =>
   const c = boot(MAP3);
   dragDivider(c, 'a', 100);
   const dragged = imps(c);
-  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { matches: () => true }, preventDefault() {} });
+  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { tagName: 'TEXTAREA' }, preventDefault() {} });
   assert.deepEqual(imps(c), dragged); // the target was a text field
-  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { matches: () => false }, preventDefault() {} });
+  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { tagName: 'DIV' }, preventDefault() {} });
   assert.deepEqual(imps(c), [10, 30, 60]);
 });
 
@@ -1701,6 +1701,174 @@ test('the example record parses and round-trips', () => {
   const src = fs.readFileSync('examples/event-store/record.md', 'utf8');
   assert.deepEqual(Component.parse(src).errors, []);
   assert.equal(Component.serialize(Component.parse(src).map), src);
+});
+
+
+// ---------------------------------------------------------------- final review fixes
+const reasonOpen = () => {
+  const c = boot(REC);
+  c.setState({ view: 'goals', goal: 'reliability', cell: { option: 'postgres', criterion: 'durability' } });
+  c.renderVals().goalView.panel.reasons[0].open();
+  return c;
+};
+test('review: a reason\'s basis, confidence and evidence can be edited', () => {
+  const c = reasonOpen();
+  c.renderVals().bc.onBasis({ target: { value: 'Ops logs' } });
+  c.renderVals().bc.stars[1].pick();
+  c.renderVals().ev.openAdd();
+  c.renderVals().ev.onName({ target: { value: 'Runbook' } });
+  c.renderVals().ev.onUrl({ target: { value: 'https://example.com/r' } });
+  c.renderVals().ev.save();
+  const r = nodeOf(c, 'runbooks');
+  assert.equal(r.basis, 'Ops logs');
+  assert.equal(r.confidence, 2);
+  assert.equal(r.refs.length, 2);
+});
+test('review: a map\'s Diff with a record as B explains itself instead of crashing', () => {
+  const c = boot(MAP3, REC);
+  c.setState({ view: 'diff' });
+  assert.match(c.renderVals().diff.kindNotice, /decision record/);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+test('review: a goal that no longer exists falls back to the goal list', () => {
+  const c = boot(REC);
+  c.setState({ view: 'goals' });
+  c.renderVals().goalsView.addGoal();
+  assert.equal(c.renderVals().isGoal, true);
+  c.undo();
+  assert.equal(c.renderVals().isGoal, false);
+  assert.equal(c.renderVals().isGoals, true);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+test('review: opening a file with errors drops the old file\'s record state', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall', whatIf: { cost: 0 }, goal: 'cost', chosenFacts: ['cost'] });
+  c.confirmDropThen = null;
+  c.loadA('not a map', 'bad.md', null, true);
+  assert.equal(c.state.whatIf, null);
+  assert.equal(c.state.goal, null);
+  assert.deepEqual(c.state.chosenFacts, []);
+});
+test('review: opening another file or New asks before dropping unsaved what-if weights', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall' });
+  overallOf(c).goals[1].toggle();
+  c.loadA(NEW, 'new.md');
+  assert.equal(c.state.map.root.slug, 'store', 'not opened yet');
+  assert.equal(c.renderVals().dropAsk.shown, true);
+  c.renderVals().dropAsk.cancel();
+  assert.equal(c.renderVals().dropAsk.shown, false);
+  assert.equal(c.state.whatIf.cost, 0);
+  c.loadA(NEW, 'new.md');
+  c.renderVals().dropAsk.go();
+  assert.equal(c.state.map.root.slug, 'root');
+  const d = boot(REC);
+  d.setState({ view: 'overall' });
+  overallOf(d).goals[1].toggle();
+  d.setState({ newKind: 'record', newTitle: 'Other' });
+  d.createMap();
+  assert.equal(d.state.map.root.slug, 'store');
+  d.renderVals().dropAsk.go();
+  assert.equal(d.state.map.root.slug, 'other');
+});
+test('review: record weights start at 50 and a drag never takes one to 0', () => {
+  const m = Component.newRecord('Pick', '');
+  assert.equal(m.root.children[0].importance, 50);
+  assert.equal(m.root.children[0].children[0].importance, 50);
+  const c = boot(Component.serialize(m));
+  c.setState({ view: 'goals', goal: 'first-goal' });
+  c.addCriterion('first-goal');
+  const wtc = () => c.renderVals().goalView.criteria;
+  for (let k = 0; k < 5; k++) {
+    wtc().dividers[0].down(ev({ clientX: 0 }));
+    wtc().dividers[0].move(ev({ clientX: -5000 }));
+    wtc().dividers[0].up(ev());
+  }
+  assert.ok(Component.findPath(c.state.map.root, 'first-criterion').at(-1).importance > 0);
+  assert.equal(wtc().segments.length, 2);
+});
+test('review: ⌘Z works with focus on a slider or checkbox, not in a text field', () => {
+  const c = boot(MAP3);
+  dragDivider(c, 'a', 100);
+  const dragged = imps(c);
+  const key = (target) => c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target, preventDefault() {} });
+  key({ tagName: 'TEXTAREA' });
+  key({ tagName: 'INPUT', type: 'text' });
+  assert.deepEqual(imps(c), dragged);
+  key({ tagName: 'INPUT', type: 'range' });
+  assert.deepEqual(imps(c), [10, 30, 60]);
+});
+test('review: snapshots are stored one per key, and a refused store or load says so', async () => {
+  const data = new Map();
+  const fakeDB = {
+    open() {
+      const req = {};
+      setTimeout(() => {
+        req.result = {
+          close() {},
+          transaction() {
+            const tx = {};
+            const store = {
+              put(v, k) { data.set(k, v); return {}; }, delete(k) { data.delete(k); return {}; }, get(k) { return { result: data.get(k) }; },
+              getAll(range) { return { result: [...data.entries()].filter(([k]) => k >= range.lower && k <= range.upper).map(([, v]) => v) }; },
+            };
+            tx.objectStore = () => store;
+            setTimeout(() => tx.oncomplete && tx.oncomplete());
+            return tx;
+          },
+        };
+        req.onsuccess();
+      });
+      return req;
+    },
+  };
+  globalThis.indexedDB = fakeDB;
+  globalThis.IDBKeyRange = { bound: (lower, upper) => ({ lower, upper }) };
+  try {
+    const c = boot(REC);
+    c.setState({ view: 'overall' });
+    overallOf(c).snap.onName({ target: { value: 'One' } });
+    await overallOf(c).snap.save();
+    assert.deepEqual([...data.keys()].filter((k) => k.startsWith('snap:')).length, 1);
+    const other = boot(REC);
+    await other.restoreSnapshots();
+    assert.equal(other.state.snapshots.length, 1);
+    overallOf(other).snap.onName({ target: { value: 'Two' } });
+    await overallOf(other).snap.save();
+    await c.restoreSnapshots();
+    assert.equal(c.state.snapshots.length, 2, 'the other tab\'s save didn\'t wipe this one');
+  } finally {
+    delete globalThis.indexedDB;
+    delete globalThis.IDBKeyRange;
+  }
+  const d = boot(REC);
+  await d.restoreSnapshots();
+  assert.match(d.state.snapNotice, /can’t be kept in this browser/);
+});
+test('review: record weights with more than one decimal are a parse error', () => {
+  const errs = Component.parse(REC.replace('weight: 50', 'weight: 33.33')).errors.map((e) => e.msg).join(' | ');
+  assert.match(errs, /at most one decimal place/);
+});
+test('review: Clear in one weight panel keeps the other panel\'s choices', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall', overallGoal: 'reliability' });
+  overallOf(c).weights.segments[0].down(ev({ metaKey: true }));
+  overallOf(c).criteria.segments[0].down(ev({ metaKey: true }));
+  overallOf(c).criteria.clear();
+  assert.deepEqual(c.state.chosenFacts, ['reliability']);
+});
+test('review: Compare is only worked out in the Compare view', () => {
+  const c = boot(REC);
+  c.setState({ view: 'overall', snapshots: Component.snapshotAdd([], { name: 'Old', file: 'x.md', root: 'store', title: 'Store', at: 1, src: REC }) });
+  const parse = Component.parse;
+  let n = 0;
+  Component.parse = (...a) => { n++; return parse(...a); };
+  try { c.renderVals(); } finally { Component.parse = parse; }
+  assert.equal(n, 0);
+});
+test('review: the facts filter is hidden for records', () => {
+  assert.equal(boot(REC).renderVals().showFilter, false);
+  assert.equal(boot(MAP3).renderVals().showFilter, true);
 });
 
 Promise.all(pending).then(() => {
