@@ -126,19 +126,26 @@ weight: 50
 #### DynamoDB
 option: dynamodb
 score: 9
+summary: Multi-AZ by default
 
 ##### Multi-AZ replication by default
 slug: multi-az
 weight: 60
 ```
 
-A score heading names its option with `option:` instead of a slug, because the same option appears under several criteria. An option has one title throughout the file. A missing score reads as 0.
+A score heading names its option with `option:` instead of a slug, because the same option appears under several criteria. `summary:` is an optional one-line reason for the score. Free text under a goal or criterion heading is its description. An option has one title throughout the file. A missing score reads as 0.
 
-The views:
+The views are **Record**, **Markdown source** and **Compare**.
 
-- **Overall:** the ranking, with each option's bar split by what each goal adds. Goal weights and the selected goal's criteria weights use the bar or the pie, with Ctrl/⌘-click to choose what a resize changes, and a checkbox turns a goal off. Changes here are **what-if weights**: every view shows them, but nothing is saved until **Save as the record's weights**. **Reset** drops them. A goal saved while off gets `importance: 0`.
-- **Goals:** goal importance, and a card per goal with its winner. Open a goal to edit its criteria, add options and set scores. Click a score to change it and give its reasons.
-- **Compare:** two records side by side, from the open file, its what-if weights, a second file, or a snapshot. Choose goals, one goal's criteria or one goal's scores, as paired bars or as composite bars split into their parts. The biggest differences are listed first. Click a score row to see each side's reasons.
+**Record** has breadcrumbs across the top, **Overview › All goals › *goal* › *option* › *criterion***. Each one jumps to that level, and the levels below where you are stay in the trail, faded, so you can step back down.
+
+- **Overview:** the ranking, with each option's bar split by what each goal adds. Goal weights and the selected goal's criteria weights use the bar or the pie, with Ctrl/⌘-click to choose what a resize changes, and a checkbox turns a goal off. Changes here are **what-if weights**: every view shows them, but nothing is saved until **Save as the record's weights**. **Reset** drops them. A goal saved while off gets `importance: 0`.
+- **All goals:** a short bar of goal importance, with **+** to add a goal. Click a goal to see and edit its title and description, then open it.
+- **A goal:** a short bar of its criteria by weight, with **+**. Click a criterion to edit its title and description. Below are the goal's options by goal score, with the winner marked, and controls to add an option.
+- **An option:** **Edit one** gives a 0–10 slider and an optional short reason for each criterion, with **Reasons ›** for the full reasons. **Compare all** shows every option against every criterion. Click a score there to edit that option.
+- **A criterion's reasons for that option:** the score and its short reason, then the full reasons by weight. Each reason has its own weight, and the same extras as a point.
+
+**Compare** shows two records side by side, from the open file, its what-if weights, a second file, or a snapshot. Choose goals, one goal's criteria or one goal's scores, as paired bars or as composite bars split into their parts. The biggest differences are listed first. Click a score row to see each side's reasons.
 
 **Snapshots** save a named copy of the record as shown, what-if weights included. They're kept only in this browser, in IndexedDB, and can be loaded back as what-if weights or used in Compare.
 
