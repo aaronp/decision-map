@@ -81,7 +81,7 @@ Columns are sorted from most contrary to most supporting. Colour is impact, and 
 - **Click a column** or any cell in the rows below to open it.
 - **Change importance** by dragging a divider, or with the slider on an open point.
 - **Change impact** by dragging a column up or down, or with the slider on an open point.
-- **Choose the columns a resize changes** with Ctrl-click, ⌘-click or Shift-click, or **L** on the keyboard. Chosen columns get a diagonal pattern and dashed border. Dragging any divider then takes from or adds to only the chosen columns, spread in proportion to their size, and every other column keeps its size. You can also choose cells in the levels below, which apply when you resize at that level. Choices stay as you move between levels until **Clear** removes them. With nothing chosen, you can drag as far as you like and the rest scale to fit.
+- **Choose the columns a resize changes** with Ctrl-click, ⌘-click or Shift-click, or **L** on the keyboard. Chosen columns get a diagonal pattern and dashed border. Dragging a divider then changes the chosen columns on each side of it, spread in proportion to their size, or the column next to the divider on a side with none chosen. Every other column keeps its size, and the divider stays under the pointer. You can also choose cells in the levels below, which apply when you resize at that level. Choices stay as you move between levels until **Clear** removes them. With nothing chosen, the two columns either side of the divider trade.
 
 Dividers also take the left and right arrow keys, and columns the up and down keys. On touch screens, use the sliders.
 

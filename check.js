@@ -151,29 +151,7 @@ test('a frozen order is respected and tolerates changed children', () => {
   assert.deepEqual(Component.factRows(ord, Component.allValues(ord), ['a', 'gone', 'b']).map((r) => r.node.slug), ['a', 'b', 'c']);
 });
 
-test('scale mode resize', () => {
-  const scale = (raws, divider, resized, move) => Component.resizeImportance(raws, { divider, resized, move, mode: 'scale' });
-  const shareAt = (r, i) => r[i] / r.reduce((t, x) => t + x, 0);
-  near(shareAt(scale([10, 30, 60], 0, 0, 0.2), 0), 0.3);
-  assert.deepEqual(scale([10, 30, 60], 0, 0, 0.2).slice(1), [30, 60]);
-  near(shareAt(scale([10, 30, 60], 0, 0, 0.6), 0), 0.7); // past the neighbour
-  near(shareAt(scale([10, 30, 60], 0, 0, 0.95), 0), 0.9); // upper limit
-  near(shareAt(scale([10, 30, 60], 0, 0, -0.09), 0), 0.02); // lower limit
-  near(shareAt(scale([10, 30, 60], 0, 1, 0.01), 1), 0.23); // column right of the divider
-  assert.deepEqual(scale([0, 0], 0, 0, 0.2), [0, 0]); // nothing to measure against
-  assert.deepEqual(scale([5, 0], 0, 0, 0.2), [5, 0]);
-});
 
-test('trade mode resize', () => {
-  const trade = (raws, divider, resized, move, pool) => Component.resizeImportance(raws, { divider, resized, move, mode: 'trade', pool });
-  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.1, [2]), [70, 50, 80]);
-  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.1, []), [70, 30, 100]); // defaults to across the divider
-  assert.deepEqual(trade([50, 50, 100], 0, 1, 0.1, []), [70, 30, 100]); // moving right shrinks the right column
-  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.9, [1]), [96, 4, 100]); // floor on the trade column
-  assert.deepEqual(trade([50, 50, 100], 0, 0, -0.9, [1]), [4, 96, 100]); // floor on the resized column
-  assert.deepEqual(trade([50, 50, 100], 0, 0, 0.1, [0]), [70, 30, 100]); // the resized column can't trade with itself
-  assert.deepEqual(trade([40, 20, 60, 80], 0, 0, 0.1, [1, 3]), [60, 16, 60, 64]); // in proportion
-});
 
 // ---------------------------------------------------------------- whole-app checks, no browser needed
 const LEGACY_A = fs.readFileSync('check-fixtures/legacy-a.md', 'utf8');
@@ -260,20 +238,16 @@ test('columns are sorted by impact with widths as shares', () => {
   assert.deepEqual(cols.map((x) => x.hasDivider), [true, true, false]);
 });
 
-test('scale drag changes only the resized fact, even past its neighbour', () => {
+test('a drag changes only the two columns either side of the border', () => {
   const c = boot(MAP3);
   const before = Component.serialize(c.state.map);
-  // Width 1016 less two 8px dividers leaves 1000px of columns, so 500px is half.
-  const d = colOf(c, 'a');
-  d.dividerDown(ev({ clientX: 100 }));
+  // Width 1016 less two 8px dividers leaves 1000px of columns, so 500px is half the total.
+  colOf(c, 'a').dividerDown(ev({ clientX: 100 }));
   colOf(c, 'a').dividerMove(ev({ clientX: 600 }));
   colOf(c, 'a').dividerUp(ev());
-  assert.equal(nodeOf(c, 'b').importance, 30);
-  assert.equal(nodeOf(c, 'c').importance, 60);
-  assert.ok(nodeOf(c, 'a').importance > 100, 'grew past both neighbours');
+  assert.deepEqual(['a', 'b', 'c'].map((x) => nodeOf(c, x).importance), [38, 2, 60]); // b stops at the 2% floor
   const changed = Component.serialize(c.state.map).split('\n').filter((l, i) => l !== before.split('\n')[i]);
-  assert.equal(changed.length, 1);
-  assert.ok(changed[0].startsWith('importance: '));
+  assert.equal(changed.length, 2);
 });
 
 // Shared fixtures for the focus view. DEEP_MAP is r > level-1 > ... > level-6.
@@ -308,18 +282,18 @@ test('with only the left column chosen, the divider resizes the right one from i
   assert.deepEqual(imps(c), [20, 20, 60]);
 });
 
-test('a divider between unchosen columns still moves, taking from the chosen ones', () => {
+test('a border away from the chosen column: the far neighbour and the chosen one change', () => {
   const c = boot(MAP3);
   choose(c, 'a');
   dragDivider(c, 'b', 100);
-  assert.deepEqual(imps(c), [2, 38, 60]); // a stops at the 2% floor
+  assert.deepEqual(imps(c), [20, 30, 50]); // c shrinks, a grows, b slides
 });
 
-test('with nothing chosen, a drag changes only the resized fact', () => {
+test('with nothing chosen, a drag leaves the columns away from the border alone', () => {
   const c = boot(MAP3);
   dragDivider(c, 'a', 500);
-  assert.equal(nodeOf(c, 'b').importance, 30);
   assert.equal(nodeOf(c, 'c').importance, 60);
+  assert.equal(nodeOf(c, 'b').importance, 2);
 });
 
 test('depth cells line up under their parent column, at every level', () => {
@@ -381,12 +355,12 @@ test('a choose on a point that no longer exists is ignored', () => {
   c.setState({ chosenFacts: ['gone'] });
   assert.equal(chartOf(c).chosenCount, 0);
   dragDivider(c, 'a', 500);
-  assert.equal(nodeOf(c, 'b').importance, 30);
+  assert.equal(nodeOf(c, 'c').importance, 60);
 });
 
 test('all-zero siblings resize to nothing, with no NaN', () => {
-  const raws = [0, 0, 0];
-  assert.deepEqual(Component.resizeImportance(raws, { divider: 0, resized: 0, move: 0.1, mode: 'trade', pool: [1, 2] }), raws);
+  assert.deepEqual(Component.borderResize([0, 0, 0], 0, 0.1, []), [0, 0, 0]);
+  assert.deepEqual(Component.borderResize([0, 10, 5], 0, -0.01, []), [0, 10, 5]); // a zero column can't give any up
 });
 
 test('premises can be opened but not chosen', () => {
@@ -448,8 +422,7 @@ test('keyboard impact holds the order until the column loses focus', () => {
 test('keyboard on a divider changes importance', () => {
   const c = boot(MAP3);
   colOf(c, 'a').dividerKey(ev({ key: 'ArrowRight' }));
-  assert.ok(nodeOf(c, 'a').importance > 10);
-  assert.equal(nodeOf(c, 'b').importance, 30);
+  assert.deepEqual(imps(c), [12, 28, 60]);
 });
 
 test('touch doesn\'t start drags', () => {
@@ -1062,12 +1035,10 @@ test('a hovered inner slice gets a move handle at each edge it shares, none at t
   assert.equal(movesOf(d, pieOf(d).slices.find((x) => x.depth > 1).slug).length, 0);
 });
 
-test('a move handle resizes the hovered slice, whichever side it is on', () => {
+test('a move handle moves its edge: the two slices either side trade', () => {
   const c = editing(boot(MAP3));
   movesOf(c, 'b')[0].key(ev({ key: 'ArrowRight' }));
-  assert.ok(nodeOf(c, 'b').importance < 30);
-  assert.equal(nodeOf(c, 'a').importance, 10);
-  assert.equal(nodeOf(c, 'c').importance, 60);
+  assert.deepEqual(imps(c), [12, 28, 60]);
 });
 
 test('angleDelta takes the short way around', () => {
@@ -1094,11 +1065,10 @@ test('dragging a slice edge takes from the chosen slices only', () => {
   assert.ok(nodeOf(c, 'a').importance > 10);
 });
 
-test('with nothing chosen, a slice edge changes only the resized fact, and arrows work', () => {
+test('with nothing chosen, a slice edge trades its two slices, and arrows work', () => {
   const c = editing(boot(MAP3));
   movesOf(c, 'a')[0].key(ev({ key: 'ArrowRight' }));
-  assert.ok(nodeOf(c, 'a').importance > 10);
-  assert.equal(nodeOf(c, 'b').importance, 30);
+  assert.deepEqual(imps(c), [12, 28, 60]);
 });
 
 test('slices on any ring can be chosen, and a chosen slice shows it', () => {
@@ -1368,12 +1338,6 @@ test('ending an impact drag drops keyboard focus, so arrows can\'t edit a neighb
   assert.equal(blurred, 1); // a plain click keeps focus
 });
 
-test('scale resize does nothing when nothing past the divider has importance', () => {
-  const scale = (raws, divider, resized, move) => Component.resizeImportance(raws, { divider, resized, move, mode: 'scale' });
-  assert.deepEqual(scale([0, 10, 5], 0, 1, 0), [0, 10, 5]);
-  assert.deepEqual(scale([0, 10, 5], 0, 1, 0.01), [0, 10, 5]);
-  assert.deepEqual(scale([5, 10, 0, 0], 1, 1, 0.01), [5, 10, 0, 0]);
-});
 
 test('opening a diff row goes through the normal focus change', () => {
   const c = boot(LEGACY_A, LEGACY_B);
@@ -1869,6 +1833,31 @@ test('review: Compare is only worked out in the Compare view', () => {
 test('review: the facts filter is hidden for records', () => {
   assert.equal(boot(REC).renderVals().showFilter, false);
   assert.equal(boot(MAP3).renderVals().showFilter, true);
+});
+
+// ---------------------------------------------------------------- revision 2: border resize
+test('border resize: nothing chosen trades the two neighbours', () => {
+  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 2, -0.05, []), [28, 30, 20, 22]);
+});
+test('border resize: chosen columns on one side take the change, the far neighbour the opposite', () => {
+  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 2, -0.05, [1]), [28, 25, 25, 22]);
+  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 0, 0.05, [3]), [33, 30, 25, 12]);
+  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 1, -0.05, [1]), [28, 25, 30, 17]);
+});
+test('border resize: chosen on both sides change, unchosen neighbours slide', () => {
+  assert.deepEqual(Component.borderResize([20, 20, 20, 20, 20], 1, 0.1, [0, 3]), [30, 20, 20, 10, 20]);
+  const out = Component.borderResize([10, 20, 20, 30, 20], 1, 0.1, [0, 3, 4]);
+  near(out[0], 20); near(out[3], 30 - 10 * 30 / 50); near(out[4], 20 - 10 * 20 / 50);
+  assert.deepEqual([out[1], out[2]], [20, 20]);
+});
+test('border resize: stops at a 2% share for any changing column', () => {
+  assert.deepEqual(Component.borderResize([10, 30, 60], 0, -0.5, []), [2, 38, 60]);
+  assert.deepEqual(Component.borderResize([10, 30, 60], 0, 0.9, [2]), [68, 30, 2]);
+});
+test('a map bar drag keeps the border under the pointer', () => {
+  const c = boot(MAP3);
+  dragDivider(c, 'a', 100); // 100px of 1000px is 10% of the total
+  assert.deepEqual(imps(c), [20, 20, 60]);
 });
 
 Promise.all(pending).then(() => {

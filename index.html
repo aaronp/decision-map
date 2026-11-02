@@ -2479,49 +2479,37 @@ class Component extends DCLogic {
     return score > 0 ? 'Mostly supported' : 'Mostly contrary';
   }
 
-  // The resizeImportance plan for the divider right of rows[i]. Chosen points absorb the resize; the rest keep their size.
-  // side: the column to resize when the choice allows, i or i + 1.
-  static tradePlan(i, rows, chosenFacts, side = i) {
-    const isChosen = (j) => chosenFacts.includes(rows[j].node.slug);
-    const chosen = rows.map((r, j) => j).filter(isChosen);
-    if (!chosen.length) return { divider: i, resized: side, mode: 'scale' };
-    // Resize that side, unless it is the only chosen one: then the other side grows or shrinks against it.
-    const resized = chosen.some((j) => j !== side) ? side : side === i ? i + 1 : i;
-    return { divider: i, resized, mode: 'trade', pool: chosen.filter((j) => j !== resized) };
-  }
-
-  // New importances after dragging the divider right of raws[divider]. move: pointer travel as a fraction of total column width, right is positive.
-  static resizeImportance(raws, { divider, resized, move, mode, pool = [] }) {
-    if (resized !== divider && resized !== divider + 1) throw new Error(`bug: column ${resized} doesn't touch divider ${divider}`);
+  /**
+   * New weights after dragging the border right of raws[i] by move (a fraction of the total; right or clockwise is positive).
+   * Each side changes its chosen columns if it has any, otherwise the column next to the border, in proportion to their weights.
+   * The left side grows by exactly what the right side shrinks, so the border stays under the pointer; nothing else moves.
+   * The drag stops where a changing column would go below a 2% share.
+   */
+  static borderResize(raws, i, move, chosen) {
+    if (i < 0 || i >= raws.length - 1) throw new Error(`bug: no border right of column ${i}`);
     const MIN_SHARE = 0.02;
-    const MAX_SHARE = 0.9;
-    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-    const out = [...raws];
     const T = raws.reduce((t, r) => t + r, 0);
-    const others = T - raws[resized];
-    if (T === 0 || others === 0) return out;
-    const isLeft = resized === divider;
-    const d = isLeft ? move : -move;
-    if (mode === 'scale') {
-      // Only this number changes; the others scale because widths are shares. Solved so the divider stays under the pointer:
-      // g0 = this column's share, A = share beyond its far edge, B = share past the divider.
-      const g0 = raws[resized] / T;
-      const A = raws.reduce((t, r, j) => t + ((isLeft ? j < resized : j > resized) ? r : 0), 0) / T;
-      const B = 1 - g0 - A;
-      if (B < 1e-9) return out;
-      const g = clamp(((A + g0 + d) * (A + B) - A) / B, MIN_SHARE, MAX_SHARE);
-      out[resized] = (g / (1 - g)) * others;
-      return out;
-    }
-    if (mode !== 'trade') throw new Error(`bug: unknown resize mode "${mode}"`);
-    const picked = pool.filter((j) => j !== resized);
-    const members = picked.length ? picked : [isLeft ? divider + 1 : divider];
-    const P = members.reduce((t, j) => t + raws[j], 0);
-    if (P === 0 && d > 0) return out;
-    const delta = clamp(d * T, MIN_SHARE * T - raws[resized], P - MIN_SHARE * T * members.length);
-    out[resized] = raws[resized] + delta;
-    members.forEach((j) => { out[j] = P === 0 ? -delta / members.length : raws[j] - delta * raws[j] / P; });
-    return out;
+    if (T === 0) return [...raws];
+    const left = chosen.filter((j) => j <= i);
+    const right = chosen.filter((j) => j > i);
+    const L = left.length ? left : [i];
+    const R = right.length ? right : [i + 1];
+    const floor = MIN_SHARE * T;
+    // How far each side can give: every member stays at or above the floor when it shrinks in proportion.
+    const room = (members) => {
+      const sum = members.reduce((t, j) => t + raws[j], 0);
+      if (sum === 0) return 0;
+      return Math.max(0, Math.min(...members.map((j) => (raws[j] - floor) * (sum / raws[j]))));
+    };
+    const d = Math.max(-room(L), Math.min(room(R), move * T));
+    const share = (members, delta) => {
+      const sum = members.reduce((t, j) => t + raws[j], 0);
+      members.forEach((j) => { out[j] = raws[j] + (sum === 0 ? delta / members.length : (delta * raws[j]) / sum); });
+    };
+    const out = [...raws];
+    share(L, d);
+    share(R, -d);
+    return out.map((v) => Math.round(v * 1e9) / 1e9);
   }
 
   // Layout size among siblings. A share of 0 still gets a sliver so it stays clickable.
@@ -3398,8 +3386,9 @@ class Component extends DCLogic {
     this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => (n.impact === impact ? n : { ...n, impact })) }), step);
   }
 
-  dividerPlan(i, rows, side = i) {
-    return Component.tradePlan(i, rows, this.state.chosenFacts, side);
+  // The chosen columns among rows, as indices, for borderResize.
+  chosenIndices(rows) {
+    return rows.map((r, j) => (this.state.chosenFacts.includes(r.node.slug) ? j : -1)).filter((j) => j >= 0);
   }
 
   toggleChosen(slug) {
@@ -3412,13 +3401,12 @@ class Component extends DCLogic {
 
   startDivider(i, rows, e) {
     if (e.pointerType === 'touch' || e.button) return;
-    const plan = this.dividerPlan(i, rows);
     const chart = e.currentTarget.closest('[data-chart]');
     if (!chart) throw new Error('bug: divider is not inside the chart');
     e.currentTarget.setPointerCapture(e.pointerId);
     this.drag = {
       type: 'divider', pointerId: e.pointerId, x0: e.clientX, width: chart.getBoundingClientRect().width - 8 * (rows.length - 1),
-      slugs: rows.map((r) => r.node.slug), raws: rows.map((r) => r.importance), plan,
+      slugs: rows.map((r) => r.node.slug), raws: rows.map((r) => r.importance), i, chosen: this.chosenIndices(rows),
     };
     e.preventDefault();
   }
@@ -3426,7 +3414,7 @@ class Component extends DCLogic {
   moveDivider(e) {
     const d = this.drag;
     if (d === null || d.type !== 'divider' || e.pointerId !== d.pointerId) return;
-    const after = Component.resizeImportance(d.raws, { ...d.plan, move: (e.clientX - d.x0) / d.width });
+    const after = Component.borderResize(d.raws, d.i, (e.clientX - d.x0) / d.width, d.chosen);
     this.setWeights(d.slugs, d.raws, after);
   }
 
@@ -3435,9 +3423,8 @@ class Component extends DCLogic {
   }
 
   // span: the fraction of the circle these sibling slices share, so the edge follows the pointer on any ring.
-  startPieEdge(i, rows, side, span, e) {
+  startPieEdge(i, rows, span, e) {
     if (e.pointerType === 'touch' || e.button) return;
-    const plan = this.dividerPlan(i, rows, side);
     const box = e.currentTarget.closest('[data-pie]');
     if (!box) throw new Error('bug: slice edge is not inside the pie');
     const r = box.getBoundingClientRect();
@@ -3446,7 +3433,7 @@ class Component extends DCLogic {
     e.currentTarget.setPointerCapture(e.pointerId);
     this.drag = {
       type: 'pieEdge', pointerId: e.pointerId, cx, cy, prev: Math.atan2(e.clientX - cx, cy - e.clientY), turned: 0,
-      slugs: rows.map((x) => x.node.slug), raws: rows.map((x) => x.importance), plan, span,
+      slugs: rows.map((x) => x.node.slug), raws: rows.map((x) => x.importance), i, chosen: this.chosenIndices(rows), span,
     };
     e.preventDefault();
   }
@@ -3457,7 +3444,7 @@ class Component extends DCLogic {
     const now = Math.atan2(e.clientX - d.cx, d.cy - e.clientY);
     d.turned += Component.angleDelta(d.prev, now);
     d.prev = now;
-    this.setWeights(d.slugs, d.raws, Component.resizeImportance(d.raws, { ...d.plan, move: d.turned / (2 * Math.PI * d.span) }));
+    this.setWeights(d.slugs, d.raws, Component.borderResize(d.raws, d.i, d.turned / (2 * Math.PI * d.span), d.chosen));
   }
 
   endPieEdge(e) {
@@ -3476,14 +3463,13 @@ class Component extends DCLogic {
     this.pieHoverTimer = setTimeout(() => this.setState({ hover: null }), 180);
   }
 
-  onDividerKey(i, rows, e, side = i) {
+  onDividerKey(i, rows, e) {
     const step = e.shiftKey ? 0.005 : 0.02;
     const move = { ArrowRight: step, ArrowLeft: -step }[e.key];
     if (move === undefined) return;
     e.preventDefault();
-    const plan = this.dividerPlan(i, rows, side);
     const raws = rows.map((r) => r.importance);
-    this.setWeights(rows.map((r) => r.node.slug), raws, Component.resizeImportance(raws, { ...plan, move }));
+    this.setWeights(rows.map((r) => r.node.slug), raws, Component.borderResize(raws, i, move, this.chosenIndices(rows)));
   }
 
   startColumnDrag(slug, impact, order, draggable, e) {
@@ -3777,9 +3763,9 @@ class Component extends DCLogic {
         return {
           x: at.x, y: at.y, rot: (angle * 180 / Math.PI).toFixed(1), pct: Math.round(values.get(hn.slug).share * 100),
           label: `Resize “${Component.truncate(hn.text, 40)}” from its ${i === k ? 'clockwise' : 'counter-clockwise'} edge. Use the left and right arrow keys.`,
-          down: (e) => this.startPieEdge(i, sibRows, side, span, e),
+          down: (e) => this.startPieEdge(i, sibRows, span, e),
           move: (e) => this.movePieEdge(e), up: (e) => this.endPieEdge(e),
-          key: (e) => this.onDividerKey(i, sibRows, e, side),
+          key: (e) => this.onDividerKey(i, sibRows, e),
         };
       };
       if (movesAt.start) hoverMoves.push(handle(k - 1, a0 - pad, k));
@@ -4406,7 +4392,7 @@ class Component extends DCLogic {
         const at = pt(246, x.a1);
         return {
           x: at.x, y: at.y, rot: (x.a1 * 180 / Math.PI).toFixed(1), label: x.divLabel,
-          down: (e) => this.startPieEdge(i, rows, i, 1, e), move: (e) => this.movePieEdge(e), up: (e) => this.endPieEdge(e), key: (e) => this.onDividerKey(i, rows, e),
+          down: (e) => this.startPieEdge(i, rows, 1, e), move: (e) => this.movePieEdge(e), up: (e) => this.endPieEdge(e), key: (e) => this.onDividerKey(i, rows, e),
         };
       });
       const chosen = rows.filter((r) => s.chosenFacts.includes(r.node.slug)).length;
