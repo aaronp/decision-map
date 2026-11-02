@@ -32,6 +32,8 @@ input::placeholder,textarea::placeholder{color:var(--ink3)}
 .am-root[data-accent="graphite"]{--accent-base:#4A4F58}
 button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:700px){.am-recwrap{flex-direction:column;align-items:stretch!important}.am-rail{position:static!important;width:auto!important;height:auto!important;flex-direction:row!important;overflow-x:auto}.am-step{min-width:150px}}
+.am-title{border-radius:6px;padding:2px 6px!important;margin-left:-6px!important}
+.am-title:focus{outline:2px solid var(--accent);outline-offset:0;background:var(--accent-tint)!important}
 .tb{background:transparent}.tb:hover:not([disabled]){background:var(--sunk)}.tb[disabled]{cursor:not-allowed}
 label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
 .am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
@@ -708,7 +710,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <sc-if value="{{goalsLevel.hint}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: var(--ink3)">Select a goal to see its criteria and options.</p></sc-if>
         <sc-if value="{{goalsLevel.hasDetail}}" hint-placeholder-val="{{ true }}">
         <section aria-label="Goal details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
-          <input type="text" aria-label="Goal title" value="{{goalsLevel.detail.title}}" onChange="{{goalsLevel.detail.onTitle}}" onBlur="{{goalsLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink)">
+          <input type="text" id="rec-goal-title" class="am-title" aria-label="Goal title" value="{{goalsLevel.detail.title}}" onChange="{{goalsLevel.detail.onTitle}}" onBlur="{{goalsLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink)">
           <input type="text" aria-label="Goal description" placeholder="Add a description (optional)" value="{{goalsLevel.detail.desc}}" onChange="{{goalsLevel.detail.onDesc}}" onBlur="{{goalsLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.05rem; color: var(--ink2)">
           <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 4px">
             <sc-if value="{{goalsLevel.detail.hasWinner}}" hint-placeholder-val="{{ true }}"><span style="border-radius: 99px; padding: 2px 9px; font-size: 12px; font-weight: 600; background: var(--pro-tint); color: var(--pro)">{{goalsLevel.detail.winner}}</span></sc-if>
@@ -720,7 +722,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           <sc-if value="{{sec.isCriteria}}" hint-placeholder-val="{{ false }}">
         <sc-if value="{{criteriaLevel.hasDetail}}" hint-placeholder-val="{{ true }}">
         <section aria-label="Criterion details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
-          <input type="text" aria-label="Criterion title" value="{{criteriaLevel.detail.title}}" onChange="{{criteriaLevel.detail.onTitle}}" onBlur="{{criteriaLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); font-size: 1.3rem">
+          <input type="text" id="rec-crit-title" class="am-title" aria-label="Criterion title" value="{{criteriaLevel.detail.title}}" onChange="{{criteriaLevel.detail.onTitle}}" onBlur="{{criteriaLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); font-size: 1.3rem">
           <input type="text" aria-label="Criterion description" placeholder="Add a description (optional)" value="{{criteriaLevel.detail.desc}}" onChange="{{criteriaLevel.detail.onDesc}}" onBlur="{{criteriaLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.05rem; color: var(--ink2)">
           <sc-if value="{{criteriaLevel.detail.canRemove}}" hint-placeholder-val="{{ false }}"><div><button type="button" onClick="{{criteriaLevel.detail.remove}}" aria-label="{{criteriaLevel.detail.removeLabel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; margin-top: 6px">Remove this criterion</button></div></sc-if>
         </section>
@@ -750,7 +752,8 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <sc-if value="{{isRecLevel.options}}" hint-placeholder-val="{{ false }}">
         <section aria-label="Options" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
           <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
-            <h2 style="margin: 0; font-size: 1.2rem">{{optionsLevel.title}} <span style="font-weight: 400; color: var(--ink3)">· {{optionsLevel.goalTitle}}</span></h2>
+            <sc-if value="{{optionsLevel.isEdit}}" hint-placeholder-val="{{ true }}"><input type="text" id="rec-option-title" class="am-title" aria-label="Option title" value="{{optionsLevel.title}}" onChange="{{optionsLevel.onTitle}}" onBlur="{{optionsLevel.onTitleBlur}}" readOnly="{{locked}}" style="flex: 1 1 200px; min-width: 0; box-sizing: border-box; border: 0; background: transparent; font: inherit; font-size: 1.2rem; font-weight: 700; color: var(--ink)"></sc-if>
+            <sc-if value="{{optionsLevel.isCompare}}" hint-placeholder-val="{{ false }}"><h2 style="margin: 0; font-size: 1.2rem">All options <span style="font-weight: 400; color: var(--ink3)">· {{optionsLevel.goalTitle}}</span></h2></sc-if>
           </div>
           <sc-if value="{{optionsLevel.isEdit}}" hint-placeholder-val="{{ true }}">
             <p style="margin: 0; font-size: 13px; color: var(--ink3)">{{optionsLevel.summaryLine}}</p>
@@ -3309,6 +3312,16 @@ class Component extends DCLogic {
     }, 0);
   }
 
+  // Focus and select a title field once it has rendered, so a new or chosen goal, criterion or option can be renamed by typing.
+  focusTitle(id) {
+    this.lastFocus = id;
+    if (typeof document === 'undefined') return;
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) { el.focus(); el.select(); }
+    }, 0);
+  }
+
   // Move within the Record view; a reason panel open below closes.
   recNav(patch) {
     const rail = patch.recLevel && patch.recLevel !== 'overview' ? { railLevel: patch.recLevel } : {};
@@ -3432,6 +3445,8 @@ class Component extends DCLogic {
     const option = Component.slugify(title, new Set(Component.recordModel(this.state.map).options.keys()));
     this.addOptionToGoal(goalSlug, option, title);
     this.setState({ newOptionText: '' });
+    this.recNav({ recLevel: 'goals', recOption: option, optMode: 'edit' });
+    this.focusTitle('rec-option-title');
   }
 
   removeOptionFromGoal(goalSlug, option) {
@@ -3454,16 +3469,27 @@ class Component extends DCLogic {
     const node = B({ slug: goal, text: 'New goal', kind: 'goal', importance: Component.averageWeight(m.root.children), children: [B({ slug: crit, text: 'New criterion', kind: 'criterion', importance: 50 })] });
     this.edit((mm) => ({ ...mm, root: { ...mm.root, children: [...mm.root.children, node] } }));
     this.recNav({ recLevel: 'goals', recGoal: goal });
+    this.focusTitle('rec-goal-title');
   }
 
   addCriterion(goalSlug) {
     const m = this.state.map;
     const crit = Component.slugify('New criterion', Component.allSlugs(m.root));
     this.edit((mm) => ({ ...mm, root: Component.mapNode(mm.root, goalSlug, (g) => ({ ...g, children: [...g.children, Component.recordBlank({ slug: crit, text: 'New criterion', kind: 'criterion', importance: Component.averageWeight(g.children) })] })) }));
+    this.recNav({ recLevel: 'goals', recCrit: crit });
+    this.focusTitle('rec-crit-title');
   }
 
   removeRecordNode(slug) {
     this.edit((m) => ({ ...m, root: Component.removeNode(m.root, slug) }));
+  }
+
+  // An option has one title in the file, so renaming it renames every score heading for it.
+  setOptionTitle(option, v) {
+    const t = v.replace(/\s*\n\s*/g, ' ');
+    if (t.trim() === '') { this.setState({ notice: 'An option needs a title.' }); return; }
+    const rename = (n) => ({ ...n, text: n.kind === 'score' && n.option === option ? t : n.text, children: n.children.map(rename) });
+    this.edit((m) => ({ ...m, root: rename(m.root) }), `field:option:${option}`);
   }
 
   setNodeText(slug, field, v) {
@@ -4683,6 +4709,7 @@ class Component extends DCLogic {
       const isEdit = s.optMode !== 'compare' && opt !== null;
       return {
         isEdit, isCompare: !isEdit, title: isEdit ? optTitle(opt) : 'All options', goalTitle: g.node.text,
+        onTitle: (e) => { if (opt !== null) this.setOptionTitle(opt, e.target.value); }, onTitleBlur: () => this.endStep(),
         modes: [['edit', 'Edit one'], ['compare', 'Compare all']].map(([m, label]) => ({ label, ...chip((m === 'edit') === isEdit), pick: () => this.recNav({ optMode: m, recOption: opt ?? ranked[0] ?? null }) })),
         picks: ranked.map((o) => ({ label: `${optTitle(o)} · ${fmt1(g.goalScores[o])}`, ...chip(o === opt), pick: () => this.recNav({ recOption: o }) })),
         summaryLine: opt === null ? '' : `Goal score ${fmt1(g.goalScores[opt])} of 10${opt === g.winner ? ' · winner' : ''}. Score each criterion, with an optional short reason.`,
@@ -4723,7 +4750,7 @@ class Component extends DCLogic {
     // All goals: a short bar of goal importance with a "+" column; the selected goal's details below.
     const goalsLevel = level === null || level === 'overview' ? { weights: wt('', [], () => ''), detail: {}, hasDetail: false }
       : recModel.goals.length === 0 ? { weights: { ...wt('All goals', [], () => ''), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150, empty: false, has: true, isBar: true, isPie: false }, detail: {}, hasDetail: false, hint: true } : (() => {
-      const pick = (slug) => this.recNav({ recLevel: 'goals', recGoal: slug });
+      const pick = (slug) => { this.recNav({ recLevel: 'goals', recGoal: slug }); this.focusTitle('rec-goal-title'); };
       const weights = { ...wt('All goals', map.root.children, (n) => goalFill(n.slug), curGoal && curGoal.node.slug, pick), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150 };
       if (curGoal === null) return { weights, detail: {}, hasDetail: false, hint: true };
       const sel = curGoal;
@@ -4747,7 +4774,7 @@ class Component extends DCLogic {
       const ranked = [...g.options].sort((x, y) => g.goalScores[y] - g.goalScores[x]);
       return {
         title: g.node.text,
-        weights: { ...wt(`Criteria of ${g.node.text}`, g.node.children, (n, i) => critFill(i), sel && sel.node.slug, (slug) => this.recNav({ recLevel: 'goals', recCrit: slug })), hasAdd: editable, add: () => this.addCriterion(gs), addLabel: 'Add a criterion', height: 120 },
+        weights: { ...wt(`Criteria of ${g.node.text}`, g.node.children, (n, i) => critFill(i), sel && sel.node.slug, (slug) => { this.recNav({ recLevel: 'goals', recCrit: slug }); this.focusTitle('rec-crit-title'); }), hasAdd: editable, add: () => this.addCriterion(gs), addLabel: 'Add a criterion', height: 120 },
         hasDetail: sel !== null,
         detail: sel === null ? {} : {
           title: sel.node.text, desc: sel.node.details ?? '',
@@ -4759,13 +4786,13 @@ class Component extends DCLogic {
           return {
             title: optTitle(o), score: fmt1(g.goalScores[o]), width: `${g.goalScores[o] * 10}%`, isWinner: o === g.winner,
             pressed: String(on), bg: on ? 'var(--ink)' : 'var(--sunk)', fg: on ? 'var(--on-ink)' : 'var(--ink)',
-            open: () => { this.recNav({ recLevel: 'goals', recOption: o, optMode: 'edit' }); this.scrollToSection('rec-sec-options'); },
+            open: () => { this.recNav({ recLevel: 'goals', recOption: o, optMode: 'edit' }); this.focusTitle('rec-option-title'); },
           };
         }),
         noOptions: ranked.length === 0, hasCompare: ranked.length > 0,
         comparePressed: String(s.optMode === 'compare'), compareBg: s.optMode === 'compare' ? 'var(--ink)' : 'var(--sunk)', compareFg: s.optMode === 'compare' ? 'var(--on-ink)' : 'var(--ink)',
         compareAll: () => this.recNav({ recLevel: 'goals', optMode: 'compare' }),
-        existing: [...recModel.options.keys()].filter((o) => !g.options.includes(o)).map((o) => ({ slug: o, title: optTitle(o), add: () => this.addOptionToGoal(gs, o, optTitle(o)) })),
+        existing: [...recModel.options.keys()].filter((o) => !g.options.includes(o)).map((o) => ({ slug: o, title: optTitle(o), add: () => { this.addOptionToGoal(gs, o, optTitle(o)); this.recNav({ recLevel: 'goals', recOption: o, optMode: 'edit' }); this.focusTitle('rec-option-title'); } })),
         newOption: s.newOptionText, onNewOption: (e) => this.setState({ newOptionText: e.target.value }),
         addNewOption: () => this.addNewOption(gs), newOptionDisabled: Component.slugBase(s.newOptionText) === '',
         onNewOptionKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addNewOption(gs); } },

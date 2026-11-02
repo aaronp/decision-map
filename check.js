@@ -2075,6 +2075,49 @@ test('a step with nothing chosen yet picks the first goal, option and criterion'
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
+
+// ---------------------------------------------------------------- focus the title of what you select or create
+test('selecting or adding a goal focuses its title', () => {
+  const c = rec2({ recLevel: 'goals' });
+  c.renderVals().goalsLevel.weights.segments[1].pick();
+  assert.equal(c.lastFocus, 'rec-goal-title');
+  c.lastFocus = null;
+  c.renderVals().goalsLevel.weights.add();
+  assert.equal(c.lastFocus, 'rec-goal-title');
+  assert.equal(c.renderVals().goalsLevel.detail.title, 'New goal');
+});
+test('selecting or adding a criterion selects it and focuses its title', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'reliability' });
+  c.renderVals().criteriaLevel.weights.segments[1].pick();
+  assert.equal(c.lastFocus, 'rec-crit-title');
+  c.lastFocus = null;
+  c.renderVals().criteriaLevel.weights.add();
+  assert.equal(c.lastFocus, 'rec-crit-title');
+  assert.equal(c.renderVals().criteriaLevel.detail.title, 'New criterion');
+});
+test('selecting or adding an option selects it and focuses its title, which renames it everywhere', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'reliability' });
+  c.renderVals().criteriaLevel.options[1].open();
+  assert.equal(c.lastFocus, 'rec-option-title');
+  c.lastFocus = null;
+  c.renderVals().criteriaLevel.onNewOption({ target: { value: 'Kafka' } });
+  c.renderVals().criteriaLevel.addNewOption();
+  assert.equal(c.state.recOption, 'kafka');
+  assert.equal(c.lastFocus, 'rec-option-title');
+  c.recNav({ recOption: 'dynamodb' });
+  c.renderVals().optionsLevel.onTitle({ target: { value: 'Amazon DynamoDB' } });
+  const m = Component.recordModel(c.state.map);
+  assert.equal(m.options.get('dynamodb'), 'Amazon DynamoDB');
+  assert.deepEqual(Component.parse(c.state.src).errors, [], 'every score heading was renamed');
+  c.renderVals().optionsLevel.onTitle({ target: { value: '  ' } });
+  assert.equal(Component.recordModel(c.state.map).options.get('dynamodb'), 'Amazon DynamoDB');
+});
+test('the three title fields carry the ids that focus looks for', () => {
+  for (const id of ['rec-goal-title', 'rec-crit-title', 'rec-option-title']) assert.ok(template.includes(`id="${id}"`), id);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
