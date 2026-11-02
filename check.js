@@ -2150,6 +2150,38 @@ test('criteria get distinct auto-colours, from the same palette as goals', () =>
   assert.deepEqual(goals, crit.slice(0, goals.length));
 });
 
+
+// ---------------------------------------------------------------- a title can be emptied while typing
+test('a title field can be emptied while typing; the file keeps the old title until a new one is typed', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recCrit: 'ops' });
+  const crit = () => c.renderVals().criteriaLevel.detail;
+  crit().onTitle({ target: { value: '' } });
+  assert.equal(crit().title, '', 'the field shows empty');
+  assert.equal(nodeOf(c, 'ops').text, 'Ops', 'the file is unchanged');
+  assert.equal(c.state.notice, null);
+  crit().onTitle({ target: { value: 'R' } });
+  assert.equal(nodeOf(c, 'ops').text, 'R');
+  crit().onTitle({ target: { value: '' } });
+  crit().onBlur();
+  assert.equal(crit().title, 'R', 'leaving it empty puts the title back');
+  assert.deepEqual(Component.parse(c.state.src).errors, []);
+});
+test('the same holds for goal, option and map point titles', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recOption: 'postgres', optMode: 'edit' });
+  c.renderVals().goalsLevel.detail.onTitle({ target: { value: '' } });
+  assert.equal(c.renderVals().goalsLevel.detail.title, '');
+  c.renderVals().optionsLevel.onTitle({ target: { value: '' } });
+  assert.equal(c.renderVals().optionsLevel.title, '');
+  assert.equal(Component.recordModel(c.state.map).options.get('postgres'), 'Postgres');
+  const m = boot(MAP3);
+  m.setFocus('a');
+  m.renderVals().pn.onText({ target: { value: '' } });
+  assert.equal(m.renderVals().pn.text, '');
+  assert.equal(nodeOf(m, 'a').text, 'A');
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);

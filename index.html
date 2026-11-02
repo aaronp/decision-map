@@ -1828,7 +1828,7 @@ class Component extends DCLogic {
     this.state = {
       history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
-      dropPending: null, snapshots: [], snapName: '', snapNotice: '', confirmSnap: null,
+      dropPending: null, titleDraft: null, snapshots: [], snapName: '', snapNotice: '', confirmSnap: null,
       recLevel: QUERY.get('view') === 'goals' ? 'goals' : 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, optMode: 'edit',
       recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, reason: null, newReasonText: '', newOptionText: '',
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
@@ -2814,7 +2814,7 @@ class Component extends DCLogic {
   }
 
   endStep() {
-    this.setState((s) => (s.history.step === null ? null : { history: { ...s.history, step: null } }));
+    this.setState((s) => (s.history.step === null && s.titleDraft === null ? null : { history: { ...s.history, step: null }, titleDraft: null }));
   }
 
   // ⌘Z / Ctrl+Z undoes and with Shift redoes, except in a text field, where the browser's own undo applies.
@@ -2906,8 +2906,9 @@ class Component extends DCLogic {
   onFocusText(v) {
     const t = v.replace(/\s*\n\s*/g, ' ');
     if (Component.endsInSlugBlock(t)) { this.setState({ notice: SLUG_BLOCK_NOTICE }); return; }
-    if (t.trim() === '') { this.setState({ notice: 'A fact needs some text. Use Delete to remove it instead.' }); return; }
     const slug = this.panelTarget();
+    if (t.trim() === '') { this.setState({ titleDraft: { key: `text:${slug}`, value: t } }); return; }
+    if (this.state.titleDraft !== null) this.setState({ titleDraft: null });
     this.edit((m) => ({
       ...m,
       title: slug === m.root.slug && m.title === m.root.text ? t : m.title,
@@ -3503,14 +3504,17 @@ class Component extends DCLogic {
   // An option has one title in the file, so renaming it renames every score heading for it.
   setOptionTitle(option, v) {
     const t = v.replace(/\s*\n\s*/g, ' ');
-    if (t.trim() === '') { this.setState({ notice: 'An option needs a title.' }); return; }
+    if (t.trim() === '') { this.setState({ titleDraft: { key: `option:${option}`, value: t } }); return; }
+    if (this.state.titleDraft !== null) this.setState({ titleDraft: null });
     const rename = (n) => ({ ...n, text: n.kind === 'score' && n.option === option ? t : n.text, children: n.children.map(rename) });
     this.edit((m) => ({ ...m, root: rename(m.root) }), `field:option:${option}`);
   }
 
   setNodeText(slug, field, v) {
     const t = field === 'text' ? v.replace(/\s*\n\s*/g, ' ') : v;
-    if (field === 'text' && t.trim() === '') { this.setState({ notice: 'A title can’t be empty.' }); return; }
+    // An empty title can't be saved (an empty heading doesn't parse), so it stays a draft in the field until something is typed.
+    if (field === 'text' && t.trim() === '') { this.setState({ titleDraft: { key: `text:${slug}`, value: t } }); return; }
+    if (field === 'text' && this.state.titleDraft !== null) this.setState({ titleDraft: null });
     this.edit((m) => ({
       ...m,
       title: field === 'text' && slug === m.root.slug && m.title === m.root.text ? t : m.title,
@@ -3679,6 +3683,8 @@ class Component extends DCLogic {
     const map = s.map;
     const mapB = s.mapB;
     const isRecordFile = map.template === 'record';
+    // A title being retyped from empty shows its draft, not the saved title.
+    const draftOr = (key, value) => (s.titleDraft !== null && s.titleDraft.key === key ? s.titleDraft.value : value);
     const sameKind = mapB !== null && mapB.template === map.template;
     // A view from the URL or another file that this kind of file doesn't have falls back to its first view.
     const place = isRecordFile ? Component.recordPlace(s) : null;
@@ -4322,7 +4328,7 @@ class Component extends DCLogic {
     const targetIsFact = panelNode.kind === 'fact';
     const targetIsPremise = panelNode.kind === 'premise';
     const pn = {
-      slug: panelNode.slug, text: panelNode.text, by: panelNode.by === null ? '' : panelNode.by, details: panelNode.details === null ? '' : panelNode.details,
+      slug: panelNode.slug, text: draftOr(`text:${panelNode.slug}`, panelNode.text), by: panelNode.by === null ? '' : panelNode.by, details: panelNode.details === null ? '' : panelNode.details,
       kind: targetIsFact ? 'Fact' : targetIsPremise ? '◇ Premise' : panelNode.children.some((c) => c.kind === 'premise') ? '◆ Proposition' : '◆ Thesis',
       titleRows: Component.textRows(panelNode.text, 48), detailsRows: Component.textRows(panelNode.details ?? '', 90),
       isFact: targetIsFact, calculated: targetIsPremise,
@@ -4701,7 +4707,7 @@ class Component extends DCLogic {
           return {
             has: true, summary: (g.summaries[cell.option] ?? {})[cell.criterion] ?? '', onSummary: (e) => this.setSummary(cell.criterion, cell.option, e.target.value), title: `${optTitle(cell.option)} · ${crit.node.text}`, score: n,
             reasons: sorted.map((r) => ({
-              slug: r.slug, text: r.text, weight: r.importance, pct: `${RT === 0 ? 0 : Math.round((r.importance / RT) * 100)}%`,
+              slug: r.slug, text: draftOr(`text:${r.slug}`, r.text), weight: r.importance, pct: `${RT === 0 ? 0 : Math.round((r.importance / RT) * 100)}%`,
               size: `${(14 + (RT === 0 ? 0 : (r.importance / RT) * 6)).toFixed(1)}px`,
               meta: [r.by, r.refs.length ? `📎 ${r.refs.length}` : null].filter(Boolean).join(' · '),
               isOpen: r.slug === openReason, openLabel: r.slug === openReason ? 'Close' : 'Details',
@@ -4726,7 +4732,7 @@ class Component extends DCLogic {
       const chip = (on) => ({ pressed: String(on), bg: on ? 'var(--ink)' : 'var(--sunk)', fg: on ? 'var(--on-ink)' : 'var(--ink2)' });
       const isEdit = s.optMode !== 'compare' && opt !== null;
       return {
-        isEdit, isCompare: !isEdit, title: isEdit ? optTitle(opt) : 'All options', goalTitle: g.node.text,
+        isEdit, isCompare: !isEdit, title: isEdit ? draftOr(`option:${opt}`, optTitle(opt)) : 'All options', goalTitle: g.node.text,
         onTitle: (e) => { if (opt !== null) this.setOptionTitle(opt, e.target.value); }, onTitleBlur: () => this.endStep(),
         modes: [['edit', 'Edit one'], ['compare', 'Compare all']].map(([m, label]) => ({ label, ...chip((m === 'edit') === isEdit), pick: () => this.recNav({ optMode: m, recOption: opt ?? ranked[0] ?? null }) })),
         picks: ranked.map((o) => ({ label: `${optTitle(o)} · ${fmt1(g.goalScores[o])}`, ...chip(o === opt), pick: () => this.recNav({ recOption: o }) })),
@@ -4777,7 +4783,7 @@ class Component extends DCLogic {
         hasDetail: true, hint: false,
         weights,
         detail: {
-          slug: gs, title: sel.node.text, desc: sel.node.details ?? '',
+          slug: gs, title: draftOr(`text:${gs}`, sel.node.text), desc: sel.node.details ?? '',
           onTitle: (e) => this.setNodeText(gs, 'text', e.target.value), onDesc: (e) => this.setNodeText(gs, 'details', e.target.value), onBlur: () => this.endStep(),
           hasWinner: sel.winner !== null, winner: sel.winner === null ? '' : `Winner: ${optTitle(sel.winner)} · ${fmt1(sel.goalScores[sel.winner])}`,
           canRemove: editable, remove: () => this.deleteGoal(gs), removeLabel: `Delete goal ${sel.node.text}`,
@@ -4796,7 +4802,7 @@ class Component extends DCLogic {
         weights: { ...wt(`Criteria of ${g.node.text}`, g.node.children, (n, i) => critFill(i), sel && sel.node.slug, (slug) => { this.recNav({ recLevel: 'goals', recCrit: slug }); this.focusTitle('rec-crit-title'); }), hasAdd: editable, add: () => this.addCriterion(gs), addLabel: 'Add a criterion', height: 120 },
         hasDetail: sel !== null,
         detail: sel === null ? {} : {
-          title: sel.node.text, desc: sel.node.details ?? '',
+          title: draftOr(`text:${sel.node.slug}`, sel.node.text), desc: sel.node.details ?? '',
           onTitle: (e) => this.setNodeText(sel.node.slug, 'text', e.target.value), onDesc: (e) => this.setNodeText(sel.node.slug, 'details', e.target.value), onBlur: () => this.endStep(),
           canRemove: editable && g.criteria.length > 1, remove: () => this.deleteCriterion(sel.node.slug), removeLabel: `Delete criterion ${sel.node.text}`,
           onlyOne: g.criteria.length === 1,
