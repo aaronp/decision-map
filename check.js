@@ -1970,6 +1970,62 @@ test('compare all: the grid, and a cell edits that option', () => {
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
+
+// ---------------------------------------------------------------- revision 2 review fixes
+test('r2 review: a delete armed on one goal is not armed on the next goal opened', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'criteria', recGoal: 'reliability' });
+  c.renderVals().criteriaLevel.askDel();
+  c.renderVals().recCrumbs[1].go();
+  c.setState({ selGoal: 'cost' });
+  c.renderVals().goalsLevel.detail.open();
+  assert.equal(c.renderVals().criteriaLevel.confirming, false);
+});
+test('r2 review: the open option gone falls back to the goal; compare with no options too', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'gone', optMode: 'edit', recCrit: 'durability' });
+  assert.equal(c.renderVals().isRecLevel.criteria, true);
+  assert.ok(!c.renderVals().recCrumbs.some((x) => x.name === 'Durability'), 'no crumb that leads nowhere');
+  const d = rec2();
+  d.setSummary('bill', 'dynamodb', 'x'); // keep Cost's only option
+  d.recNav({ recLevel: 'options', recGoal: 'cost', optMode: 'compare' });
+  assert.equal(d.renderVals().isRecLevel.options, true);
+  const e = boot(REC.replace(/### Bill[\s\S]*$/, '### Bill\nslug: bill\nweight: 1\n'));
+  e.setState({ view: 'record' });
+  e.recNav({ recLevel: 'options', recGoal: 'cost', optMode: 'compare' });
+  assert.equal(e.renderVals().isRecLevel.criteria, true);
+});
+test('r2 review: Compare all is titled and crumbed All options', () => {
+  const c = rec2();
+  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: null, optMode: 'compare' });
+  assert.equal(c.renderVals().optionsLevel.title, 'All options');
+  assert.equal(c.renderVals().recCrumbs[3].name, 'All options');
+});
+test('r2 review: record bar segments have no padding of their own, so drags track the pointer', () => {
+  const seg = template.slice(template.indexOf('<sc-for list="{{w.segments}}"'), template.indexOf('<sc-if value="{{g.hasDivider}}"'));
+  assert.ok(!/flex: \{\{g\.flex\}\} 1 0;[^"]*padding: 8px/.test(seg));
+});
+test('r2 review: a record with no goals still offers + on All goals', () => {
+  const c = boot(REC.replace(/\n## Reliability[\s\S]*$/, '\n'));
+  c.setState({ view: 'record', recLevel: 'goals' });
+  assert.equal(c.renderVals().goalsLevel.weights.hasAdd, true);
+  c.renderVals().goalsLevel.weights.add();
+  assert.equal(Component.recordModel(c.state.map).goals.length, 1);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+test('r2 review: a zero-weight chosen column doesn\'t freeze its side', () => {
+  assert.deepEqual(Component.borderResize([0, 50, 50], 1, -0.1, [0, 1]), [0, 40, 60]);
+});
+test('r2 review: status text describes the per-side rule, and Compare says Overview', () => {
+  const c = boot(MAP3);
+  colOf(c, 'a').down(ev({ metaKey: true }));
+  assert.ok(!/beside the one you resize/.test(chartOf(c).chosenText));
+  assert.ok(!template.includes('save a snapshot in Overall') && !html.includes('save a snapshot in Overall'));
+  const r = rec2({ recLevel: 'goals' });
+  r.renderVals().goalsLevel.weights.segments[0].down(ev({ metaKey: true }));
+  assert.ok(!/only those$/.test(r.renderVals().goalsLevel.weights.status));
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);

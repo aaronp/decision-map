@@ -650,9 +650,11 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <div style="display: flex; gap: 8px; align-items: stretch">
             <div data-chart="1" style="flex: 1; min-width: 0; display: flex; height: {{w.height}}px; border-radius: 10px; overflow: hidden; user-select: none; -webkit-user-select: none">
               <sc-for list="{{w.segments}}" as="g" hint-placeholder-count="3">
-                <div role="button" tabIndex="0" aria-label="{{g.aria}}" aria-pressed="{{g.pressed}}" title="{{g.label}}" onContextMenu="{{g.menu}}" onPointerDown="{{g.down}}" onClick="{{g.pick}}" onKeyDown="{{g.key}}" style="position: relative; flex: {{g.flex}} 1 0; min-width: 0; box-sizing: border-box; padding: 8px 10px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; cursor: pointer; background: {{g.fill}}; color: var(--on-fill); box-shadow: {{g.ring}}">
+                <div role="button" tabIndex="0" aria-label="{{g.aria}}" aria-pressed="{{g.pressed}}" title="{{g.label}}" onContextMenu="{{g.menu}}" onPointerDown="{{g.down}}" onClick="{{g.pick}}" onKeyDown="{{g.key}}" style="position: relative; flex: {{g.flex}} 1 0; min-width: 0; box-sizing: border-box; overflow: hidden; cursor: pointer; background: {{g.fill}}; color: var(--on-fill); box-shadow: {{g.ring}}">
+                  <span style="position: absolute; inset: 8px 10px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; min-width: 0; pointer-events: none">
                   <b style="align-self: flex-start; max-width: 100%; box-sizing: border-box; background: color-mix(in srgb, var(--card) 88%, transparent); color: var(--ink); border-radius: 4px; padding: 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; font-weight: 500">{{g.label}}</b>
                   <span style="align-self: flex-start; max-width: 100%; box-sizing: border-box; background: color-mix(in srgb, var(--card) 88%, transparent); color: var(--ink); border-radius: 4px; padding: 1px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600">{{g.pct}}</span>
+                  </span>
                   <sc-if value="{{g.isChosen}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 22%, transparent) 6px 8px)"></span></sc-if>
                 </div>
                 <sc-if value="{{g.hasDivider}}" hint-placeholder-val="{{ true }}">
@@ -697,6 +699,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
     </div>
     <div style="flex: {{recLayout.right}}; min-width: 0; display: flex; flex-direction: column; gap: 14px">
       <sc-if value="{{isRecLevel.goals}}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{goalsLevel.hasDetail}}" hint-placeholder-val="{{ true }}">
         <section aria-label="Goal details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
           <input type="text" aria-label="Goal title" value="{{goalsLevel.detail.title}}" onChange="{{goalsLevel.detail.onTitle}}" onBlur="{{goalsLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink)">
           <input type="text" aria-label="Goal description" placeholder="Add a description (optional)" value="{{goalsLevel.detail.desc}}" onChange="{{goalsLevel.detail.onDesc}}" onBlur="{{goalsLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.05rem; color: var(--ink2)">
@@ -706,6 +709,7 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           </div>
           <div><button type="button" onClick="{{goalsLevel.detail.open}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; background: var(--ink); color: var(--on-ink); border-color: var(--ink); margin-top: 6px">Criteria and options ›</button></div>
         </section>
+        </sc-if>
       </sc-if>
       <sc-if value="{{isRecLevel.criteria}}" hint-placeholder-val="{{ false }}">
         <sc-if value="{{criteriaLevel.hasDetail}}" hint-placeholder-val="{{ true }}">
@@ -2542,7 +2546,8 @@ class Component extends DCLogic {
     const room = (members) => {
       const sum = members.reduce((t, j) => t + raws[j], 0);
       if (sum === 0) return 0;
-      return Math.max(0, Math.min(...members.map((j) => (raws[j] - floor) * (sum / raws[j]))));
+      // A member at 0 doesn't change when its side shrinks in proportion, so it doesn't limit the side.
+      return Math.max(0, Math.min(...members.filter((j) => raws[j] > 0).map((j) => (raws[j] - floor) * (sum / raws[j]))));
     };
     const d = Math.max(-room(L), Math.min(room(R), move * T));
     const share = (members, delta) => {
@@ -3288,14 +3293,15 @@ class Component extends DCLogic {
     const option = options.includes(s.recOption) ? s.recOption : null;
     const crit = goal === null ? null : goal.children.find((c) => c.slug === s.recCrit) ?? null;
     if (level === 'reasons' && (option === null || crit === null)) level = 'options';
-    if (level === 'options' && (goal === null || (option === null && s.optMode !== 'compare' && options.length === 0))) level = 'criteria';
+    // Editing needs that option; Compare all needs any option at all. Otherwise go back to the goal rather than open a different option.
+    if (level === 'options' && (goal === null || (s.optMode === 'compare' ? options.length === 0 : option === null))) level = 'criteria';
     if (level === 'criteria' && goal === null) level = 'goals';
-    return { view, level, goal, option: option ?? (level === 'options' ? options[0] ?? null : null), crit, options };
+    return { view, level, goal, option, crit, options };
   }
 
   // Move within the Record view; a reason panel open below closes.
   recNav(patch) {
-    this.setState({ view: 'record', reason: null, ...PANEL_RESET, ...patch });
+    this.setState({ view: 'record', reason: null, confirmGoalDelete: false, ...PANEL_RESET, ...patch });
   }
 
   // Every weight drag goes through here. In a record's Overall view, or while what-if weights are on, it edits the overlay instead of the file.
@@ -3773,7 +3779,7 @@ class Component extends DCLogic {
         pick: () => { storeSetting(CHART_VIEW_STORE, id); this.setState({ chartView: id }); },
       })),
       chosenCount, hasChosen: chosenCount > 0, noChosen: chosenCount === 0, clearChosen: () => this.clearChosen(),
-      chosenText: `${chosenCount} chosen · a resize takes from or gives to only chosen points beside the one you resize`,
+      chosenText: `${chosenCount} chosen · a resize changes the chosen points on each side of the border, or the point next to it`,
       hint: !editable || rows.every((r) => r.calculated)
         ? (rows.length && rows[0].calculated ? 'Calculated from each option’s own points · click to open' : 'Click a column to open it')
         : 'Drag a divider to weigh · drag up or down for impact · click to open · Ctrl or ⌘-click to choose what a resize changes',
@@ -4481,7 +4487,7 @@ class Component extends DCLogic {
         segments, dividers, slices, handles, hatches: slices.filter((x) => x.isChosen).map((x) => ({ d: x.d })),
         hasChosen: chosen > 0, noChosen: chosen === 0,
         clear: () => this.setState((st) => ({ chosenFacts: st.chosenFacts.filter((x) => !rows.some((r) => r.node.slug === x)) })),
-        status: chosen > 0 ? `${chosen} chosen · a resize takes from or gives to only those`
+        status: chosen > 0 ? `${chosen} chosen · a resize changes the chosen ones on each side of the border, or the one next to it`
           : !editable ? 'Read-only' : recordChart.isPie ? 'Drag a ⇔ handle to resize · Ctrl or ⌘-click to choose what a resize changes' : 'Drag a divider to resize · Ctrl or ⌘-click to choose what a resize changes',
         checks: [], hasChecks: false, hasAdd: false, add: () => {}, addLabel: '', height: 84,
       };
@@ -4584,7 +4590,7 @@ class Component extends DCLogic {
       };
       const chip = (on) => ({ bg: on ? 'var(--ink)' : 'transparent', fg: on ? 'var(--on-ink)' : 'var(--ink2)', pressed: String(on) });
       return {
-        ok: true, notice: mapB !== null && !bIsRecord ? 'The second file is a decision map. Open another decision record to compare.' : sources.length < 2 ? 'Open a second record, or save a snapshot in Overall, to compare with.' : '',
+        ok: true, notice: mapB !== null && !bIsRecord ? 'The second file is a decision map. Open another decision record to compare.' : sources.length < 2 ? 'Open a second record, or save a snapshot in the Overview, to compare with.' : '',
         hasNotice: (mapB !== null && !bIsRecord) || sources.length < 2,
         heading: `Where do ${SA.name} and ${SB.name} differ?`, nameA: SA.name, nameB: SB.name,
         sources: sources.map((x) => ({ key: x.key, name: x.name })),
@@ -4661,7 +4667,7 @@ class Component extends DCLogic {
       const chip = (on) => ({ pressed: String(on), bg: on ? 'var(--ink)' : 'var(--sunk)', fg: on ? 'var(--on-ink)' : 'var(--ink2)' });
       const isEdit = s.optMode !== 'compare' && opt !== null;
       return {
-        isEdit, isCompare: !isEdit, title: opt === null ? 'All options' : optTitle(opt), goalTitle: g.node.text,
+        isEdit, isCompare: !isEdit, title: isEdit ? optTitle(opt) : 'All options', goalTitle: g.node.text,
         modes: [['edit', 'Edit one'], ['compare', 'Compare all']].map(([m, label]) => ({ label, ...chip((m === 'edit') === isEdit), pick: () => this.recNav({ optMode: m, recOption: opt ?? ranked[0] ?? null }) })),
         picks: ranked.map((o) => ({ label: `${optTitle(o)} · ${fmt1(g.goalScores[o])}`, ...chip(o === opt), pick: () => this.recNav({ recOption: o }) })),
         summaryLine: opt === null ? '' : `Goal score ${fmt1(g.goalScores[opt])} of 10${opt === g.winner ? ' · winner' : ''}. Score each criterion, with an optional short reason.`,
@@ -4700,10 +4706,12 @@ class Component extends DCLogic {
     })();
     const reasonsLevel = level !== 'reasons' || curGoal === null ? { has: false, reasons: [] } : scorePanel(curGoal, { option: place.option, criterion: place.crit.slug });
     // All goals: a short bar of goal importance with a "+" column; the selected goal's details below.
-    const goalsLevel = level !== 'goals' || recModel.goals.length === 0 ? { weights: wt('', [], () => ''), detail: {} } : (() => {
+    const goalsLevel = level !== 'goals' ? { weights: wt('', [], () => ''), detail: {}, hasDetail: false }
+      : recModel.goals.length === 0 ? { weights: { ...wt('All goals', [], () => ''), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150, empty: false, has: true, isBar: true, isPie: false }, detail: {}, hasDetail: false } : (() => {
       const sel = recModel.goals.find((g) => g.node.slug === s.selGoal) ?? recModel.goals[0];
       const gs = sel.node.slug;
       return {
+        hasDetail: true,
         weights: { ...wt('All goals', map.root.children, (n) => goalFill(n.slug), gs, (slug) => this.setState({ selGoal: slug })), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150 },
         detail: {
           slug: gs, title: sel.node.text, desc: sel.node.details ?? '',
@@ -4750,12 +4758,12 @@ class Component extends DCLogic {
       const at = REC_LEVELS.indexOf(level);
       const g = place.goal;
       const optTitleOf = (o) => recModel.options.get(o) ?? o;
-      const option = place.option ?? (s.recOption !== null && place.options.includes(s.recOption) ? s.recOption : null);
+      const option = place.option;
       const parts = [
         { lv: 'overview', tier: 'Record', name: 'Overview' },
         { lv: 'goals', tier: 'Goals', name: 'All goals' },
         g && { lv: 'criteria', tier: 'Criteria of', name: g.text },
-        g && (option !== null || s.optMode === 'compare') && { lv: 'options', tier: 'Option', name: s.optMode === 'compare' && at <= 3 && option === null ? 'All options' : option !== null ? optTitleOf(option) : 'All options' },
+        g && (option !== null || (s.optMode === 'compare' && place.options.length > 0)) && { lv: 'options', tier: 'Option', name: s.optMode === 'compare' ? 'All options' : optTitleOf(option) },
         g && option !== null && place.crit && { lv: 'reasons', tier: 'Reasons for', name: place.crit.text },
       ].filter(Boolean);
       return parts.map((p) => {
