@@ -742,6 +742,180 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
               <input type="range" min="0" max="10" step="1" aria-label="Score" value="{{goalView.panel.score}}" onChange="{{goalView.panel.onScore}}" onBlur="{{goalView.panel.onBlur}}" disabled="{{locked}}" style="flex: 1; accent-color: var(--accent)">
               <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 22px; width: 3ch; text-align: right">{{goalView.panel.score}}</span>
             </div>
+            <span style="margin-top: 6px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">Reasons</span>
+            <sc-if value="{{goalView.panel.noReasons}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: var(--ink3)">No reasons yet. A score can have none, one or many.</p></sc-if>
+            <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px">
+              <sc-for list="{{goalView.panel.reasons}}" as="r" hint-placeholder-count="2">
+                <li style="display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; background: var(--sunk); border-radius: 8px; padding: 8px 10px">
+                  <input type="text" aria-label="Reason" value="{{r.text}}" onChange="{{r.onText}}" onBlur="{{r.onBlur}}" readOnly="{{locked}}" style="min-width: 0; border: 0; background: transparent; padding: 0; font: inherit; font-size: {{r.size}}; font-weight: 500; color: var(--ink)">
+                  <button type="button" class="tb" onClick="{{r.open}}" style="border: 0; border-radius: 6px; padding: 2px 8px; font: inherit; font-size: 13px; color: var(--ink2); cursor: pointer">{{r.openLabel}}</button>
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink3)">Weight
+                    <input type="range" min="0" max="100" step="1" value="{{r.weight}}" onChange="{{r.onWeight}}" onBlur="{{r.onBlur}}" disabled="{{locked}}" style="flex: 1; min-width: 0; accent-color: var(--ink2)">
+                  </label>
+                  <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); text-align: right">{{r.pct}} <span style="font-family: inherit">{{r.meta}}</span></span>
+                </li>
+              </sc-for>
+            </ul>
+            <sc-if value="{{srcOk}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; gap: 6px">
+                <input type="text" aria-label="New reason" placeholder="Add a reason" value="{{goalView.panel.newReason}}" onChange="{{goalView.panel.onNewReason}}" onKeyDown="{{goalView.panel.onNewReasonKey}}" style="min-height: 36px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; flex: 1; min-width: 0">
+                <button type="button" onClick="{{goalView.panel.addReason}}" disabled="{{goalView.panel.newReasonDisabled}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Add</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{goalView.panel.reasonOpen}}" hint-placeholder-val="{{ false }}">
+      <details open="{{ true }}" style="font-size: 14px; color: var(--ink2)">
+        <summary style="cursor: pointer; width: max-content">Reason details</summary>
+        <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 12px; color: var(--ink)">
+          <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; font-size: 13px">
+            <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; flex: 0 1 180px; min-width: 120px">By
+          <input type="text" value="{{pn.by}}" onChange="{{pn.onBy}}" onBlur="{{pn.onTextBlur}}" readOnly="{{locked}}" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
+        </label>
+            <code style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2); background: var(--sunk); padding: 3px 8px; border-radius: 6px">slug: {{pn.slug}}</code>
+          </div>
+          <sc-if value="{{rat.show}}" hint-placeholder-val="{{ false }}">
+        <div aria-label="Rationale check" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px">
+          <button type="button" onClick="{{rat.run}}" disabled="{{rat.busy}}" title="Ask Jev how well each side makes its case" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap"><span aria-hidden="true">✦</span>{{rat.label}}</button>
+          <sc-if value="{{rat.has}}" hint-placeholder-val="{{ false }}">
+            <div role="status" style="flex: 1 1 280px; display: grid; grid-template-columns: auto minmax(60px, 1fr) 44px; gap: 4px 10px; align-items: center; font-size: 13px">
+              <span style="color: var(--pro); font-weight: 600">+ Pro case</span>
+              <div style="height: 8px; border-radius: 4px; background: var(--rule-soft); overflow: hidden"><div style="width: {{rat.proW}}%; height: 100%; background: var(--pro-fill)"></div></div>
+              <span style="font-variant-numeric: tabular-nums; font-weight: 600; text-align: right">{{rat.pro}}</span>
+              <span style="color: var(--con); font-weight: 600">− Con case</span>
+              <div style="height: 8px; border-radius: 4px; background: var(--rule-soft); overflow: hidden"><div style="width: {{rat.conW}}%; height: 100%; background: var(--con-fill)"></div></div>
+              <span style="font-variant-numeric: tabular-nums; font-weight: 600; text-align: right">{{rat.con}}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{rat.stale}}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: var(--ink2)">The map has changed since; check again to update.</span></sc-if>
+          <sc-if value="{{rat.hasError}}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size: 13px; color: var(--con)">{{rat.error}}</span></sc-if>
+        </div>
+      </sc-if>
+          <sc-if value="{{bc.show}}" hint-placeholder-val="{{ false }}">
+        <div style="border-top: 1px solid var(--rule-soft); padding-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px 24px">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <label for="basis-input" style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 14px; font-weight: 600">Basis <span style="font-weight: 400; color: var(--ink2); font-size: 12px">optional</span></span>
+              <span style="font-size: 13px; color: var(--ink2)">What would make you change your mind?</span>
+            </label>
+            <textarea id="basis-input" rows="2" value="{{bc.basis}}" onChange="{{bc.onBasis}}" readOnly="{{locked}}" placeholder="e.g. Evidence that turnout among 16–17-year-olds in Scotland stayed low" style="box-sizing: border-box; width: 100%; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; resize: vertical"></textarea>
+          </div>
+          <div role="group" aria-label="Confidence" style="display: flex; flex-direction: column; gap: 6px">
+            <span style="display: flex; flex-direction: column; gap: 2px">
+              <span style="font-size: 14px; font-weight: 600">Confidence <span style="font-weight: 400; color: var(--ink2); font-size: 12px">optional</span></span>
+              <span style="font-size: 13px; color: var(--ink2)">{{bc.confCaption}}</span>
+            </span>
+            <div style="display: flex; align-items: center; gap: 2px">
+              <sc-for list="{{bc.stars}}" as="st" hint-placeholder-count="5">
+                <button type="button" onClick="{{st.pick}}" disabled="{{locked}}" aria-label="{{st.label}}" aria-pressed="{{st.pressed}}" style="width: 40px; height: 40px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center">
+                  <svg width="26" height="26" viewBox="0 0 24 24" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true" style="fill: {{st.fill}}; stroke: {{st.stroke}}"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>
+                </button>
+              </sc-for>
+              <sc-if value="{{bc.hasConf}}" hint-placeholder-val="{{ false }}">
+                <button type="button" onClick="{{bc.clearConf}}" style="min-height: 32px; margin-left: 8px; padding: 0 10px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 12px; cursor: pointer">Clear</button>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+          <sc-if value="{{ev.show}}" hint-placeholder-val="{{ false }}">
+        <div aria-label="Evidence" style="border-top: 1px solid var(--rule-soft); padding-top: 12px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+            <h3 style="margin: 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"></path></svg>
+              Evidence <span style="font-weight: 500; color: var(--ink2)">{{ev.countLabel}}</span>
+            </h3>
+            <sc-if value="{{ev.canAdd}}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{ev.openAdd}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                Add evidence
+              </button>
+            </sc-if>
+            <sc-if value="{{ev.canResearch}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ev.research}}" disabled="{{ev.researchBusy}}" title="Search the web for sources on this argument" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap"><span aria-hidden="true">✦</span>{{ev.researchLabel}}</button>
+            </sc-if>
+          </div>
+          <sc-if value="{{ev.hasResearch}}" hint-placeholder-val="{{ false }}">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <span role="status" style="font-size: 12px; color: {{ev.researchNoteFg}}">{{ev.researchNote}}</span>
+              <sc-for list="{{ev.researchItems}}" as="ri" hint-placeholder-count="2">
+                <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 12px; border: 1.5px dashed var(--accent); border-radius: 10px">
+                  <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                    <a href="{{ri.url}}" target="_blank" rel="noopener noreferrer" style="font-weight: 600; font-size: 14px; overflow-wrap: anywhere">{{ri.name}}</a>
+                    <p style="margin: 0; font-size: 13px; line-height: 1.45">{{ri.text}}</p>
+                    <span style="font-size: 12px; color: var(--ink2); overflow-wrap: anywhere">{{ri.host}}</span>
+                  </div>
+                  <button type="button" onClick="{{ri.add}}" style="align-self: start; min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap">+ Add</button>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-for list="{{ev.items}}" as="r" hint-placeholder-count="1">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 10px 12px; background: var(--sunk); border-radius: 10px">
+              <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                <sc-if value="{{r.hasUrl}}" hint-placeholder-val="{{ true }}">
+                  <a href="{{r.url}}" target="_blank" rel="noopener noreferrer" style="font-weight: 600; font-size: 14px; overflow-wrap: anywhere">{{r.name}}</a>
+                </sc-if>
+                <sc-if value="{{r.noUrl}}" hint-placeholder-val="{{ false }}">
+                  <span style="font-weight: 600; font-size: 14px">{{r.name}}</span>
+                </sc-if>
+                <sc-if value="{{r.hasText}}" hint-placeholder-val="{{ true }}">
+                  <p style="margin: 0; font-size: 13px; line-height: 1.45">{{r.text}}</p>
+                </sc-if>
+                <sc-if value="{{r.hasUrl}}" hint-placeholder-val="{{ true }}">
+                  <span style="font-size: 12px; color: var(--ink2); overflow-wrap: anywhere">{{r.host}}</span>
+                </sc-if>
+              </div>
+              <sc-if value="{{r.canEdit}}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; gap: 4px; align-self: start">
+                  <button type="button" onClick="{{r.edit}}" aria-label="{{r.editLabel}}" title="Edit" style="width: 36px; height: 36px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13.5 6.5l4 4"></path></svg>
+                  </button>
+                  <button type="button" onClick="{{r.remove}}" aria-label="{{r.removeLabel}}" title="Remove" style="width: 36px; height: 36px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--con)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>
+                  </button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ev.empty}}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; font-size: 13px; color: var(--ink2)">No evidence yet.</p>
+          </sc-if>
+          <sc-if value="{{ev.formOpen}}" hint-placeholder-val="{{ false }}">
+            <div style="border: 1.5px dashed var(--ink2); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+              <strong style="font-size: 13px">{{ev.formTitle}}</strong>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600">Name
+                <input type="text" value="{{ev.name}}" onChange="{{ev.onName}}" placeholder="e.g. ONS Labour Force Survey" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; font-weight: 400">
+              </label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600">Text <span style="font-weight: 400; color: var(--ink2)">optional</span>
+                <textarea rows="2" value="{{ev.text}}" onChange="{{ev.onText}}" placeholder="A quote or note about what it shows" style="box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 14px; font-weight: 400; resize: vertical"></textarea>
+              </label>
+              <label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600">Link <span style="font-weight: 400; color: var(--ink2)">optional</span>
+                <input type="url" value="{{ev.url}}" onChange="{{ev.onUrl}}" placeholder="https://" spellcheck="false" style="min-height: 38px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; font-weight: 400">
+              </label>
+              <sc-if value="{{ev.hasProblem}}" hint-placeholder-val="{{ false }}">
+                <span role="status" style="font-size: 12px; color: var(--con)">{{ev.problem}}</span>
+              </sc-if>
+              <div style="display: flex; justify-content: flex-end; gap: 8px">
+                <button type="button" onClick="{{ev.cancel}}" style="min-height: 40px; padding: 0 14px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Cancel</button>
+                <button type="button" onClick="{{ev.save}}" disabled="{{ev.saveDisabled}}" style="min-height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; opacity: {{ev.saveOpacity}}">{{ev.saveLabel}}</button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+          <sc-if value="{{pn.canDelete}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <sc-if value="{{pn.askDelete}}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{pn.askDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer; color: var(--con)">Delete</button>
+            </sc-if>
+            <sc-if value="{{pn.confirming}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{pn.cancelDel}}" style="min-height: 36px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); font: inherit; font-size: 13px; cursor: pointer">Keep</button>
+              <button type="button" onClick="{{pn.doDel}}" style="min-height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: var(--con); color: var(--on-fill); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer">{{pn.deleteLabel}}</button>
+            </sc-if>
+          </div>
+        </sc-if>
+        </div>
+      </details>
+            </sc-if>
           </section>
         </sc-if>
         <sc-if value="{{goalView.canDelete}}" hint-placeholder-val="{{ false }}">
@@ -1460,7 +1634,7 @@ class Component extends DCLogic {
     this.state = {
       history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
-      goal: QUERY.get('goal'), recordChart: 'bar', whatIf: null, cell: null, newOptionText: '', confirmGoalDelete: false,
+      goal: QUERY.get('goal'), recordChart: 'bar', whatIf: null, cell: null, reason: null, newReasonText: '', newOptionText: '', confirmGoalDelete: false,
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
       themeQ: THEMES.some((t) => t.id === qTheme) ? qTheme : null,
@@ -2766,11 +2940,35 @@ class Component extends DCLogic {
     const path = Component.findPath(s.map.root, slug);
     if (path.length < 2) throw new Error('bug: delete offered on the thesis');
     this.edit((m) => ({ ...m, root: Component.removeNode(m.root, slug) }));
+    if (slug === s.reason) { this.setState({ ...PANEL_RESET, reason: null }); return; }
     this.setState({ ...PANEL_RESET, focus: path[path.length - 2].slug });
   }
 
+  // The point the details panel edits: an open reason in a decision record, else the point in focus.
   panelTarget() {
-    return Component.safeFocus(this.state.map.root, this.state.focus);
+    const { map, reason, focus } = this.state;
+    if (reason !== null && map.template === 'record' && Component.findPath(map.root, reason) !== null) return reason;
+    return Component.safeFocus(map.root, focus);
+  }
+
+  addReason(critSlug, option) {
+    const text = this.state.newReasonText.trim().replace(/\s+/g, ' ');
+    if (Component.slugBase(text) === '') return;
+    const slug = Component.slugify(text, Component.allSlugs(this.state.map.root));
+    this.edit((m) => {
+      const title = Component.recordModel(m).options.get(option) ?? option;
+      return { ...m, root: Component.mapNode(m.root, critSlug, (c) => {
+        const has = c.children.some((x) => x.option === option);
+        const kids = has ? c.children : [...c.children, Component.recordBlank({ kind: 'score', slug: `${c.slug}--${option}`, text: title, option, score: 0 })];
+        return { ...c, children: kids.map((x) => (x.option !== option ? x : { ...x, children: [...x.children, Component.recordBlank({ slug, text, kind: 'reason', importance: x.children.length ? Component.averageWeight(x.children) : 50 })] })) };
+      }) };
+    });
+    this.setState({ newReasonText: '' });
+  }
+
+  setReasonWeight(slug, v) {
+    const importance = Math.max(0, Math.min(100, Math.round(v)));
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => ({ ...n, importance })) }), `slider:reason:${slug}`);
   }
 
   setBy(v) {
@@ -3055,7 +3253,7 @@ class Component extends DCLogic {
     const path = Component.findPath(map.root, Component.safeFocus(map.root, s.focus));
     const focus = path[path.length - 1];
     const parent = path.length > 1 ? path[path.length - 2] : null;
-    const targetPath = Component.findPath(map.root, Component.safeFocus(map.root, s.focus));
+    const targetPath = Component.findPath(map.root, this.panelTarget());
     const panelNode = targetPath[targetPath.length - 1];
 
     const values = Component.allValues(map.root);
@@ -3700,7 +3898,7 @@ class Component extends DCLogic {
     const confWords = ['Not set', 'Very unsure', 'Unsure', 'Fairly sure', 'Confident', 'Certain'];
     const fConf = panelNode.confidence;
     const bc = {
-      show: panelNode.kind === 'fact',
+      show: panelNode.kind === 'fact' || panelNode.kind === 'reason',
       basis: panelNode.basis === null ? '' : panelNode.basis,
       onBasis: (e) => this.setBasis(e.target.value),
       hasConf: fConf !== null && editable,
@@ -3721,7 +3919,7 @@ class Component extends DCLogic {
     const evProblem = Component.refProblem(evDraft);
     const evTouched = s.evName.trim() !== '' || s.evText.trim() !== '' || s.evUrl.trim() !== '';
     const ev = {
-      show: panelNode.kind === 'fact', canAdd: editable && !s.evOpen,
+      show: panelNode.kind === 'fact' || panelNode.kind === 'reason', canAdd: editable && !s.evOpen,
       countLabel: panelNode.refs.length ? String(panelNode.refs.length) : '',
       openAdd: () => this.setState({ evOpen: true, evEdit: null, evName: '', evText: '', evUrl: '' }),
       items: panelNode.refs.map((r, j) => ({
@@ -3907,7 +4105,7 @@ class Component extends DCLogic {
     };
     const optTitle = (o) => (recModel ? recModel.options.get(o) ?? o : o);
     const fmt1 = (v) => v.toFixed(1);
-    const openGoal = (slug) => this.setState({ view: 'goals', goal: slug, cell: null, confirmGoalDelete: false });
+    const openGoal = (slug) => this.setState({ view: 'goals', goal: slug, cell: null, reason: null, confirmGoalDelete: false });
     const goalsView = !isRecordFile ? { weights: wt('', [], () => ''), cards: [], addGoal: () => {} } : {
       weights: wt('Goal importance', map.root.children, (n) => goalFill(n.slug), null, openGoal),
       cards: recModel.goals.map((g) => {
@@ -3923,7 +4121,7 @@ class Component extends DCLogic {
     };
     const curGoal = isRecordFile && s.goal !== null ? recModel.goals.find((g) => g.node.slug === s.goal) ?? null : null;
     const cell = curGoal && s.cell && curGoal.options.includes(s.cell.option) && curGoal.criteria.some((c) => c.node.slug === s.cell.criterion) ? s.cell : null;
-    const goalView = curGoal === null ? { has: false, grid: { headers: [], rows: [] }, existing: [], criteria: wt('', [], () => ''), crits: [], panel: { has: false } } : (() => {
+    const goalView = curGoal === null ? { has: false, grid: { headers: [], rows: [] }, existing: [], criteria: wt('', [], () => ''), crits: [], panel: { has: false, reasons: [] } } : (() => {
       const g = curGoal;
       const gs = g.node.slug;
       const ranked = [...g.options].sort((x, y) => g.goalScores[y] - g.goalScores[x]);
@@ -3952,7 +4150,7 @@ class Component extends DCLogic {
                 bg: `color-mix(in srgb, var(--accent) ${Math.round(8 + n * 7.2)}%, var(--card))`, fg: n >= 6 ? 'var(--on-fill)' : 'var(--ink)',
                 ring: on ? '0 0 0 2.5px var(--ink)' : 'none',
                 label: `${optTitle(o)}, ${c.node.text}: ${n} out of 10, ${reasons} reasons`,
-                pick: () => this.setState({ cell: { option: o, criterion: c.node.slug } }),
+                pick: () => this.setState({ cell: { option: o, criterion: c.node.slug }, reason: null, ...PANEL_RESET }),
               };
             }),
           })),
@@ -3966,11 +4164,29 @@ class Component extends DCLogic {
         askDel: () => this.setState({ confirmGoalDelete: true }), cancelDel: () => this.setState({ confirmGoalDelete: false }),
         doDel: () => { this.removeRecordNode(gs); this.setState({ goal: null, cell: null, confirmGoalDelete: false }); },
         canDelete: editable && recModel.goals.length > 1,
-        panel: cell === null ? { has: false } : (() => {
+        panel: cell === null ? { has: false, reasons: [] } : (() => {
           const crit = g.criteria.find((c) => c.node.slug === cell.criterion);
           const n = g.scores[cell.option][cell.criterion] ?? 0;
+          const scoreNode = crit.node.children.find((x) => x.option === cell.option);
+          const rs = scoreNode ? scoreNode.children : [];
+          const RT = rs.reduce((t, r) => t + r.importance, 0);
+          const sorted = rs.map((r, i) => [r, i]).sort((x, y) => y[0].importance - x[0].importance || x[1] - y[1]).map(([r]) => r);
+          const openReason = s.reason !== null && rs.some((r) => r.slug === s.reason) ? s.reason : null;
           return {
             has: true, title: `${optTitle(cell.option)} · ${crit.node.text}`, score: n,
+            reasons: sorted.map((r) => ({
+              slug: r.slug, text: r.text, weight: r.importance, pct: `${RT === 0 ? 0 : Math.round((r.importance / RT) * 100)}%`,
+              size: `${(14 + (RT === 0 ? 0 : (r.importance / RT) * 6)).toFixed(1)}px`,
+              meta: [r.by, r.refs.length ? `📎 ${r.refs.length}` : null].filter(Boolean).join(' · '),
+              isOpen: r.slug === openReason, openLabel: r.slug === openReason ? 'Close' : 'Details',
+              onText: (e) => this.setNodeText(r.slug, 'text', e.target.value), onBlur: () => this.endStep(),
+              onWeight: (e) => this.setReasonWeight(r.slug, Number(e.target.value)),
+              open: () => this.setState({ reason: r.slug === openReason ? null : r.slug, ...PANEL_RESET }),
+            })),
+            hasReasons: rs.length > 0, noReasons: rs.length === 0, reasonOpen: openReason !== null,
+            newReason: s.newReasonText, onNewReason: (e) => this.setState({ newReasonText: e.target.value }),
+            addReason: () => this.addReason(cell.criterion, cell.option), newReasonDisabled: Component.slugBase(s.newReasonText) === '',
+            onNewReasonKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addReason(cell.criterion, cell.option); } },
             onScore: (e) => this.setScore(gs, cell.criterion, cell.option, Number(e.target.value), `slider:score:${cell.criterion}--${cell.option}`),
             onBlur: () => this.endStep(),
           };

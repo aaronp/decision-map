@@ -1541,5 +1541,31 @@ test('bar and pie share one switch, and the pie has handles but none at the wrap
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
 
+// ---------------------------------------------------------------- reasons
+test('reasons list by weight, and their weight never changes the score', () => {
+  const c = recBoot();
+  c.setState({ goal: 'reliability', cell: { option: 'postgres', criterion: 'durability' } });
+  const panel = () => c.renderVals().goalView.panel;
+  panel().onNewReason({ target: { value: 'Cheap to run' } });
+  panel().addReason();
+  assert.deepEqual(panel().reasons.map((r) => r.text), ['Runbooks exist', 'Cheap to run']);
+  panel().reasons[1].onWeight({ target: { value: '90' } });
+  assert.deepEqual(panel().reasons.map((r) => r.text), ['Cheap to run', 'Runbooks exist']);
+  assert.equal(Component.recordModel(c.state.map).goals[0].scores.postgres.durability, 8);
+});
+test('a reason has the same extras as a point', () => {
+  const c = recBoot();
+  c.setState({ goal: 'reliability', cell: { option: 'postgres', criterion: 'durability' } });
+  c.renderVals().goalView.panel.reasons[0].open();
+  assert.equal(c.renderVals().bc.basis, 'We run 14 clusters');
+  assert.equal(c.renderVals().ev.items.length, 1);
+  assert.deepEqual(unresolved(c.renderVals()), []);
+  c.renderVals().pn.askDel();
+  c.renderVals().pn.doDel();
+  assert.equal(c.state.reason, null);
+  assert.equal(Component.findPath(c.state.map.root, 'runbooks'), null);
+  assert.deepEqual(Component.parse(c.state.src).errors, []);
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
