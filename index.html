@@ -594,14 +594,168 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   </sc-if>
 
   <!-- ============ DIFF VIEW ============ -->
-  <sc-if value="{{isOverall}}" hint-placeholder-val="{{ false }}">
-    <section aria-label="Overall ranking"><h2 style="margin: 0; font-size: 1.4rem">Overall</h2></section>
-  </sc-if>
-  <sc-if value="{{isGoals}}" hint-placeholder-val="{{ false }}">
-    <section aria-label="Goals"><h2 style="margin: 0; font-size: 1.4rem">Goals</h2></section>
-  </sc-if>
+  <svg aria-hidden="true" style="position: absolute; width: 0; height: 0"><defs><pattern id="am-rec-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.5" height="10" style="fill: var(--ink); opacity: 0.3"></rect></pattern></defs></svg>
   <sc-if value="{{isGoal}}" hint-placeholder-val="{{ false }}">
-    <section aria-label="Goal"><h2 style="margin: 0; font-size: 1.4rem">Goal</h2></section>
+    <section aria-label="Goal" style="display: flex; flex-direction: column; gap: 6px">
+      <nav aria-label="Breadcrumbs" style="font-size: 14px; color: var(--ink2)"><button type="button" class="tb" onClick="{{goalView.back}}" style="border: 0; border-radius: 6px; padding: 4px 6px; font: inherit; color: var(--ink2); cursor: pointer; text-decoration: underline; text-underline-offset: 3px">Goals</button> › {{goalView.title}}</nav>
+      <input type="text" aria-label="Goal title" value="{{goalView.title}}" onChange="{{goalView.onTitle}}" onBlur="{{goalView.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 2rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink)">
+      <input type="text" aria-label="Goal description" placeholder="Add a description (optional)" value="{{goalView.desc}}" onChange="{{goalView.onDesc}}" onBlur="{{goalView.onBlur}}" readOnly="{{locked}}" style="width: 100%; max-width: 80ch; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.05rem; color: var(--ink2)">
+    </section>
+  </sc-if>
+  <sc-if value="{{isRecordView}}" hint-placeholder-val="{{ false }}">
+  <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+    <div style="flex: 1 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+      <sc-for list="{{recPanels}}" as="w" hint-placeholder-count="1">
+        <section aria-label="{{w.title}}" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+            <h2 style="margin: 0; font-size: 1.05rem">{{w.title}}</h2>
+            <div role="group" aria-label="Chart" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
+              <sc-for list="{{recordChart.options}}" as="o" hint-placeholder-count="2">
+                <button type="button" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; background: {{o.bg}}; color: {{o.fg}}">{{o.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{w.hasChecks}}" hint-placeholder-val="{{ false }}">
+            <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px">
+              <sc-for list="{{w.checks}}" as="k" hint-placeholder-count="3">
+                <li style="display: flex; align-items: center; gap: 8px">
+                  <input type="checkbox" checked="{{k.on}}" onChange="{{k.toggle}}" disabled="{{locked}}" aria-label="{{k.checkLabel}}" style="width: 18px; height: 18px; margin: 0; accent-color: var(--ink)">
+                  <button type="button" class="tb" aria-pressed="{{k.selPressed}}" onClick="{{k.select}}" style="flex: 1; display: flex; align-items: center; gap: 8px; min-height: 32px; border: 0; border-radius: 6px; padding: 0 8px; font: inherit; font-size: 14px; font-weight: 500; text-align: left; color: var(--ink); cursor: pointer; box-shadow: {{k.selRing}}"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; flex: none; background: {{k.fill}}"></span>{{k.title}}</button>
+                  <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink2)">{{k.pct}}</span>
+                </li>
+              </sc-for>
+            </ul>
+          </sc-if>
+          <sc-if value="{{w.empty}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: var(--ink3)">Nothing to weigh yet.</p></sc-if>
+          <sc-if value="{{w.has}}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{w.isBar}}" hint-placeholder-val="{{ true }}">
+            <div data-chart="1" style="display: flex; height: 84px; border-radius: 10px; overflow: hidden; user-select: none; -webkit-user-select: none">
+              <sc-for list="{{w.segments}}" as="g" hint-placeholder-count="3">
+                <div role="button" tabIndex="0" aria-label="{{g.aria}}" aria-pressed="{{g.pressed}}" title="{{g.label}}" onContextMenu="{{g.menu}}" onPointerDown="{{g.down}}" onClick="{{g.pick}}" onKeyDown="{{g.key}}" style="position: relative; flex: {{g.flex}} 1 0; min-width: 0; box-sizing: border-box; padding: 8px 10px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; cursor: pointer; background: {{g.fill}}; color: var(--on-fill); box-shadow: {{g.ring}}">
+                  <b style="font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{g.label}}</b>
+                  <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 12px">{{g.pct}}</span>
+                  <sc-if value="{{g.isChosen}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 22%, transparent) 6px 8px)"></span></sc-if>
+                </div>
+                <sc-if value="{{g.hasDivider}}" hint-placeholder-val="{{ true }}">
+                  <div role="separator" tabIndex="0" aria-label="{{g.divLabel}}" onPointerDown="{{g.divDown}}" onPointerMove="{{g.divMove}}" onPointerUp="{{g.divUp}}" onPointerCancel="{{g.divUp}}" onKeyDown="{{g.divKey}}" style="flex: none; width: 8px; background: var(--card); cursor: col-resize; touch-action: none"></div>
+                </sc-if>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{w.isPie}}" hint-placeholder-val="{{ false }}">
+            <div data-pie="1" style="position: relative; width: min(100%, 360px); max-width: 100%; aspect-ratio: 1 / 1; margin: 0 auto; user-select: none; -webkit-user-select: none; touch-action: none">
+              <sc-for list="{{w.slices}}" as="x" hint-placeholder-count="3">
+                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible">
+                  <path d="{{x.d}}" role="button" tabIndex="0" aria-label="{{x.aria}}" aria-pressed="{{x.pressed}}" onContextMenu="{{x.menu}}" onPointerDown="{{x.down}}" onClick="{{x.pick}}" onKeyDown="{{x.key}}" style="pointer-events: auto; cursor: pointer; fill: {{x.fill}}; stroke: {{x.stroke}}; stroke-width: {{x.sw}}; stroke-dasharray: {{x.dash}}"><title>{{x.label}}</title></path>
+                </svg>
+              </sc-for>
+              <sc-for list="{{w.hatches}}" as="h" hint-placeholder-count="1">
+                <svg viewBox="0 0 520 520" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible"><path d="{{h.d}}" style="fill: url(#am-rec-hatch)"></path></svg>
+              </sc-for>
+              <sc-for list="{{w.slices}}" as="x" hint-placeholder-count="3">
+                <sc-if value="{{x.showLabel}}" hint-placeholder-val="{{ true }}"><span aria-hidden="true" style="position: absolute; left: {{x.lx}}%; top: {{x.ly}}%; transform: translate(-50%, -50%); max-width: 30%; text-align: center; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--on-fill); pointer-events: none">{{x.label}}<br>{{x.pct}}</span></sc-if>
+              </sc-for>
+              <sc-for list="{{w.handles}}" as="k" hint-placeholder-count="2">
+                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; overflow: visible">
+                  <g class="am-ctl am-move" role="slider" tabIndex="0" aria-label="{{k.label}}" transform="translate({{k.x}} {{k.y}})" onPointerDown="{{k.down}}" onPointerMove="{{k.move}}" onPointerUp="{{k.up}}" onPointerCancel="{{k.up}}" onKeyDown="{{k.key}}" style="pointer-events: auto">
+                    <title>Drag to resize</title>
+                    <circle r="15"></circle>
+                    <path d="M-7 0H7M-7 0l3-3M-7 0l3 3M7 0l-3-3M7 0l-3 3" transform="rotate({{k.rot}})" style="stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round"></path>
+                  </g>
+                </svg>
+              </sc-for>
+            </div>
+          </sc-if>
+          </sc-if>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 28px; font-size: 13px; color: var(--ink3)">
+            <span role="status">{{w.status}}</span>
+            <sc-if value="{{w.hasChosen}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.clear}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; min-height: 26px; font-size: 13px">Clear</button></sc-if>
+          </div>
+        </section>
+      </sc-for>
+      <sc-if value="{{isGoal}}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <sc-for list="{{goalView.crits}}" as="c" hint-placeholder-count="2">
+            <span style="display: inline-flex; align-items: center; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px 2px 2px 8px">
+              <input type="text" aria-label="Criterion title" value="{{c.title}}" onChange="{{c.onTitle}}" onBlur="{{c.onBlur}}" readOnly="{{locked}}" style="width: 14ch; border: 0; background: transparent; padding: 4px 0; font: inherit; font-size: 14px; font-weight: 600; color: var(--ink)">
+              <sc-if value="{{c.canRemove}}" hint-placeholder-val="{{ true }}"><button type="button" class="tb" aria-label="{{c.removeLabel}}" onClick="{{c.remove}}" style="width: 28px; height: 28px; border: 0; border-radius: 6px; color: var(--ink3); font: inherit; cursor: pointer">×</button></sc-if>
+            </span>
+          </sc-for>
+          <sc-if value="{{srcOk}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{goalView.addCriterion}}" style="min-height: 36px; padding: 0 12px; border: 1px dashed var(--control); border-radius: 8px; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer">+ Criterion</button></sc-if>
+        </div>
+      </sc-if>
+    </div>
+    <div style="flex: 1.4 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+      <sc-if value="{{isGoals}}" hint-placeholder-val="{{ false }}">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px">
+          <sc-for list="{{goalsView.cards}}" as="g" hint-placeholder-count="3">
+            <button type="button" onClick="{{g.open}}" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; border-top: 4px solid {{g.fill}}; text-align: left; font: inherit; color: var(--ink); cursor: pointer; display: flex; flex-direction: column; gap: 6px">
+              <span style="display: flex; justify-content: space-between; gap: 8px"><b style="font-size: 1.05rem">{{g.title}}</b><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ink2)">{{g.pct}}</span></span>
+              <span style="font-size: 14px; color: var(--ink2)">{{g.desc}}</span>
+              <sc-if value="{{g.hasWinner}}" hint-placeholder-val="{{ true }}"><span style="align-self: flex-start; border-radius: 99px; padding: 2px 9px; font-size: 12px; font-weight: 600; background: var(--pro-tint); color: var(--pro)">{{g.winner}}</span></sc-if>
+              <span style="font-size: 13px; color: var(--ink3)">{{g.counts}}</span>
+            </button>
+          </sc-for>
+          <sc-if value="{{srcOk}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{goalsView.addGoal}}" style="min-height: 36px; padding: 0 12px; border: 1px dashed var(--control); border-radius: 8px; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer; min-height: 120px">+ Add a goal</button></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{isGoal}}" hint-placeholder-val="{{ false }}">
+        <section aria-label="Options and scores" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
+          <h2 style="margin: 0; font-size: 1.05rem">Options and scores</h2>
+          <p style="margin: 0; font-size: 13px; color: var(--ink3)">Score each option 0–10 on each criterion. Click a score to change it and give reasons.</p>
+          <div style="overflow-x: auto">
+            <table style="border-collapse: separate; border-spacing: 4px; width: 100%">
+              <thead><tr><th></th>
+                <sc-for list="{{goalView.grid.headers}}" as="h" hint-placeholder-count="2"><th style="font-size: 13px; font-weight: 600; text-align: left; color: var(--ink2); padding: 4px 6px; vertical-align: bottom">{{h.title}}<span style="display: block; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 400; color: var(--ink3)">{{h.pct}}</span></th></sc-for>
+                <th style="font-size: 13px; text-align: right; color: var(--ink2); padding: 4px 6px">Goal score</th></tr></thead>
+              <tbody>
+                <sc-for list="{{goalView.grid.rows}}" as="r" hint-placeholder-count="3">
+                  <tr>
+                    <td style="font-weight: 600; white-space: nowrap; padding-right: 8px">{{r.title}}
+                      <sc-if value="{{r.isWinner}}" hint-placeholder-val="{{ false }}"><span style="border-radius: 99px; padding: 1px 8px; font-size: 12px; background: var(--pro-tint); color: var(--pro)">Winner</span></sc-if>
+                      <sc-if value="{{srcOk}}" hint-placeholder-val="{{ true }}"><button type="button" class="tb" aria-label="{{r.removeLabel}}" onClick="{{r.remove}}" style="border: 0; border-radius: 6px; color: var(--ink3); font: inherit; cursor: pointer">×</button></sc-if>
+                    </td>
+                    <sc-for list="{{r.cells}}" as="x" hint-placeholder-count="2">
+                      <td><button type="button" aria-label="{{x.label}}" aria-pressed="{{x.pressed}}" onClick="{{x.pick}}" style="width: 100%; min-width: 72px; height: 52px; border: 1px solid var(--rule); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; font: inherit; cursor: pointer; background: {{x.bg}}; color: {{x.fg}}; box-shadow: {{x.ring}}"><span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 17px; font-weight: 500">{{x.n}}</span><span style="font-size: 11px">{{x.reasonText}}</span></button></td>
+                    </sc-for>
+                    <td style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 15px; text-align: right; padding-left: 8px">{{r.total}}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <sc-if value="{{srcOk}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+            <sc-for list="{{goalView.existing}}" as="o" hint-placeholder-count="1">
+              <button type="button" onClick="{{o.add}}" style="min-height: 36px; padding: 0 12px; border: 1px dashed var(--control); border-radius: 8px; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer">+ {{o.title}}</button>
+            </sc-for>
+            <input type="text" aria-label="New option" placeholder="New option" value="{{goalView.newOption}}" onChange="{{goalView.onNewOption}}" onKeyDown="{{goalView.onNewOptionKey}}" style="min-height: 36px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; flex: 1 1 160px; min-width: 0">
+            <button type="button" onClick="{{goalView.addNewOption}}" disabled="{{goalView.newOptionDisabled}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Add option</button>
+          </div>
+          </sc-if>
+        </section>
+        <sc-if value="{{goalView.panel.has}}" hint-placeholder-val="{{ false }}">
+          <section aria-label="Score" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
+            <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">Score</span>
+            <h2 style="margin: 0; font-size: 1.05rem">{{goalView.panel.title}}</h2>
+            <div style="display: flex; gap: 10px; align-items: center">
+              <input type="range" min="0" max="10" step="1" aria-label="Score" value="{{goalView.panel.score}}" onChange="{{goalView.panel.onScore}}" onBlur="{{goalView.panel.onBlur}}" disabled="{{locked}}" style="flex: 1; accent-color: var(--accent)">
+              <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 22px; width: 3ch; text-align: right">{{goalView.panel.score}}</span>
+            </div>
+          </section>
+        </sc-if>
+        <sc-if value="{{goalView.canDelete}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; gap: 8px; align-items: center">
+            <sc-if value="{{goalView.askDelete}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{goalView.askDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; color: var(--con)">Delete goal</button></sc-if>
+            <sc-if value="{{goalView.confirming}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px">Delete this goal and everything in it?</span><button type="button" onClick="{{goalView.doDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; background: var(--con); color: var(--on-fill); border-color: var(--con)">Delete</button><button type="button" onClick="{{goalView.cancelDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Cancel</button></sc-if>
+          </div>
+        </sc-if>
+      </sc-if>
+      <sc-if value="{{isOverall}}" hint-placeholder-val="{{ false }}">
+        <section aria-label="Overall ranking"><h2 style="margin: 0; font-size: 1.4rem">Overall</h2></section>
+      </sc-if>
+    </div>
+  </div>
   </sc-if>
   <sc-if value="{{isCompare}}" hint-placeholder-val="{{ false }}">
     <section aria-label="Compare records"><h2 style="margin: 0; font-size: 1.4rem">Compare</h2></section>
@@ -1306,7 +1460,7 @@ class Component extends DCLogic {
     this.state = {
       history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
-      goal: QUERY.get('goal'),
+      goal: QUERY.get('goal'), recordChart: 'bar', whatIf: null, cell: null, newOptionText: '', confirmGoalDelete: false,
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
       themeQ: THEMES.some((t) => t.id === qTheme) ? qTheme : null,
@@ -1842,6 +1996,14 @@ class Component extends DCLogic {
       return { option: o, total: parts.reduce((t, p) => t + p.value, 0), parts, wins: goals.filter((g) => g.on && g.winner === o).map((g) => g.node.slug) };
     }).sort((a, b) => b.total - a.total);
     return { options, goals, ranking };
+  }
+
+  // Weight rows shaped like factRows, in file order, for the divider and pie handlers. Weight 0 (a goal turned off) is left out.
+  static weightRows(nodes, overlay = null) {
+    const w = (n) => (overlay !== null && Object.prototype.hasOwnProperty.call(overlay, n.slug) ? overlay[n.slug] : n.importance);
+    const on = nodes.filter((n) => w(n) > 0);
+    const T = on.reduce((t, n) => t + w(n), 0);
+    return on.map((n) => ({ node: n, importance: w(n), share: T === 0 ? 0 : w(n) / T, impact: 0, contribution: 0, calculated: false }));
   }
 
   static recordBlank(fields) {
@@ -2646,6 +2808,80 @@ class Component extends DCLogic {
     }), step);
   }
 
+  // Every weight drag goes through here: the importances in the file (a record's what-if overlay is added later).
+  setWeights(slugs, before, after, step = null) {
+    this.setImportances(slugs, before, after, step);
+  }
+
+  // ---------------------------------------------------------------- decision record edits
+  setScore(goalSlug, critSlug, option, n, step = null) {
+    const score = Math.max(0, Math.min(10, Math.round(n)));
+    this.edit((m) => {
+      const title = Component.recordModel(m).options.get(option) ?? option;
+      return { ...m, root: Component.mapNode(m.root, critSlug, (c) => {
+        if (c.children.some((x) => x.option === option)) return { ...c, children: c.children.map((x) => (x.option === option ? { ...x, score } : x)) };
+        return { ...c, children: [...c.children, Component.recordBlank({ kind: 'score', slug: `${c.slug}--${option}`, text: title, option, score })] };
+      }) };
+    }, step);
+  }
+
+  // An option joins a goal with a score of 0 under each of its criteria.
+  addOptionToGoal(goalSlug, option, title) {
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, goalSlug, (g) => ({ ...g, children: g.children.map((c) => (c.children.some((x) => x.option === option) ? c
+      : { ...c, children: [...c.children, Component.recordBlank({ kind: 'score', slug: `${c.slug}--${option}`, text: title, option, score: 0 })] })) })) }));
+  }
+
+  addNewOption(goalSlug) {
+    const title = this.state.newOptionText.trim().replace(/\s+/g, ' ');
+    if (Component.slugBase(title) === '') return;
+    const option = Component.slugify(title, new Set(Component.recordModel(this.state.map).options.keys()));
+    this.addOptionToGoal(goalSlug, option, title);
+    this.setState({ newOptionText: '' });
+  }
+
+  removeOptionFromGoal(goalSlug, option) {
+    this.edit((m) => ({ ...m, root: Component.mapNode(m.root, goalSlug, (g) => ({ ...g, children: g.children.map((c) => ({ ...c, children: c.children.filter((x) => x.option !== option) })) })) }));
+    this.setState((s) => (s.cell && s.cell.option === option ? { cell: null } : null));
+  }
+
+  // A new goal or criterion weighs the average of its siblings that are on, so it starts as an equal.
+  static averageWeight(nodes) {
+    const on = nodes.filter((n) => n.importance > 0);
+    return on.length ? Math.round((on.reduce((t, n) => t + n.importance, 0) / on.length) * 10) / 10 : 1;
+  }
+
+  addGoal() {
+    const m = this.state.map;
+    const taken = Component.allSlugs(m.root);
+    const goal = Component.slugify('New goal', taken);
+    taken.add(goal);
+    const crit = Component.slugify('New criterion', taken);
+    const B = Component.recordBlank;
+    const node = B({ slug: goal, text: 'New goal', kind: 'goal', importance: Component.averageWeight(m.root.children), children: [B({ slug: crit, text: 'New criterion', kind: 'criterion', importance: 1 })] });
+    this.edit((mm) => ({ ...mm, root: { ...mm.root, children: [...mm.root.children, node] } }));
+    this.setState({ goal, cell: null });
+  }
+
+  addCriterion(goalSlug) {
+    const m = this.state.map;
+    const crit = Component.slugify('New criterion', Component.allSlugs(m.root));
+    this.edit((mm) => ({ ...mm, root: Component.mapNode(mm.root, goalSlug, (g) => ({ ...g, children: [...g.children, Component.recordBlank({ slug: crit, text: 'New criterion', kind: 'criterion', importance: Component.averageWeight(g.children) })] })) }));
+  }
+
+  removeRecordNode(slug) {
+    this.edit((m) => ({ ...m, root: Component.removeNode(m.root, slug) }));
+  }
+
+  setNodeText(slug, field, v) {
+    const t = field === 'text' ? v.replace(/\s*\n\s*/g, ' ') : v;
+    if (field === 'text' && t.trim() === '') { this.setState({ notice: 'A title can’t be empty.' }); return; }
+    this.edit((m) => ({
+      ...m,
+      title: field === 'text' && slug === m.root.slug && m.title === m.root.text ? t : m.title,
+      root: Component.mapNode(m.root, slug, (n) => ({ ...n, [field]: field === 'details' && t.trim() === '' ? null : t })),
+    }), `field:${field}:${slug}`);
+  }
+
   setImpact(slug, v, step = null) {
     const impact = Math.round(Math.max(-1, Math.min(1, v)) * 100) / 100;
     this.edit((m) => ({ ...m, root: Component.mapNode(m.root, slug, (n) => (n.impact === impact ? n : { ...n, impact })) }), step);
@@ -2680,7 +2916,7 @@ class Component extends DCLogic {
     const d = this.drag;
     if (d === null || d.type !== 'divider' || e.pointerId !== d.pointerId) return;
     const after = Component.resizeImportance(d.raws, { ...d.plan, move: (e.clientX - d.x0) / d.width });
-    this.setImportances(d.slugs, d.raws, after);
+    this.setWeights(d.slugs, d.raws, after);
   }
 
   endDivider(e) {
@@ -2710,7 +2946,7 @@ class Component extends DCLogic {
     const now = Math.atan2(e.clientX - d.cx, d.cy - e.clientY);
     d.turned += Component.angleDelta(d.prev, now);
     d.prev = now;
-    this.setImportances(d.slugs, d.raws, Component.resizeImportance(d.raws, { ...d.plan, move: d.turned / (2 * Math.PI * d.span) }));
+    this.setWeights(d.slugs, d.raws, Component.resizeImportance(d.raws, { ...d.plan, move: d.turned / (2 * Math.PI * d.span) }));
   }
 
   endPieEdge(e) {
@@ -2736,7 +2972,7 @@ class Component extends DCLogic {
     e.preventDefault();
     const plan = this.dividerPlan(i, rows, side);
     const raws = rows.map((r) => r.importance);
-    this.setImportances(rows.map((r) => r.node.slug), raws, Component.resizeImportance(raws, { ...plan, move }));
+    this.setWeights(rows.map((r) => r.node.slug), raws, Component.resizeImportance(raws, { ...plan, move }));
   }
 
   startColumnDrag(slug, impact, order, draggable, e) {
@@ -3601,6 +3837,147 @@ class Component extends DCLogic {
       ].map(([k, label, desc]) => ({ label, desc, on: disp[k], toggle: () => this.setDisplay({ [k]: !disp[k] }) })),
     };
 
+
+    // ---------------------------------------------------------------- decision record
+    const recModel = isRecordFile ? Component.recordModel(map, s.whatIf) : null;
+    const GOAL_FILLS = ['var(--accent)', 'var(--prem)', 'var(--pro)', 'var(--con)', 'var(--ink3)'];
+    const goalFill = (slug) => GOAL_FILLS[Math.max(0, map.root.children.findIndex((g) => g.slug === slug)) % GOAL_FILLS.length];
+    const critFill = (i) => `color-mix(in srgb, var(--accent) ${[100, 72, 50, 32, 16][i % 5]}%, var(--ink2))`;
+    const recordChart = {
+      isPie: s.recordChart === 'pie',
+      pick: (m) => this.setState({ recordChart: m }),
+      options: [['bar', 'Bar'], ['pie', 'Pie']].map(([m, label]) => ({
+        label, pressed: String(s.recordChart === m), bg: s.recordChart === m ? 'var(--ink)' : 'transparent', fg: s.recordChart === m ? 'var(--on-ink)' : 'var(--ink2)',
+        pick: () => this.setState({ recordChart: m }),
+      })),
+    };
+    // One weight editor: the app's bar (dividers) or pie (⇔ handles), with Ctrl/⌘/Shift-click or L choosing what a resize changes.
+    const wt = (title, nodes, fillOf, selected = null, onSelect = null) => {
+      const rows = Component.weightRows(nodes, s.whatIf);
+      const segments = rows.map((r, i) => {
+        const n = r.node;
+        const isChosen = s.chosenFacts.includes(n.slug);
+        const isSelected = selected === n.slug;
+        const pct = Math.round(r.share * 100);
+        return {
+          slug: n.slug, label: n.text, pct: `${pct}%`, flex: r.share.toFixed(5), fill: fillOf(n, i), isChosen, pressed: String(isChosen), isSelected,
+          ring: isSelected ? 'inset 0 0 0 3px var(--ink)' : 'none',
+          aria: `${n.text}: ${pct}%.${editable ? ' Ctrl or ⌘-click, or L, to choose it to absorb resizes.' : ''}${isChosen ? ' Chosen.' : ''}`,
+          menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
+          down: (e) => { this.suppressClick = !!(e.ctrlKey || e.metaKey || e.shiftKey); if (this.suppressClick && editable) this.toggleChosen(n.slug); },
+          pick: () => { if (this.suppressClick) { this.suppressClick = false; return; } if (onSelect) onSelect(n.slug); },
+          key: (e) => {
+            if ((e.key === 'l' || e.key === 'L') && editable) { e.preventDefault(); this.toggleChosen(n.slug); }
+            else if ((e.key === 'Enter' || e.key === ' ') && onSelect) { e.preventDefault(); onSelect(n.slug); }
+          },
+          hasDivider: editable && i < rows.length - 1,
+          divLabel: i < rows.length - 1 ? `Resize ${n.text} against ${rows[i + 1].node.text}. Use the left and right arrow keys.` : '',
+          divDown: (e) => this.startDivider(i, rows, e), divMove: (e) => this.moveDivider(e), divUp: (e) => this.endDivider(e), divKey: (e) => this.onDividerKey(i, rows, e),
+        };
+      });
+      const dividers = segments.filter((x) => x.hasDivider).map((x) => ({ down: x.divDown, move: x.divMove, up: x.divUp, key: x.divKey, label: x.divLabel }));
+      let a = 0;
+      const pt = (r, ang) => ({ x: (260 + r * Math.sin(ang)).toFixed(2), y: (260 - r * Math.cos(ang)).toFixed(2) });
+      const slices = segments.map((x, i) => {
+        const a0 = a;
+        a += rows[i].share * 2 * Math.PI;
+        const mid = pt(165, (a0 + a) / 2);
+        return {
+          ...x, d: Component.arc(260, 260, 100, 230, a0, a), a1: a,
+          lx: (Number(mid.x) / 5.2).toFixed(2), ly: (Number(mid.y) / 5.2).toFixed(2), showLabel: (a - a0) * 165 > 46,
+          stroke: x.isChosen || x.isSelected ? 'var(--ink)' : 'var(--card)', sw: x.isSelected ? 4 : x.isChosen ? 2.5 : 1.5, dash: x.isChosen ? '8 5' : 'none',
+        };
+      });
+      const handles = !editable ? [] : slices.slice(0, -1).map((x, i) => {
+        const at = pt(246, x.a1);
+        return {
+          x: at.x, y: at.y, rot: (x.a1 * 180 / Math.PI).toFixed(1), label: x.divLabel,
+          down: (e) => this.startPieEdge(i, rows, i, 1, e), move: (e) => this.movePieEdge(e), up: (e) => this.endPieEdge(e), key: (e) => this.onDividerKey(i, rows, e),
+        };
+      });
+      const chosen = rows.filter((r) => s.chosenFacts.includes(r.node.slug)).length;
+      return {
+        title, isBar: !recordChart.isPie, isPie: recordChart.isPie, empty: rows.length === 0, has: rows.length > 0,
+        segments, dividers, slices, handles, hatches: slices.filter((x) => x.isChosen).map((x) => ({ d: x.d })),
+        hasChosen: chosen > 0, noChosen: chosen === 0, clear: () => this.clearChosen(),
+        status: chosen > 0 ? `${chosen} chosen · a resize takes from or gives to only those`
+          : !editable ? 'Read-only' : recordChart.isPie ? 'Drag a ⇔ handle to resize · Ctrl or ⌘-click to choose what a resize changes' : 'Drag a divider to resize · Ctrl or ⌘-click to choose what a resize changes',
+        checks: [], hasChecks: false,
+      };
+    };
+    const optTitle = (o) => (recModel ? recModel.options.get(o) ?? o : o);
+    const fmt1 = (v) => v.toFixed(1);
+    const openGoal = (slug) => this.setState({ view: 'goals', goal: slug, cell: null, confirmGoalDelete: false });
+    const goalsView = !isRecordFile ? { weights: wt('', [], () => ''), cards: [], addGoal: () => {} } : {
+      weights: wt('Goal importance', map.root.children, (n) => goalFill(n.slug), null, openGoal),
+      cards: recModel.goals.map((g) => {
+        const T = recModel.goals.reduce((t, x) => t + x.importance, 0);
+        return {
+          slug: g.node.slug, title: g.node.text, desc: g.node.details ?? '', pct: `${T === 0 ? 0 : Math.round((g.importance / T) * 100)}%`, fill: goalFill(g.node.slug),
+          hasWinner: g.winner !== null, winner: g.winner === null ? '' : `${optTitle(g.winner)} · ${fmt1(g.goalScores[g.winner])}`,
+          counts: `${g.criteria.length} criteria · ${g.options.length} options`, off: !g.on,
+          open: () => openGoal(g.node.slug),
+        };
+      }),
+      addGoal: () => this.addGoal(),
+    };
+    const curGoal = isRecordFile && s.goal !== null ? recModel.goals.find((g) => g.node.slug === s.goal) ?? null : null;
+    const cell = curGoal && s.cell && curGoal.options.includes(s.cell.option) && curGoal.criteria.some((c) => c.node.slug === s.cell.criterion) ? s.cell : null;
+    const goalView = curGoal === null ? { has: false, grid: { headers: [], rows: [] }, existing: [], criteria: wt('', [], () => ''), crits: [], panel: { has: false } } : (() => {
+      const g = curGoal;
+      const gs = g.node.slug;
+      const ranked = [...g.options].sort((x, y) => g.goalScores[y] - g.goalScores[x]);
+      return {
+        has: true, slug: gs, title: g.node.text, desc: g.node.details ?? '',
+        onTitle: (e) => this.setNodeText(gs, 'text', e.target.value), onDesc: (e) => this.setNodeText(gs, 'details', e.target.value), onBlur: () => this.endStep(),
+        back: () => this.setState({ goal: null, cell: null }),
+        criteria: wt('Criteria', g.node.children, (n, i) => critFill(i)),
+        crits: g.criteria.map((c) => ({
+          slug: c.node.slug, title: c.node.text, onTitle: (e) => this.setNodeText(c.node.slug, 'text', e.target.value), onBlur: () => this.endStep(),
+          canRemove: editable && g.criteria.length > 1, remove: () => this.removeRecordNode(c.node.slug), removeLabel: `Remove criterion ${c.node.text}`,
+        })),
+        addCriterion: () => this.addCriterion(gs),
+        grid: {
+          headers: g.criteria.map((c) => ({ title: c.node.text, pct: `${Math.round(c.share * 100)}%` })),
+          rows: ranked.map((o) => ({
+            option: o, title: optTitle(o), isWinner: o === g.winner, total: fmt1(g.goalScores[o]),
+            remove: () => this.removeOptionFromGoal(gs, o), removeLabel: `Remove ${optTitle(o)} from this goal`,
+            cells: g.criteria.map((c) => {
+              const n = g.scores[o][c.node.slug] ?? 0;
+              const scoreNode = c.node.children.find((x) => x.option === o);
+              const reasons = scoreNode ? scoreNode.children.length : 0;
+              const on = cell !== null && cell.option === o && cell.criterion === c.node.slug;
+              return {
+                n, reasons, reasonText: reasons ? `${reasons} reason${reasons === 1 ? '' : 's'}` : '—', pressed: String(on),
+                bg: `color-mix(in srgb, var(--accent) ${Math.round(8 + n * 7.2)}%, var(--card))`, fg: n >= 6 ? 'var(--on-fill)' : 'var(--ink)',
+                ring: on ? '0 0 0 2.5px var(--ink)' : 'none',
+                label: `${optTitle(o)}, ${c.node.text}: ${n} out of 10, ${reasons} reasons`,
+                pick: () => this.setState({ cell: { option: o, criterion: c.node.slug } }),
+              };
+            }),
+          })),
+        },
+        existing: [...recModel.options.keys()].filter((o) => !g.options.includes(o)).map((o) => ({ slug: o, title: optTitle(o), add: () => this.addOptionToGoal(gs, o, optTitle(o)) })),
+        hasExisting: editable && [...recModel.options.keys()].some((o) => !g.options.includes(o)),
+        newOption: s.newOptionText, onNewOption: (e) => this.setState({ newOptionText: e.target.value }),
+        addNewOption: () => this.addNewOption(gs), newOptionDisabled: Component.slugBase(s.newOptionText) === '',
+        onNewOptionKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.addNewOption(gs); } },
+        askDelete: !s.confirmGoalDelete, confirming: s.confirmGoalDelete,
+        askDel: () => this.setState({ confirmGoalDelete: true }), cancelDel: () => this.setState({ confirmGoalDelete: false }),
+        doDel: () => { this.removeRecordNode(gs); this.setState({ goal: null, cell: null, confirmGoalDelete: false }); },
+        canDelete: editable && recModel.goals.length > 1,
+        panel: cell === null ? { has: false } : (() => {
+          const crit = g.criteria.find((c) => c.node.slug === cell.criterion);
+          const n = g.scores[cell.option][cell.criterion] ?? 0;
+          return {
+            has: true, title: `${optTitle(cell.option)} · ${crit.node.text}`, score: n,
+            onScore: (e) => this.setScore(gs, cell.criterion, cell.option, Number(e.target.value), `slider:score:${cell.criterion}--${cell.option}`),
+            onBlur: () => this.endStep(),
+          };
+        })(),
+      };
+    })();
+    const recPanels = !isRecordFile ? [] : view === 'goals' && curGoal !== null ? [goalView.criteria] : view === 'goals' ? [goalsView.weights] : [];
     return {
       title: map.title, tabs, tb, nm, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
       isFocusView: hasMap && (view === 'map' || view === 'pie'),
@@ -3617,6 +3994,7 @@ class Component extends DCLogic {
           save: choose(tb.save), download: choose(tb.download), settings: choose(stg.openIt),
         };
       })(),
+      recordChart, goalsView, goalView, recPanels, isRecordView: hasMap && isRecordFile && view !== 'source' && view !== 'compare',
       isOverall: hasMap && view === 'overall', isGoals: hasMap && view === 'goals' && s.goal === null, isGoal: hasMap && view === 'goals' && s.goal !== null, isCompare: hasMap && view === 'compare',
       hasMap, isMap: hasMap && view === 'map', isPie: hasMap && view === 'pie', isDiff: hasMap && view === 'diff', isSource: !noMap && view === 'source',
       undoBtn: { disabled: locked || s.history.past.length === 0, opacity: locked || s.history.past.length === 0 ? 0.35 : 1, run: () => this.undo() },

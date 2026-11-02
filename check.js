@@ -1493,5 +1493,53 @@ test('every record view renders with no unresolved bindings, and maps keep their
   assert.equal(m.renderVals().isMap, true);
 });
 
+// ---------------------------------------------------------------- goals and goal views
+const recBoot = () => { const c = boot(REC); c.setState({ view: 'goals' }); return c; };
+const goalsWt = (c) => c.renderVals().goalsView.weights;
+test('dragging the goal divider trades importance, respecting choices', () => {
+  const c = recBoot();
+  goalsWt(c).dividers[0].down(ev({ clientX: 0 }));
+  goalsWt(c).dividers[0].move(ev({ clientX: 100 }));
+  goalsWt(c).dividers[0].up(ev());
+  assert.ok(nodeOf(c, 'reliability').importance > 40);
+  c.undo();
+  assert.equal(nodeOf(c, 'reliability').importance, 40);
+});
+test('a goal opens to a grid of options by criteria, best first, with its winner', () => {
+  const c = recBoot();
+  c.renderVals().goalsView.cards[0].open();
+  const g = c.renderVals().goalView;
+  assert.deepEqual(g.grid.rows.map((r) => r.option), ['postgres', 'dynamodb']);
+  assert.deepEqual(g.grid.rows[1].cells.map((x) => x.n), [9, 0]);
+  assert.equal(g.grid.rows[0].isWinner, true);
+});
+test('setting a missing score creates it; the file round-trips', () => {
+  const c = recBoot();
+  c.setState({ goal: 'reliability' });
+  c.setScore('reliability', 'ops', 'dynamodb', 7);
+  assert.equal(Component.recordModel(c.state.map).goals[0].scores.dynamodb.ops, 7);
+  assert.deepEqual(Component.parse(c.state.src).errors, []);
+});
+test('adding an existing option to a goal, and a new one', () => {
+  const c = recBoot();
+  c.setState({ goal: 'cost' });
+  const gv = () => c.renderVals().goalView;
+  assert.deepEqual(gv().existing.map((o) => o.slug), ['postgres']);
+  gv().existing[0].add();
+  gv().onNewOption({ target: { value: 'Kafka + S3' } });
+  gv().addNewOption();
+  assert.deepEqual(Component.recordModel(c.state.map).goals[1].options, ['dynamodb', 'postgres', 'kafka-s3']);
+});
+test('bar and pie share one switch, and the pie has handles but none at the wrap', () => {
+  const c = recBoot();
+  c.renderVals().recordChart.pick('pie');
+  assert.equal(goalsWt(c).isPie, true);
+  assert.equal(goalsWt(c).handles.length, 1);
+  c.renderVals().goalsView.weights.segments[0].down(ev({ metaKey: true }));
+  assert.deepEqual(unresolved(c.renderVals()), []);
+  c.setState({ goal: 'reliability', cell: { option: 'postgres', criterion: 'ops' } });
+  assert.deepEqual(unresolved(c.renderVals()), []);
+});
+
 console.log(`${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);
