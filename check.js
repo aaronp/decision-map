@@ -1478,7 +1478,7 @@ test('dragging the goal divider trades importance, respecting choices', () => {
 });
 test('a goal opens to a grid of options by criteria, best first, with its winner', () => {
   const c = recBoot();
-  c.renderVals().goalsLevel.detail.open();
+  c.renderVals().goalsLevel.weights.segments[0].pick();
   c.renderVals().criteriaLevel.compareAll();
   const g = c.renderVals().optionsLevel;
   assert.deepEqual(g.grid.rows.map((r) => r.option), ['postgres', 'dynamodb']);
@@ -1699,10 +1699,10 @@ test('review: a map\'s Diff with a record as B explains itself instead of crashi
 test('review: a goal that no longer exists falls back to the goal list', () => {
   const c = boot(REC);
   c.setState({ view: 'goals' });
-  c.renderVals().goalsLevel.weights.add();
-  c.recNav({ recLevel: 'criteria', recGoal: c.state.selGoal });
+  c.renderVals().goalsLevel.weights.add(); // adding a goal selects it
   assert.equal(c.renderVals().isRecLevel.criteria, true);
   c.undo();
+  assert.equal(c.renderVals().isRecLevel.criteria, false);
   assert.equal(c.renderVals().isRecLevel.goals, true);
   assert.deepEqual(unresolved(c.renderVals()), []);
 });
@@ -1888,17 +1888,31 @@ test('an existing record opens on the Overview with no rail, and old view names 
   assert.equal(g.renderVals().isRecLevel.goals, true);
   assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Overview', 'Record', 'Markdown source', 'Compare']);
 });
-test('the rail lists four steps with what is chosen at each, and a click jumps to a step', () => {
+test('the rail shows the selected goal, criterion and option under each step; a click keeps the selection', () => {
   const c = rec2();
   c.recNav({ recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
   const st = () => c.renderVals().recSteps;
   assert.equal(c.renderVals().hasRail, true);
   assert.deepEqual(st().map((x) => x.tier), ['Goals', 'Criteria', 'Options', 'Reasons']);
-  assert.deepEqual(st().map((x) => x.detail), ['2 goals', 'Reliability', 'Postgres', 'Durability · Postgres']);
+  assert.deepEqual(st().map((x) => x.detail), ['Reliability', 'Durability', 'Postgres', '1 reason']);
   st()[1].go();
-  assert.equal(c.renderVals().isRecLevel.criteria, true);
-  assert.deepEqual(st().map((x) => x.current), [false, true, false, false]);
-  assert.deepEqual(st().map((x) => x.done), [true, false, false, false]);
+  assert.equal(c.renderVals().isRecLevel.reasons, true);
+  assert.deepEqual(st().map((x) => x.current), [false, false, false, true]);
+  assert.deepEqual(st().map((x) => x.done), [true, true, true, false]);
+});
+test('selecting reveals the next sections below, each after a divider and a heading', () => {
+  const c = rec2({ recLevel: 'goals' });
+  const secs = () => c.renderVals().recSections.map((x) => [x.kind, x.hasDivider, x.heading]);
+  assert.deepEqual(secs(), [['goals', false, 'Goals']]);
+  c.renderVals().goalsLevel.weights.segments[0].pick();
+  assert.deepEqual(secs(), [['goals', false, 'Goals'], ['criteria', true, 'Criteria'], ['options', true, 'Options']]);
+  c.renderVals().criteriaLevel.options[0].open();
+  assert.deepEqual(secs().map((x) => x[0]), ['goals', 'criteria', 'options']);
+  assert.equal(c.renderVals().isRecLevel.options, true);
+  c.renderVals().optionsLevel.rows[0].openReasons();
+  assert.deepEqual(secs().map((x) => x[0]), ['goals', 'criteria', 'options', 'reasons']);
+  assert.deepEqual(c.renderVals().criteriaLevel.options.map((o) => o.pressed), ['true', 'false']);
+  assert.deepEqual(unresolved(c.renderVals()), []);
 });
 test('a level whose goal, option or criterion is gone falls back, with every binding resolved', () => {
   const c = rec2();
@@ -1921,10 +1935,9 @@ test('All goals: a short bar with a "+" column; clicking a goal shows its detail
   assert.equal(gl().detail.title, 'Cost');
   gl().detail.onDesc({ target: { value: 'Money and people' } });
   assert.equal(nodeOf(c, 'cost').details, 'Money and people');
+  assert.equal(c.renderVals().isRecLevel.criteria, true, 'selecting a goal reveals its criteria');
   gl().weights.add();
   assert.equal(Component.recordModel(c.state.map).goals.length, 3);
-  gl().detail.open();
-  assert.equal(c.renderVals().isRecLevel.criteria, true);
 });
 test('a goal\'s criteria: bar with "+", criterion details, and options by goal score', () => {
   const c = rec2();
@@ -1979,9 +1992,8 @@ test('r2 review: a delete armed on one goal is not armed on the next goal opened
   const c = rec2();
   c.recNav({ recLevel: 'criteria', recGoal: 'reliability' });
   c.renderVals().criteriaLevel.askDel();
-  c.renderVals().recSteps[0].go();
-  c.setState({ selGoal: 'cost' });
-  c.renderVals().goalsLevel.detail.open();
+  c.renderVals().goalsLevel.weights.segments[1].pick();
+  assert.equal(c.state.recGoal, 'cost');
   assert.equal(c.renderVals().criteriaLevel.confirming, false);
 });
 test('r2 review: the open option gone falls back to the goal; compare with no options too', () => {

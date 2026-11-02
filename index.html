@@ -627,7 +627,11 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
   <sc-if value="{{isRecordView}}" hint-placeholder-val="{{ false }}">
   <div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
     <div style="flex: {{recLayout.left}}; min-width: 0; display: flex; flex-direction: column; gap: 14px">
-      <sc-for list="{{recPanels}}" as="w" hint-placeholder-count="1">
+      <sc-for list="{{recSections}}" as="sec" hint-placeholder-count="3">
+        <div id="{{sec.id}}" style="display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px">
+          <sc-if value="{{sec.hasDivider}}" hint-placeholder-val="{{ false }}"><hr style="width: 100%; margin: 10px 0 0; border: 0; border-top: 1px solid var(--rule)"></sc-if>
+          <sc-if value="{{sec.hasHeading}}" hint-placeholder-val="{{ true }}"><h2 style="margin: 0; font-size: 1.3rem; letter-spacing: -0.01em">{{sec.heading}}</h2></sc-if>
+          <sc-for list="{{sec.panels}}" as="w" hint-placeholder-count="1">
         <section aria-label="{{w.title}}" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
           <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
             <h2 style="margin: 0; font-size: 1.05rem">{{w.title}}</h2>
@@ -699,10 +703,9 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <sc-if value="{{w.hasChosen}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{w.clear}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; min-height: 26px; font-size: 13px">Clear</button></sc-if>
           </div>
         </section>
-      </sc-for>
-    </div>
-    <div style="flex: {{recLayout.right}}; min-width: 0; display: flex; flex-direction: column; gap: 14px">
-      <sc-if value="{{isRecLevel.goals}}" hint-placeholder-val="{{ false }}">
+          </sc-for>
+          <sc-if value="{{sec.isGoals}}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{goalsLevel.hint}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: var(--ink3)">Select a goal to see its criteria and options.</p></sc-if>
         <sc-if value="{{goalsLevel.hasDetail}}" hint-placeholder-val="{{ true }}">
         <section aria-label="Goal details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
           <input type="text" aria-label="Goal title" value="{{goalsLevel.detail.title}}" onChange="{{goalsLevel.detail.onTitle}}" onBlur="{{goalsLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink)">
@@ -711,11 +714,10 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             <sc-if value="{{goalsLevel.detail.hasWinner}}" hint-placeholder-val="{{ true }}"><span style="border-radius: 99px; padding: 2px 9px; font-size: 12px; font-weight: 600; background: var(--pro-tint); color: var(--pro)">{{goalsLevel.detail.winner}}</span></sc-if>
             <span style="font-size: 13px; color: var(--ink3)">{{goalsLevel.detail.counts}}</span>
           </div>
-          <div><button type="button" onClick="{{goalsLevel.detail.open}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; background: var(--ink); color: var(--on-ink); border-color: var(--ink); margin-top: 6px">Criteria and options ›</button></div>
         </section>
         </sc-if>
-      </sc-if>
-      <sc-if value="{{isRecLevel.criteria}}" hint-placeholder-val="{{ false }}">
+          </sc-if>
+          <sc-if value="{{sec.isCriteria}}" hint-placeholder-val="{{ false }}">
         <sc-if value="{{criteriaLevel.hasDetail}}" hint-placeholder-val="{{ true }}">
         <section aria-label="Criterion details" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 6px">
           <input type="text" aria-label="Criterion title" value="{{criteriaLevel.detail.title}}" onChange="{{criteriaLevel.detail.onTitle}}" onBlur="{{criteriaLevel.detail.onBlur}}" readOnly="{{locked}}" style="width: 100%; box-sizing: border-box; border: 0; background: transparent; padding: 0; font: inherit; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); font-size: 1.3rem">
@@ -723,47 +725,34 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
           <sc-if value="{{criteriaLevel.detail.canRemove}}" hint-placeholder-val="{{ false }}"><div><button type="button" onClick="{{criteriaLevel.detail.remove}}" aria-label="{{criteriaLevel.detail.removeLabel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; margin-top: 6px">Remove this criterion</button></div></sc-if>
         </section>
         </sc-if>
-        <section aria-label="Options" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px">
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
-            <h2 style="margin: 0; font-size: 1.05rem">Options</h2>
-            <button type="button" onClick="{{criteriaLevel.compareAll}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Compare all ›</button>
-          </div>
-          <p style="margin: 0 0 6px; font-size: 13px; color: var(--ink3)">Each option’s score for this goal, out of 10. Open one to score it on every criterion.</p>
-          <sc-if value="{{criteriaLevel.noOptions}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: var(--ink3)">No options yet. Add one below.</p></sc-if>
-          <sc-for list="{{criteriaLevel.options}}" as="o" hint-placeholder-count="3">
-            <button type="button" onClick="{{o.open}}" style="display: grid; grid-template-columns: minmax(90px, 180px) minmax(0, 1fr) 44px 14px; gap: 10px; align-items: center; width: 100%; border: 0; border-top: 1px solid var(--rule-soft); background: transparent; padding: 10px 4px; font: inherit; color: var(--ink); text-align: left; cursor: pointer">
-              <span style="min-width: 0"><b>{{o.title}}</b> <sc-if value="{{o.isWinner}}" hint-placeholder-val="{{ false }}"><span style="border-radius: 99px; padding: 1px 8px; font-size: 12px; font-weight: 600; background: var(--pro-tint); color: var(--pro)">Winner</span></sc-if></span>
-              <span style="height: 12px; border-radius: 4px; background: var(--sunk); overflow: hidden"><span style="display: block; height: 100%; width: {{o.width}}; background: var(--accent)"></span></span>
-              <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; text-align: right">{{o.score}}</span><span aria-hidden="true" style="color: var(--ink3)">›</span>
-            </button>
-          </sc-for>
-          <sc-if value="{{srcOk}}" hint-placeholder-val="{{ true }}">
-          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px">
-            <sc-for list="{{criteriaLevel.existing}}" as="x" hint-placeholder-count="1"><button type="button" onClick="{{x.add}}" style="min-height: 36px; padding: 0 12px; border: 1px dashed var(--control); border-radius: 8px; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer">+ {{x.title}}</button></sc-for>
-            <input type="text" aria-label="New option" placeholder="New option" value="{{criteriaLevel.newOption}}" onChange="{{criteriaLevel.onNewOption}}" onKeyDown="{{criteriaLevel.onNewOptionKey}}" style="min-height: 36px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; flex: 1 1 160px; min-width: 0">
-            <button type="button" onClick="{{criteriaLevel.addNewOption}}" disabled="{{criteriaLevel.newOptionDisabled}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Add option</button>
-          </div>
-          </sc-if>
-        </section>
         <sc-if value="{{criteriaLevel.canDelete}}" hint-placeholder-val="{{ false }}">
           <div style="display: flex; gap: 8px; align-items: center">
             <sc-if value="{{criteriaLevel.askDelete}}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{criteriaLevel.askDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; color: var(--con)">Delete this goal</button></sc-if>
             <sc-if value="{{criteriaLevel.confirming}}" hint-placeholder-val="{{ false }}"><span style="font-size: 14px">Delete this goal and everything in it?</span><button type="button" onClick="{{criteriaLevel.doDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; background: var(--con); color: var(--on-fill); border-color: var(--con)">Delete</button><button type="button" onClick="{{criteriaLevel.cancelDel}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Cancel</button></sc-if>
           </div>
         </sc-if>
-      </sc-if>
-      <sc-if value="{{isRecLevel.options}}" hint-placeholder-val="{{ false }}">
+          </sc-if>
+          <sc-if value="{{sec.isOptions}}" hint-placeholder-val="{{ false }}">
+          <div role="group" aria-label="Options" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+            <sc-for list="{{criteriaLevel.options}}" as="o" hint-placeholder-count="3">
+              <button type="button" aria-pressed="{{o.pressed}}" onClick="{{o.open}}" style="min-height: 34px; padding: 0 14px; border: 0; border-radius: 99px; font: inherit; font-size: 14px; cursor: pointer; background: {{o.bg}}; color: {{o.fg}}">{{o.title}} · {{o.score}}<sc-if value="{{o.isWinner}}" hint-placeholder-val="{{ false }}"> ★</sc-if></button>
+            </sc-for>
+            <sc-if value="{{criteriaLevel.hasCompare}}" hint-placeholder-val="{{ true }}"><button type="button" aria-pressed="{{criteriaLevel.comparePressed}}" onClick="{{criteriaLevel.compareAll}}" style="min-height: 34px; padding: 0 14px; border: 0; border-radius: 99px; font: inherit; font-size: 14px; cursor: pointer; background: {{criteriaLevel.compareBg}}; color: {{criteriaLevel.compareFg}}">Compare all</button></sc-if>
+          </div>
+          <sc-if value="{{criteriaLevel.noOptions}}" hint-placeholder-val="{{ false }}"><p style="margin: 0; font-size: 14px; color: var(--ink3)">No options yet. Add one below.</p></sc-if>
+<sc-if value="{{srcOk}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px">
+            <sc-for list="{{criteriaLevel.existing}}" as="x" hint-placeholder-count="1"><button type="button" onClick="{{x.add}}" style="min-height: 36px; padding: 0 12px; border: 1px dashed var(--control); border-radius: 8px; background: transparent; color: var(--ink2); font: inherit; font-size: 14px; cursor: pointer">+ {{x.title}}</button></sc-for>
+            <input type="text" aria-label="New option" placeholder="New option" value="{{criteriaLevel.newOption}}" onChange="{{criteriaLevel.onNewOption}}" onKeyDown="{{criteriaLevel.onNewOptionKey}}" style="min-height: 36px; box-sizing: border-box; border: 1px solid var(--control); border-radius: 8px; padding: 0 10px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; flex: 1 1 160px; min-width: 0">
+            <button type="button" onClick="{{criteriaLevel.addNewOption}}" disabled="{{criteriaLevel.newOptionDisabled}}" style="min-height: 34px; padding: 0 12px; border: 1px solid var(--control); border-radius: 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer">Add option</button>
+          </div>
+          </sc-if>
+            <sc-if value="{{isRecLevel.options}}" hint-placeholder-val="{{ false }}">
         <section aria-label="Options" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
           <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px">
             <h2 style="margin: 0; font-size: 1.2rem">{{optionsLevel.title}} <span style="font-weight: 400; color: var(--ink3)">· {{optionsLevel.goalTitle}}</span></h2>
-            <div role="group" aria-label="Options view" style="display: flex; gap: 2px; background: var(--sunk); border-radius: 8px; padding: 2px">
-              <sc-for list="{{optionsLevel.modes}}" as="m" hint-placeholder-count="2"><button type="button" aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; background: {{m.bg}}; color: {{m.fg}}">{{m.label}}</button></sc-for>
-            </div>
           </div>
           <sc-if value="{{optionsLevel.isEdit}}" hint-placeholder-val="{{ true }}">
-            <div role="group" aria-label="Option" style="display: flex; flex-wrap: wrap; gap: 6px">
-              <sc-for list="{{optionsLevel.picks}}" as="o" hint-placeholder-count="3"><button type="button" aria-pressed="{{o.pressed}}" onClick="{{o.pick}}" style="min-height: 30px; padding: 0 12px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; border-radius: 99px; background: {{o.bg}}; color: {{o.fg}}">{{o.label}}</button></sc-for>
-            </div>
             <p style="margin: 0; font-size: 13px; color: var(--ink3)">{{optionsLevel.summaryLine}}</p>
             <sc-for list="{{optionsLevel.rows}}" as="r" hint-placeholder-count="3">
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--rule-soft)">
@@ -800,8 +789,9 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
             </div>
           </sc-if>
         </section>
-      </sc-if>
-      <sc-if value="{{isRecLevel.reasons}}" hint-placeholder-val="{{ false }}">
+            </sc-if>
+          </sc-if>
+          <sc-if value="{{sec.isReasons}}" hint-placeholder-val="{{ false }}">
           <section aria-label="Score" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px">
             <span style="font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink3); font-weight: 600">Score</span>
             <h2 style="margin: 0; font-size: 1.05rem">{{reasonsLevel.title}}</h2>
@@ -985,7 +975,11 @@ label.tb:focus-within{outline:2px solid var(--accent);outline-offset:2px}
       </details>
             </sc-if>
           </section>
-      </sc-if>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="flex: {{recLayout.right}}; min-width: 0; display: {{recLayout.rightDisplay}}; flex-direction: column; gap: 14px">
       <sc-if value="{{isOverall}}" hint-placeholder-val="{{ false }}">
         <section aria-label="Overall ranking" style="background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 4px">
           <h2 style="margin: 0; font-size: 1.05rem">Overall ranking</h2>
@@ -1837,7 +1831,7 @@ class Component extends DCLogic {
       history: Component.freshHistory(),
       fileStatus: '', openTarget: 'A', newOpen: false, newKind: 'map', newTitle: '', newDesc: '', newOptions: [],
       dropPending: null, snapshots: [], snapName: '', snapNotice: '', confirmSnap: null,
-      recLevel: QUERY.get('view') === 'goals' ? 'goals' : 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, optMode: 'edit',
+      recLevel: QUERY.get('view') === 'goals' ? 'goals' : 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, optMode: 'edit',
       recordChart: 'bar', whatIf: null, offWeights: {}, overallGoal: null, reason: null, newReasonText: '', newOptionText: '', confirmGoalDelete: false,
       fileName: A.name, fileUrl: A.url, savedSrc: A.text, fileNameB: B.name,
       openOpen: false, openUrl: '', openBusy: false, openError: '', dropActive: false, recent: [],
@@ -3097,7 +3091,7 @@ class Component extends DCLogic {
   loadA(text, name, url = null, force = false) {
     if (this.askBeforeDrop(`Open ${name}`, () => this.loadA(text, name, url, true), force)) return;
     const r = Component.parse(text);
-    const fresh = { history: Component.freshHistory(), whatIf: null, offWeights: {}, reason: null, recLevel: 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, overallGoal: null, chosenFacts: [], cmpA: null, cmpB: null, cmpRow: null };
+    const fresh = { history: Component.freshHistory(), whatIf: null, offWeights: {}, reason: null, recLevel: 'overview', railLevel: null, recGoal: null, recOption: null, recCrit: null, overallGoal: null, chosenFacts: [], cmpA: null, cmpB: null, cmpRow: null };
     replaceQuery({ src: url, ours: null, focus: null });
     const file = { fileName: name, fileUrl: url, savedSrc: text, research: null, rationale: null, newOpen: false };
     if (r.errors.length) {
@@ -3184,7 +3178,7 @@ class Component extends DCLogic {
     this.handle = null;
     replaceQuery({ src: null, ours: null });
     this.setState({
-      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: map.root.slug, view, recLevel, railLevel: recLevel === 'overview' ? null : recLevel, recGoal: null, recOption: null, recCrit: null, selGoal: null, selCrit: null, whatIf: null, offWeights: {}, reason: null, overallGoal: null, cmpA: null, cmpB: null, cmpRow: null,
+      map, src: Component.serialize(map), srcErrors: [], history: Component.freshHistory(), focus: map.root.slug, view, recLevel, railLevel: recLevel === 'overview' ? null : recLevel, recGoal: null, recOption: null, recCrit: null, whatIf: null, offWeights: {}, reason: null, overallGoal: null, cmpA: null, cmpB: null, cmpRow: null,
       fileName: `${map.root.slug}.md`, fileUrl: null, savedSrc: null, research: null, rationale: null,
       newOpen: false, newTitle: '', newDesc: '', newOptions: [],
       adding: null, draftText: '', chosenFacts: [], frozenOrder: null, pinned: null,
@@ -3293,16 +3287,26 @@ class Component extends DCLogic {
    */
   static recordPlace(s) {
     const view = s.view === 'overall' || s.view === 'goals' ? 'record' : RECORD_VIEWS.includes(s.view) ? s.view : 'record';
-    let level = s.view === 'goals' && s.recLevel === 'overview' ? 'goals' : REC_LEVELS.includes(s.recLevel) ? s.recLevel : 'overview';
+    // On the Record page every section shows, down to the deepest whose selection still exists; level is that deepest section.
+    let level = s.view === 'goals' || (REC_LEVELS.includes(s.recLevel) && s.recLevel !== 'overview') ? 'reasons' : 'overview';
     const goal = s.recGoal === null ? null : s.map.root.children.find((g) => g.slug === s.recGoal) ?? null;
     const options = goal === null ? [] : [...new Set(goal.children.flatMap((c) => c.children.map((x) => x.option)))];
     const option = options.includes(s.recOption) ? s.recOption : null;
     const crit = goal === null ? null : goal.children.find((c) => c.slug === s.recCrit) ?? null;
-    if (level === 'reasons' && (option === null || crit === null)) level = 'options';
+    if (level === 'reasons' && (option === null || crit === null || s.optMode === 'compare')) level = 'options';
     // Editing needs that option; Compare all needs any option at all. Otherwise go back to the goal rather than open a different option.
     if (level === 'options' && (goal === null || (s.optMode === 'compare' ? options.length === 0 : option === null))) level = 'criteria';
     if (level === 'criteria' && goal === null) level = 'goals';
     return { view, level, goal, option, crit, options };
+  }
+
+  // Scroll a Record section into view once it has rendered (not in check.js, which has no document).
+  scrollToSection(id) {
+    if (typeof document === 'undefined') return;
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    }, 0);
   }
 
   // Move within the Record view; a reason panel open below closes.
@@ -3449,7 +3453,7 @@ class Component extends DCLogic {
     const B = Component.recordBlank;
     const node = B({ slug: goal, text: 'New goal', kind: 'goal', importance: Component.averageWeight(m.root.children), children: [B({ slug: crit, text: 'New criterion', kind: 'criterion', importance: 50 })] });
     this.edit((mm) => ({ ...mm, root: { ...mm.root, children: [...mm.root.children, node] } }));
-    this.setState({ selGoal: goal });
+    this.recNav({ recLevel: 'goals', recGoal: goal });
   }
 
   addCriterion(goalSlug) {
@@ -4505,7 +4509,7 @@ class Component extends DCLogic {
     };
     const optTitle = (o) => (recModel ? recModel.options.get(o) ?? o : o);
     const fmt1 = (v) => v.toFixed(1);
-    const curGoal = isRecordFile && level !== null && level !== 'overview' && level !== 'goals' && place.goal !== null ? recModel.goals.find((g) => g.node.slug === place.goal.slug) ?? null : null;
+    const curGoal = isRecordFile && level !== null && level !== 'overview' && place.goal !== null ? recModel.goals.find((g) => g.node.slug === place.goal.slug) ?? null : null;
     const overall = !isRecordFile ? { goals: [], ranking: [], weights: wt('', [], () => ''), criteria: wt('', [], () => ''), snap: { items: [] } } : (() => {
       const T = recModel.goals.reduce((t, g) => t + g.importance, 0);
       const sel = recModel.goals.find((g) => g.node.slug === s.overallGoal) ?? recModel.goals[0] ?? null;
@@ -4670,7 +4674,7 @@ class Component extends DCLogic {
           };
             };
     // An option: edit one (a slider and a short reason per criterion) or compare all (the grid).
-    const optionsLevel = level !== 'options' || curGoal === null ? { rows: [], picks: [], modes: [], grid: { headers: [], rows: [] } } : (() => {
+    const optionsLevel = (level !== 'options' && level !== 'reasons') || curGoal === null ? { rows: [], picks: [], modes: [], grid: { headers: [], rows: [] } } : (() => {
       const g = curGoal;
       const gs = g.node.slug;
       const opt = place.option;
@@ -4717,43 +4721,50 @@ class Component extends DCLogic {
     })();
     const reasonsLevel = level !== 'reasons' || curGoal === null ? { has: false, reasons: [] } : scorePanel(curGoal, { option: place.option, criterion: place.crit.slug });
     // All goals: a short bar of goal importance with a "+" column; the selected goal's details below.
-    const goalsLevel = level !== 'goals' ? { weights: wt('', [], () => ''), detail: {}, hasDetail: false }
-      : recModel.goals.length === 0 ? { weights: { ...wt('All goals', [], () => ''), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150, empty: false, has: true, isBar: true, isPie: false }, detail: {}, hasDetail: false } : (() => {
-      const sel = recModel.goals.find((g) => g.node.slug === s.selGoal) ?? recModel.goals[0];
+    const goalsLevel = level === null || level === 'overview' ? { weights: wt('', [], () => ''), detail: {}, hasDetail: false }
+      : recModel.goals.length === 0 ? { weights: { ...wt('All goals', [], () => ''), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150, empty: false, has: true, isBar: true, isPie: false }, detail: {}, hasDetail: false, hint: true } : (() => {
+      const pick = (slug) => this.recNav({ recLevel: 'goals', recGoal: slug });
+      const weights = { ...wt('All goals', map.root.children, (n) => goalFill(n.slug), curGoal && curGoal.node.slug, pick), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150 };
+      if (curGoal === null) return { weights, detail: {}, hasDetail: false, hint: true };
+      const sel = curGoal;
       const gs = sel.node.slug;
       return {
-        hasDetail: true,
-        weights: { ...wt('All goals', map.root.children, (n) => goalFill(n.slug), gs, (slug) => this.setState({ selGoal: slug })), hasAdd: editable, add: () => this.addGoal(), addLabel: 'Add a goal', height: 150 },
+        hasDetail: true, hint: false,
+        weights,
         detail: {
           slug: gs, title: sel.node.text, desc: sel.node.details ?? '',
           onTitle: (e) => this.setNodeText(gs, 'text', e.target.value), onDesc: (e) => this.setNodeText(gs, 'details', e.target.value), onBlur: () => this.endStep(),
           hasWinner: sel.winner !== null, winner: sel.winner === null ? '' : `Winner: ${optTitle(sel.winner)} · ${fmt1(sel.goalScores[sel.winner])}`,
           counts: `${sel.criteria.length} criteria · ${sel.options.length} options${sel.on ? '' : ' · turned off'}`,
-          open: () => this.recNav({ recLevel: 'criteria', recGoal: gs, selCrit: null }),
         },
       };
     })();
     // A goal's criteria: a short bar of criterion weights with "+", the selected criterion's details, and the goal's options by goal score.
-    const criteriaLevel = level !== 'criteria' || curGoal === null ? { weights: wt('', [], () => ''), detail: {}, options: [], existing: [] } : (() => {
+    const criteriaLevel = curGoal === null ? { weights: wt('', [], () => ''), detail: {}, options: [], existing: [] } : (() => {
       const g = curGoal;
       const gs = g.node.slug;
-      const sel = g.criteria.find((c) => c.node.slug === s.selCrit) ?? g.criteria[0] ?? null;
+      const sel = place.crit ? g.criteria.find((c) => c.node.slug === place.crit.slug) ?? null : null;
       const ranked = [...g.options].sort((x, y) => g.goalScores[y] - g.goalScores[x]);
       return {
         title: g.node.text,
-        weights: { ...wt(`Criteria of ${g.node.text}`, g.node.children, (n, i) => critFill(i), sel && sel.node.slug, (slug) => this.setState({ selCrit: slug })), hasAdd: editable, add: () => this.addCriterion(gs), addLabel: 'Add a criterion', height: 120 },
+        weights: { ...wt(`Criteria of ${g.node.text}`, g.node.children, (n, i) => critFill(i), sel && sel.node.slug, (slug) => this.recNav({ recLevel: 'goals', recCrit: slug })), hasAdd: editable, add: () => this.addCriterion(gs), addLabel: 'Add a criterion', height: 120 },
         hasDetail: sel !== null,
         detail: sel === null ? {} : {
           title: sel.node.text, desc: sel.node.details ?? '',
           onTitle: (e) => this.setNodeText(sel.node.slug, 'text', e.target.value), onDesc: (e) => this.setNodeText(sel.node.slug, 'details', e.target.value), onBlur: () => this.endStep(),
           canRemove: editable && g.criteria.length > 1, remove: () => this.removeRecordNode(sel.node.slug), removeLabel: `Remove criterion ${sel.node.text}`,
         },
-        options: ranked.map((o) => ({
-          title: optTitle(o), score: fmt1(g.goalScores[o]), width: `${g.goalScores[o] * 10}%`, isWinner: o === g.winner,
-          open: () => this.recNav({ recLevel: 'options', recOption: o, optMode: 'edit' }),
-        })),
-        noOptions: ranked.length === 0,
-        compareAll: () => this.recNav({ recLevel: 'options', optMode: 'compare' }),
+        options: ranked.map((o) => {
+          const on = place.option === o && s.optMode !== 'compare';
+          return {
+            title: optTitle(o), score: fmt1(g.goalScores[o]), width: `${g.goalScores[o] * 10}%`, isWinner: o === g.winner,
+            pressed: String(on), bg: on ? 'var(--ink)' : 'var(--sunk)', fg: on ? 'var(--on-ink)' : 'var(--ink)',
+            open: () => { this.recNav({ recLevel: 'goals', recOption: o, optMode: 'edit' }); this.scrollToSection('rec-sec-options'); },
+          };
+        }),
+        noOptions: ranked.length === 0, hasCompare: ranked.length > 0,
+        comparePressed: String(s.optMode === 'compare'), compareBg: s.optMode === 'compare' ? 'var(--ink)' : 'var(--sunk)', compareFg: s.optMode === 'compare' ? 'var(--on-ink)' : 'var(--ink)',
+        compareAll: () => this.recNav({ recLevel: 'goals', optMode: 'compare' }),
         existing: [...recModel.options.keys()].filter((o) => !g.options.includes(o)).map((o) => ({ slug: o, title: optTitle(o), add: () => this.addOptionToGoal(gs, o, optTitle(o)) })),
         newOption: s.newOptionText, onNewOption: (e) => this.setState({ newOptionText: e.target.value }),
         addNewOption: () => this.addNewOption(gs), newOptionDisabled: Component.slugBase(s.newOptionText) === '',
@@ -4763,37 +4774,51 @@ class Component extends DCLogic {
         doDel: () => { this.removeRecordNode(gs); this.recNav({ recLevel: 'goals', recGoal: null, confirmGoalDelete: false }); },
       };
     })();
-    const recLayout = level === 'overview' ? { left: '1 1 400px', right: '1.4 1 480px' } : { left: '1 1 100%', right: '1 1 100%' };
+    // The Record page's sections, top to bottom: each selection reveals the next, after a divider and a heading.
+    const recSections = level === null ? [] : level === 'overview' ? [{ id: 'rec-sec-overview', kind: 'overview', hasDivider: false, hasHeading: false, heading: '', panels: [overall.weights, overall.criteria] }] : [
+      { id: 'rec-sec-goals', kind: 'goals', heading: 'Goals', panels: [goalsLevel.weights] },
+      curGoal && { id: 'rec-sec-criteria', kind: 'criteria', heading: 'Criteria', panels: [criteriaLevel.weights] },
+      curGoal && { id: 'rec-sec-options', kind: 'options', heading: 'Options', panels: [] },
+      curGoal && level === 'reasons' && { id: 'rec-sec-reasons', kind: 'reasons', heading: 'Reasons', panels: [] },
+    ].filter(Boolean).map((x, k) => ({ ...x, hasDivider: k > 0, hasHeading: true }));
+    for (const x of recSections) Object.assign(x, { isGoals: x.kind === 'goals', isCriteria: x.kind === 'criteria', isOptions: x.kind === 'options', isReasons: x.kind === 'reasons' });
+    const recLayout = level === 'overview' ? { left: '1 1 400px', right: '1.4 1 480px', rightDisplay: 'flex' } : { left: '1 1 100%', right: '1 1 100%', rightDisplay: 'none' };
     // The step rail: Goals › Criteria › Options › Reasons, each with what's chosen there. A step with nothing chosen yet picks the first.
     const recSteps = level === null || level === 'overview' ? [] : (() => {
       const at = REC_LEVELS.indexOf(level);
       const goals = map.root.children;
       const g = place.goal;
-      const firstGoal = g ?? goals.find((x) => x.slug === s.selGoal) ?? goals[0] ?? null;
+      const firstGoal = g ?? goals[0] ?? null;
       const optionsOf = (gn) => [...new Set(gn.children.flatMap((c) => c.children.map((x) => x.option)))];
       const option = place.option;
       const crit = place.crit;
       const optTitleOf = (o) => recModel.options.get(o) ?? o;
-      const toCriteria = () => (firstGoal ? this.recNav({ recLevel: 'criteria', recGoal: firstGoal.slug }) : this.recNav({ recLevel: 'goals' }));
+      const toGoals = () => { this.recNav({ recLevel: 'goals' }); this.scrollToSection('rec-sec-goals'); };
+      const toCriteria = () => { if (!firstGoal) return toGoals(); this.recNav({ recLevel: 'goals', recGoal: firstGoal.slug }); this.scrollToSection('rec-sec-criteria'); };
       const toOptions = () => {
         if (!firstGoal) return this.recNav({ recLevel: 'goals' });
         const opts = optionsOf(firstGoal);
         const o = g && option !== null ? option : opts[0] ?? null;
-        return o === null ? toCriteria() : this.recNav({ recLevel: 'options', recGoal: firstGoal.slug, recOption: o, optMode: s.optMode === 'compare' && g ? 'compare' : 'edit' });
+        if (o === null) return toCriteria();
+        this.recNav({ recLevel: 'goals', recGoal: firstGoal.slug, recOption: o, optMode: s.optMode === 'compare' && g ? 'compare' : 'edit' });
+        this.scrollToSection('rec-sec-options');
       };
       const toReasons = () => {
         if (!firstGoal) return this.recNav({ recLevel: 'goals' });
         const opts = optionsOf(firstGoal);
         const o = g && option !== null ? option : opts[0] ?? null;
         const c = g && crit ? crit : firstGoal.children[0] ?? null;
-        return o === null || c === null ? toOptions() : this.recNav({ recLevel: 'reasons', recGoal: firstGoal.slug, recOption: o, recCrit: c.slug, optMode: 'edit' });
+        if (o === null || c === null) return toOptions();
+        this.recNav({ recLevel: 'goals', recGoal: firstGoal.slug, recOption: o, recCrit: c.slug, optMode: 'edit' });
+        this.scrollToSection('rec-sec-reasons');
       };
       const optionChosen = g !== null && (option !== null || (s.optMode === 'compare' && place.options.length > 0));
+      const nReasons = reasonsLevel.reasons.length;
       const steps = [
-        { tier: 'Goals', ready: true, detail: `${goals.length} goal${goals.length === 1 ? '' : 's'}`, go: () => this.recNav({ recLevel: 'goals' }) },
-        { tier: 'Criteria', ready: g !== null, detail: g ? g.text : 'Choose a goal first', go: toCriteria },
-        { tier: 'Options', ready: optionChosen, detail: !g ? 'Choose a goal first' : s.optMode === 'compare' && optionChosen ? 'All options' : option !== null ? optTitleOf(option) : 'Choose an option first', go: toOptions },
-        { tier: 'Reasons', ready: g !== null && option !== null && crit !== null && s.optMode !== 'compare', detail: g && option !== null && crit && s.optMode !== 'compare' ? `${crit.text} · ${optTitleOf(option)}` : 'Choose a criterion first', go: toReasons },
+        { tier: 'Goals', ready: true, detail: g ? g.text : goals.length ? 'Choose a goal' : 'Add a goal', go: toGoals },
+        { tier: 'Criteria', ready: g !== null, detail: !g ? 'Choose a goal first' : crit ? crit.text : 'Choose a criterion', go: toCriteria },
+        { tier: 'Options', ready: optionChosen, detail: !g ? 'Choose a goal first' : s.optMode === 'compare' && optionChosen ? 'All options' : option !== null ? optTitleOf(option) : 'Choose an option', go: toOptions },
+        { tier: 'Reasons', ready: level === 'reasons', detail: level === 'reasons' ? `${nReasons} reason${nReasons === 1 ? '' : 's'}` : 'Choose an option and a criterion', go: toReasons },
       ];
       return steps.map((x, k) => ({
         ...x, n: String(k + 1), current: k + 1 === at, done: k + 1 < at, currentAttr: k + 1 === at ? 'step' : 'false',
@@ -4801,7 +4826,6 @@ class Component extends DCLogic {
         bg: k + 1 === at ? 'var(--sunk)' : 'transparent', weight: k + 1 === at ? 700 : 500, opacity: x.ready || k + 1 === at ? 1 : 0.55,
       }));
     })();
-    const recPanels = !isRecordFile ? [] : level === 'overview' ? [overall.weights, overall.criteria] : level === 'goals' ? [goalsLevel.weights] : level === 'criteria' ? [criteriaLevel.weights] : [];
     return {
       title: map.title, tabs, tb, nm, sk, skd, ev, rat, bc, fl, stg, themeId, accentId,
       isFocusView: hasMap && (view === 'map' || view === 'pie'),
@@ -4818,10 +4842,14 @@ class Component extends DCLogic {
           save: choose(tb.save), download: choose(tb.download), settings: choose(stg.openIt),
         };
       })(),
-      recordChart, recPanels, optionsLevel, reasonsLevel, overall, whatIfBar, compare, dropAsk, isRecordView: hasMap && isRecordFile && view === 'record',
+      recordChart, optionsLevel, reasonsLevel, overall, whatIfBar, compare, dropAsk, isRecordView: hasMap && isRecordFile && view === 'record',
       goalsLevel, criteriaLevel, recLayout,
       isOverall: hasMap && level === 'overview', isCompare: hasMap && view === 'compare',
-      isRecLevel: Object.fromEntries(REC_LEVELS.map((lv) => [lv, hasMap && level === lv])), recSteps, hasRail: hasMap && level !== null && level !== 'overview',
+      isRecLevel: {
+        overview: hasMap && level === 'overview', goals: hasMap && level !== null && level !== 'overview', criteria: hasMap && curGoal !== null,
+        options: hasMap && curGoal !== null && (level === 'options' || level === 'reasons'), reasons: hasMap && level === 'reasons',
+      },
+      recSections, recSteps, hasRail: hasMap && level !== null && level !== 'overview',
       hasMap, isMap: hasMap && view === 'map', isPie: hasMap && view === 'pie', isDiff: hasMap && view === 'diff', isSource: !noMap && view === 'source',
       undoBtn: { disabled: locked || s.history.past.length === 0, opacity: locked || s.history.past.length === 0 ? 0.35 : 1, run: () => this.undo() },
       redoBtn: { disabled: locked || s.history.future.length === 0, opacity: locked || s.history.future.length === 0 ? 0.35 : 1, run: () => this.redo() },

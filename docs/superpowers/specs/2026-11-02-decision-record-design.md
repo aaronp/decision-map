@@ -41,6 +41,12 @@ The author tried the first build and the prototype, and decided the following (2
 - The Overview isn't on the rail. It's its own header tab, so a record's tabs are **Overview**, **Record**, **Markdown source** and **Compare**. **Record** returns to the step you were last on, or Goals (Claude's call).
 - A step with nothing chosen yet picks the first goal, option or criterion. On screens under 700px wide, the rail becomes a row across the top (Claude's calls).
 
+### Changed after trying it: one page that opens up (author's decision)
+
+- Record is one page. Selecting a goal shows a divider, a **Criteria** heading with that goal's criteria, then a divider and **Options**: a pill per option and an add-option control. Selecting an option shows its criterion scores, and with a criterion chosen, a divider and a **Reasons** section.
+- The step rail shows the selected value under each step: the goal, the criterion, the option, and for Reasons the count (Claude's call, since there's no selection there).
+- Clicking a column selects it. Clicking a criterion, or a score's Reasons button, picks which reasons show. Compare all is the last option pill. Clicking a rail step scrolls to its section (Claude's calls).
+
 ### Resizing: the border follows the pointer (maps too)
 
 This replaces the map's "drag as far as you like and the rest scale to fit", in the map's bar and pie as well as in records.

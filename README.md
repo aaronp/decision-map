@@ -137,13 +137,14 @@ A score heading names its option with `option:` instead of a slug, because the s
 
 The views are **Overview**, **Record**, **Markdown source** and **Compare**. A new decision record opens on Record, at its first step.
 
-**Record** has a step rail down the left: **Goals › Criteria › Options › Reasons**. Each step shows what's chosen there, and you can click any step to jump to it. A step with nothing chosen yet picks the first goal, option or criterion. On a narrow screen the rail becomes a row across the top.
+**Record** is one page that opens up as you choose, with a step rail down the left: **Goals › Criteria › Options › Reasons**. Under each step, the rail shows what's chosen there. Click a step to scroll to it; a step with nothing chosen yet picks the first goal, option or criterion. On a narrow screen the rail becomes a row across the top.
 
-- **Overview** (its own tab): the ranking, with each option's bar split by what each goal adds. Goal weights and the selected goal's criteria weights use the bar or the pie, with Ctrl/⌘-click to choose what a resize changes, and a checkbox turns a goal off. Changes here are **what-if weights**: every view shows them, but nothing is saved until **Save as the record's weights**. **Reset** drops them. A goal saved while off gets `importance: 0`.
-- **All goals:** a short bar of goal importance, with **+** to add a goal. Click a goal to see and edit its title and description, then open it.
-- **A goal:** a short bar of its criteria by weight, with **+**. Click a criterion to edit its title and description. Below are the goal's options by goal score, with the winner marked, and controls to add an option.
-- **An option:** **Edit one** gives a 0–10 slider and an optional short reason for each criterion, with **Reasons ›** for the full reasons. **Compare all** shows every option against every criterion. Click a score there to edit that option.
-- **A criterion's reasons for that option:** the score and its short reason, then the full reasons by weight. Each reason has its own weight, and the same extras as a point.
+- **Goals:** a short bar of goal importance, with **+** to add a goal. Click a goal to select it and edit its title and description.
+- **Criteria** (once a goal is selected, after a divider): a short bar of its criteria by weight, with **+**. Click a criterion to edit its title and description, and to show its reasons below.
+- **Options:** a pill for each of the goal's options, with its goal score (★ marks the winner), a **Compare all** pill, and controls to add an option. Selecting an option shows a 0–10 slider and an optional short reason for each criterion, with **Reasons** for the full reasons. **Compare all** shows every option against every criterion; click a score to edit that option.
+- **Reasons** (once an option and a criterion are chosen): the score and its short reason, then the full reasons by weight. Each reason has its own weight, and the same extras as a point.
+
+**Overview**, its own tab, shows the ranking, with each option's bar split by what each goal adds. Goal weights and the selected goal's criteria weights use the bar or the pie, with Ctrl/⌘-click to choose what a resize changes, and a checkbox turns a goal off. Changes here are **what-if weights**: every view shows them, but nothing is saved until **Save as the record's weights**. **Reset** drops them. A goal saved while off gets `importance: 0`.
 
 **Compare** shows two records side by side, from the open file, its what-if weights, a second file, or a snapshot. Choose goals, one goal's criteria or one goal's scores, as paired bars or as composite bars split into their parts. The biggest differences are listed first. Click a score row to see each side's reasons.
 
