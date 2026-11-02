@@ -1860,6 +1860,22 @@ test('a map bar drag keeps the border under the pointer', () => {
   assert.deepEqual(imps(c), [20, 20, 60]);
 });
 
+// ---------------------------------------------------------------- revision 2: summaries
+test('a score summary round-trips and is read into the model', () => {
+  const src = REC.replace('option: postgres\nscore: 8\n', 'option: postgres\nscore: 8\nsummary: We run 14 clusters\n');
+  assert.equal(Component.serialize(Component.parse(src).map), src);
+  assert.equal(Component.recordModel(Component.parse(src).map).goals[0].summaries.postgres.durability, 'We run 14 clusters');
+  assert.match(Component.parse(REC.replace('weight: 50\n\n#### Postgres', 'weight: 50\nsummary: x\n\n#### Postgres')).errors[0].msg, /can't have "summary"/);
+});
+test('setSummary creates a missing score, keeps one line, and refuses braces', () => {
+  const c = boot(REC);
+  c.setSummary('ops', 'dynamodb', 'Managed\nfor us');
+  assert.equal(Component.recordModel(c.state.map).goals[0].summaries.dynamodb.ops, 'Managed for us');
+  c.setSummary('ops', 'dynamodb', 'a {b}');
+  assert.match(c.state.notice, /braces/i);
+  assert.deepEqual(Component.parse(c.state.src).errors, []);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);

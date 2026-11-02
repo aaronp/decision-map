@@ -1876,7 +1876,7 @@ class Component extends DCLogic {
   static parseHeadings(lines, start, err, template = 'map') {
     const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
     const isRecord = template === 'record';
-    const allowed = isRecord ? ['slug', 'importance', 'weight', 'option', 'score', 'by', 'confidence', 'basis'] : ['slug', 'importance', 'impact', 'by', 'confidence', 'basis', 'kind'];
+    const allowed = isRecord ? ['slug', 'importance', 'weight', 'option', 'score', 'summary', 'by', 'confidence', 'basis'] : ['slug', 'importance', 'impact', 'by', 'confidence', 'basis', 'kind'];
     const optionTitles = new Map();
     const seen = new Set();
     const stack = [];
@@ -1980,7 +1980,7 @@ class Component extends DCLogic {
     const kinds = ['root', 'goal', 'criterion', 'score', 'reason'];
     if (depth > kinds.length) err(i, 'a decision record goes at most five levels deep: goal, criterion, option, reason');
     const kind = kinds[Math.min(depth, kinds.length) - 1];
-    const own = { root: ['slug', 'by'], goal: ['slug', 'importance', 'by'], criterion: ['slug', 'weight', 'by'], score: ['option', 'score'], reason: ['slug', 'weight', 'by', 'confidence', 'basis'] }[kind];
+    const own = { root: ['slug', 'by'], goal: ['slug', 'importance', 'by'], criterion: ['slug', 'weight', 'by'], score: ['option', 'score', 'summary'], reason: ['slug', 'weight', 'by', 'confidence', 'basis'] }[kind];
     for (const k of Object.keys(attrs)) if (!own.includes(k)) err(i, `a ${kind === 'score' ? 'score' : kind} can't have "${k}"`);
     const slugOk = (v) => /^[a-z0-9]+(-[a-z0-9]+)*$/.test(v);
     let slug = null;
@@ -2005,6 +2005,7 @@ class Component extends DCLogic {
       else if (!/^(10|\d)$/.test(attrs.score)) err(i, `score "${attrs.score}" must be a whole number from 0 to 10`);
       else score = Number(attrs.score);
     }
+    if (has('summary') && attrs.summary === '') err(i, 'summary is empty; remove it or give a short reason');
     let confidence = null;
     if (has('confidence') && own.includes('confidence')) {
       if (!/^[1-5]$/.test(attrs.confidence)) err(i, `confidence "${attrs.confidence}" must be a whole number from 1 to 5`);
@@ -2013,7 +2014,7 @@ class Component extends DCLogic {
     if (has('by') && attrs.by === '') err(i, '"by" is empty; remove it or give a name');
     if (has('basis') && attrs.basis === '') err(i, 'basis is empty; remove it or give some text');
     return {
-      slug, text, kind, importance, impact: null, option, score, by: has('by') && attrs.by !== '' ? attrs.by : null,
+      slug, text, kind, importance, impact: null, option, score, summary: has('summary') && attrs.summary !== '' ? attrs.summary : null, by: has('by') && attrs.by !== '' ? attrs.by : null,
       basis: has('basis') && attrs.basis !== '' ? attrs.basis : null, confidence, details: null, refs: [], children: [],
     };
   }
@@ -2168,7 +2169,7 @@ class Component extends DCLogic {
     const out = ['---', `title: ${map.title}`, ...(isRecord ? ['template: decision-record'] : []), `theme: ${dp.theme}`, `accent: ${dp.accent}`, `show-confidence: ${dp.confidence}`, `show-evidence: ${dp.evidence}`, `show-good-faith: ${dp.goodFaith}`, '---', ''];
     const walk = (n, depth) => {
       out.push(`${'#'.repeat(depth)} ${n.text.trim()}`);
-      if (n.kind === 'score') out.push(`option: ${n.option}`, `score: ${n.score}`);
+      if (n.kind === 'score') out.push(`option: ${n.option}`, `score: ${n.score}`, ...(n.summary ? [`summary: ${n.summary}`] : []));
       else out.push(`slug: ${n.slug}`);
       if (n.kind === 'goal') out.push(`importance: ${Number(n.importance.toFixed(1))}`);
       if (n.kind === 'criterion' || n.kind === 'reason') out.push(`weight: ${Number(n.importance.toFixed(1))}`);
@@ -2307,17 +2308,19 @@ class Component extends DCLogic {
       const criteria = raw.map((c) => ({ ...c, share: W === 0 ? 0 : c.importance / W }));
       const opts = [];
       const scores = {};
+      const summaries = {};
       for (const c of g.children) {
         for (const sc of c.children) {
           if (!options.has(sc.option)) options.set(sc.option, sc.text);
           if (!opts.includes(sc.option)) opts.push(sc.option);
           (scores[sc.option] ??= {})[c.slug] = sc.score;
+          if (sc.summary) (summaries[sc.option] ??= {})[c.slug] = sc.summary;
         }
       }
       const goalScores = Object.fromEntries(opts.map((o) => [o, criteria.reduce((t, c) => t + c.share * (scores[o][c.node.slug] ?? 0), 0)]));
       const winner = opts.reduce((best, o) => (best === null || goalScores[o] > goalScores[best] ? o : best), null);
       const importance = w(g);
-      return { node: g, importance, on: importance > 0, criteria, options: opts, scores, goalScores, winner };
+      return { node: g, importance, on: importance > 0, criteria, options: opts, scores, summaries, goalScores, winner };
     });
     const T = goals.reduce((t, g) => t + g.importance, 0);
     const ranking = [...options.keys()].map((o) => {
@@ -2405,7 +2408,7 @@ class Component extends DCLogic {
   }
 
   static recordBlank(fields) {
-    return { slug: null, text: '', kind: 'goal', importance: null, impact: null, option: null, score: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [], ...fields };
+    return { slug: null, text: '', kind: 'goal', importance: null, impact: null, option: null, score: null, summary: null, by: null, basis: null, confidence: null, details: null, refs: [], children: [], ...fields };
   }
 
   static newRecord(title, details) {
@@ -3322,6 +3325,20 @@ class Component extends DCLogic {
         return { ...c, children: [...c.children, Component.recordBlank({ kind: 'score', slug: `${c.slug}--${option}`, text: title, option, score })] };
       }) };
     }, step);
+  }
+
+  // The one-line reason on a score; the score is created at 0 if it's missing. Braces and line breaks can't go in a "key: value" line.
+  setSummary(critSlug, option, v) {
+    if (/[{}]/.test(v)) { this.setState({ notice: 'Curly braces are reserved for the {slug: …} block in the markdown, so this text can’t contain them.' }); return; }
+    const summary = v.replace(/\s*\n\s*/g, ' ');
+    this.edit((m) => {
+      const title = Component.recordModel(m).options.get(option) ?? option;
+      return { ...m, root: Component.mapNode(m.root, critSlug, (c) => {
+        const has = c.children.some((x) => x.option === option);
+        const kids = has ? c.children : [...c.children, Component.recordBlank({ kind: 'score', slug: `${c.slug}--${option}`, text: title, option, score: 0 })];
+        return { ...c, children: kids.map((x) => (x.option === option ? { ...x, summary: summary.trim() === '' ? null : summary } : x)) };
+      }) };
+    }, `field:summary:${critSlug}--${option}`);
   }
 
   // An option joins a goal with a score of 0 under each of its criteria.
