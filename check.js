@@ -14,7 +14,11 @@ class DCLogic {
 }
 const replaced = [];
 const storage = new Map();
-const window = { localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) }, history: { replaceState: (a, b, url) => replaced.push(url) } };
+// A stand-in for the page's title field, so checks can see what got focused and selected.
+const titleField = { focused: 0, selected: 0, focus() { this.focused++; }, select() { this.selected++; } };
+const queried = [];
+const document = { querySelector: (sel) => { queried.push(sel); return sel.includes('title') || sel.includes('Title') ? titleField : null; } };
+const window = { document, localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) }, history: { replaceState: (a, b, url) => replaced.push(url) } };
 const location = { search: '', hash: '', href: 'http://x/', origin: 'http://x', pathname: '/' };
 // Every top-level name the checks use; a name not defined yet comes back undefined so its tests fail, not the load.
 const NAMES = ['Component', 'parseMap', 'serializeMap', 'DEFAULT_META', 'newMapText', 'colorFor', 'THEMES', 'encodeShare', 'decodeShare',
@@ -410,7 +414,7 @@ test('startup opens the newest saved map, else a new map', async () => {
   const d = boot();
   d.store = fakeStore();
   await d.start();
-  assert.equal(d.state.nodes[0].title, 'What are you deciding?');
+  assert.equal(d.state.nodes[0].title, 'root');
 });
 
 test('startup prefers a share link over ?src= and saved maps', async () => {
@@ -1200,6 +1204,39 @@ test('Radial: a few short children sit close to the root, not on a fixed far rin
   const far = Math.max(...c.state.nodes.slice(1).map((n) => Math.hypot(pos[n.id].x, pos[n.id].y)));
   assert.ok(far < 160, 'furthest child is ' + far.toFixed(0) + 'px out');
   assert.deepEqual(overlaps(c), []);
+});
+
+// ---------------------------------------------------------------- a new map starts ready to type over
+const tick = () => new Promise((r) => setTimeout(r, 5));
+test('a new map is titled root, with the title selected so typing replaces it', async () => {
+  assert.equal(parseMap(newMapText()).root.title, 'root');
+  const c = boot();
+  c.store = fakeStore();
+  titleField.focused = 0; titleField.selected = 0;
+  await c.start();
+  await tick();
+  assert.equal(c.state.nodes[0].title, 'root');
+  assert.equal(titleField.focused, 1);
+  assert.equal(titleField.selected, 1);
+});
+
+test('File → New selects the new title too', async () => {
+  const c = boot(SMALL);
+  titleField.focused = 0; titleField.selected = 0;
+  c.renderVals().onNew();
+  await tick();
+  assert.equal(c.state.nodes[0].title, 'root');
+  assert.equal(titleField.selected, 1);
+});
+
+test('a saved map that opens on start is not selected, so a stray key cannot wipe its title', async () => {
+  const c = boot();
+  c.store = fakeStore([{ name: 'Mine', text: '# Mine\n', updated: 1 }]);
+  titleField.focused = 0; titleField.selected = 0;
+  await c.start();
+  await tick();
+  assert.equal(c.state.nodes[0].title, 'Mine');
+  assert.equal(titleField.selected, 0);
 });
 
 (async () => {

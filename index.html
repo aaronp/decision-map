@@ -984,7 +984,7 @@ function schemeById(id) {
   return sc;
 }
 function newMapText() {
-  return '# What are you deciding?\n';
+  return '# root\n';
 }
 /* Share links: the map's markdown, deflated and base64url-encoded after #m=. Refs stay URLs inside it. */
 const SHARE_WARN = 8000;
@@ -1929,6 +1929,7 @@ class Component extends DCLogic {
       if (src !== null) { const url = new URL(src, location.href).href; this.openText(await this.fetchMapText(url), shortUrl(url), { force: true, url }); return; }
       const saved = await this.store.list();
       if (saved.length) this.openText(saved[0].text, saved[0].name, { force: true, savedName: saved[0].name });
+      else this.selectTitle();
     } catch (err) {
       this.setState({ loadError: payload !== null ? 'This share link is damaged and could not be read.' : String(err.message || err) });
     } finally {
@@ -2053,6 +2054,14 @@ class Component extends DCLogic {
       history: { past: [], future: [], step: null }, dirty: false, loadError: null, mapName: name, savedName
     });
     return true;
+  }
+  /* A new map starts with its placeholder title selected, so the first keystroke replaces it. Each view has its own
+     title field: the map's edit box, the Questionnaire and Pie title, or the panel's in Directory. */
+  selectTitle() {
+    setTimeout(() => {
+      const el = window.document.querySelector('input[aria-label="Edit node title"], textarea[aria-label="Title"], input[aria-label="Node title"]');
+      if (el) { el.focus(); el.select(); }
+    }, 0);
   }
   async shareLink() {
     return location.origin + location.pathname + '#m=' + await encodeShare(serializeMap({ meta: this.metaOf(), nodes: this.state.nodes }));
@@ -3160,7 +3169,7 @@ class Component extends DCLogic {
       onOpenUrl: (e) => this.setState({ openUrl: e.target.value }),
       onOpenUrlKey: (e) => { if (e.key === 'Enter') this.openUrl(s.openUrl); },
       goOpenUrl: () => this.openUrl(s.openUrl),
-      onNew: () => this.openText(newMapText(), null),
+      onNew: () => { if (this.openText(newMapText(), null)) this.selectTitle(); },
       onSaveAs: () => { this.promptSaveAs().catch((err) => this.setState({ notice: 'Save failed: ' + (err.message || err) })); },
       onDownload: () => download((rootOf(s.nodes).title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'map') + '.md', this.currentText()),
       onUndo: () => this.undo(),
