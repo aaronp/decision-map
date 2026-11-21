@@ -316,12 +316,36 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           </div>
           </sc-if>
         <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
-          <p style="margin: 0; font-size: 12px; color: var(--ink2)">{{chart.hint}}</p>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 26px; font-size: 12px; color: var(--ink2)">
+            <sc-if value="{{chart.hasChosen}}" hint-placeholder-val="{{ false }}">
+              <span role="status">{{chart.chosenText}}</span>
+              <button class="ghost" onClick="{{chart.clearChosen}}" style="height: 26px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); font-size: 12px">Clear</button>
+            </sc-if>
+            <sc-if value="{{chart.noChosen}}" hint-placeholder-val="{{ true }}"><span>{{chart.hint}}</span></sc-if>
+          </div>
         </sc-if>
         <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{add.wide}}" class="am-plus" style="height: 220px; border: 1.5px dashed var(--rule); border-radius: 12px; background: transparent; color: var(--ink2); font-size: 16px; font-weight: 500">
+            <span aria-hidden="true" style="display: block; font-size: 44px; font-weight: 300; line-height: 1.1">+</span>Add the first point
+          </button>
+        </sc-if>
+        <sc-if value="{{chart.emptyReadOnly}}" hint-placeholder-val="{{ false }}">
           <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
         </sc-if>
       </main>
+      <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{add.backdrop}}" onKeyDown="{{add.onDialogKey}}" style="position: fixed; inset: 0; z-index: 60; background: rgba(27, 31, 36, 0.35); display: flex; align-items: center; justify-content: center; padding: 16px">
+          <div role="dialog" aria-modal="true" aria-label="Add a point" style="width: min(560px, 100%); box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 28px; display: flex; flex-direction: column; gap: 14px">
+            <input type="text" autoFocus="{{ true }}" autocomplete="off" aria-label="Title" placeholder="Your point" value="{{add.text}}" onChange="{{add.onText}}" onKeyDown="{{add.onKey}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; font-size: 22px; font-weight: 600">
+            <textarea rows="2" aria-label="Description" placeholder="Description (optional)" value="{{add.note}}" onChange="{{add.onNote}}" style="width: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; padding: 0; color: var(--ink2); resize: none"></textarea>
+            <sc-if value="{{add.hasValue}}" hint-placeholder-val="{{ true }}"><span style="font-size: 12px; color: var(--ink2)">{{add.valueLabel}}</span></sc-if>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px">
+              <button onClick="{{add.cancel}}" style="height: 44px; padding: 0 16px; border: 0; background: transparent; color: var(--ink2)">Cancel</button>
+              <button onClick="{{add.commit}}" disabled="{{add.commitDisabled}}" style="height: 44px; padding: 0 24px; border: 0; border-radius: 10px; background: #2A4BD7; color: #FFFFFF; font-weight: 600; opacity: {{add.commitOpacity}}">Add</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
     </sc-if>
     <sc-if value="{{isMap}}" hint-placeholder-val="{{ true }}">
   <div ref="{{setCanvas}}" onPointerDown="{{onPanStart}}" onPointerMove="{{onPanMove}}" onPointerUp="{{onPanEnd}}" onPointerCancel="{{onPanEnd}}" style="position: relative; flex: 1 1 auto; overflow: hidden; touch-action: none; cursor: {{canvasCursor}}; background-image: radial-gradient(#E1E1DB 1px, transparent 1px); background-size: 24px 24px">
@@ -1163,6 +1187,42 @@ function depthCells(rows, values) {
   });
   return out;
 }
+/**
+ * New weights after dragging the border right of raws[i] by move (a fraction of the total; right or clockwise is positive).
+ * Each side changes its chosen columns if it has any, otherwise the column next to the border, in proportion to their weights.
+ * The left side grows by exactly what the right side shrinks, so the border stays under the pointer; nothing else moves.
+ * The drag stops where a changing column would go below a 2% share.
+ */
+function borderResize(raws, i, move, chosen) {
+  if (i < 0 || i >= raws.length - 1) throw new Error('bug: no border right of column ' + i);
+  const MIN_SHARE = 0.02;
+  const T = raws.reduce((t, r) => t + r, 0);
+  if (T === 0) return [...raws];
+  const left = chosen.filter((j) => j <= i);
+  const right = chosen.filter((j) => j > i);
+  const L = left.length ? left : [i];
+  const R = right.length ? right : [i + 1];
+  const floor = MIN_SHARE * T;
+  const room = (members) => {
+    const sum = members.reduce((t, j) => t + raws[j], 0);
+    if (sum === 0) return 0;
+    return Math.max(0, Math.min(...members.filter((j) => raws[j] > 0).map((j) => (raws[j] - floor) * (sum / raws[j]))));
+  };
+  const d = Math.max(-room(L), Math.min(room(R), move * T));
+  const out = [...raws];
+  const share = (members, delta) => {
+    const sum = members.reduce((t, j) => t + raws[j], 0);
+    members.forEach((j) => { out[j] = raws[j] + (sum === 0 ? delta / members.length : (delta * raws[j]) / sum); });
+  };
+  share(L, d);
+  share(R, -d);
+  return out.map((v) => Math.round(v * 1e9) / 1e9);
+}
+// Size values stay within 0–1: siblings past 1 are scaled down together, which keeps every share.
+function fitSizes(vals) {
+  const top = Math.max(...vals);
+  return vals.map((v) => Math.round((top > 1 ? v / top : v) * 1000) / 1000);
+}
 /* True when url is already open at or above nodeId: the map a node came from, or the page's own ?src= map for own nodes. */
 function refCycle(graph, nodeId, url, rootSource = null) {
   let n = byId(graph, nodeId);
@@ -1391,6 +1451,13 @@ class Component extends DCLogic {
     openUrl: '',
     chartView: 'width',
     pinned: null,
+    chosen: [],
+    frozenOrder: null,
+    thermoId: null,
+    adding: null,
+    bornId: null,
+    draftText: '',
+    draftNote: '',
     layout: (() => { const v = new URLSearchParams(location.search).get('view'); return LAYOUT_IDS.includes(v) ? v : 'radial'; })(),
     themeQ: (() => { const t = new URLSearchParams(location.search).get('theme'); return THEMES.some((x) => x.id === t) ? t : null; })(),
     ...startState()
@@ -1835,6 +1902,121 @@ class Component extends DCLogic {
     }
   }
 
+  // ---------------------------------------------------------------- questionnaire and pie gestures
+  stepSerial = 0;
+  suppressClick = false;
+  sizeKey() { return otherDim(this.state.colorDim); }
+  /* ids are all the siblings in a row, so scaling past 1 rewrites them together. */
+  setSizes(ids, before, after, step = null) {
+    const fitted = fitSizes(after);
+    if (fitted.every((v, j) => v === Math.round(before[j] * 1000) / 1000)) return;
+    const key = this.sizeKey();
+    const next = new Map(ids.map((id, j) => [id, fitted[j]]));
+    this.edit((s) => ({ nodes: s.nodes.map((n) => (next.has(n.id) && n[key] !== next.get(n.id) ? { ...n, [key]: next.get(n.id) } : n)) }), step);
+  }
+  setColour(id, v, step = null) {
+    const val = Math.round(Math.max(0, Math.min(1, v)) * 100) / 100;
+    const key = this.state.colorDim;
+    this.edit((s) => ({ nodes: s.nodes.map((n) => (n.id === id && n[key] !== val ? { ...n, [key]: val } : n)) }), step);
+  }
+  chosenIndices(rows) { return rows.map((r, j) => (this.state.chosen.includes(r.node.slug) ? j : -1)).filter((j) => j >= 0); }
+  toggleChosen(id) { this.setState((s) => ({ chosen: s.chosen.includes(id) ? s.chosen.filter((x) => x !== id) : [...s.chosen, id] })); }
+  clearChosen() { this.setState({ chosen: [] }); }
+  startDivider(i, rows, e) {
+    if (e.pointerType === 'touch' || e.button) return;
+    const chart = e.currentTarget.closest('[data-chart]');
+    if (!chart) throw new Error('bug: divider is not inside the chart');
+    e.currentTarget.setPointerCapture(e.pointerId);
+    this.drag = {
+      type: 'divider', pointerId: e.pointerId, x0: e.clientX, width: chart.getBoundingClientRect().width - 8 * (rows.length - 1),
+      ids: rows.map((r) => r.node.slug), raws: rows.map((r) => r.importance), i, chosen: this.chosenIndices(rows), step: 'drag:' + (++this.stepSerial)
+    };
+    e.preventDefault();
+  }
+  moveDivider(e) {
+    const d = this.drag;
+    if (d === null || d.type !== 'divider' || e.pointerId !== d.pointerId) return;
+    this.setSizes(d.ids, d.raws, borderResize(d.raws, d.i, (e.clientX - d.x0) / d.width, d.chosen), d.step);
+  }
+  endDivider(e) {
+    if (this.drag !== null && this.drag.type === 'divider' && e.pointerId === this.drag.pointerId) { this.drag = null; this.endStep(); }
+  }
+  onDividerKey(i, rows, e) {
+    const step = e.shiftKey ? 0.005 : 0.02;
+    const move = { ArrowRight: step, ArrowLeft: -step }[e.key];
+    if (move === undefined) return;
+    e.preventDefault();
+    const raws = rows.map((r) => r.importance);
+    this.setSizes(rows.map((r) => r.node.slug), raws, borderResize(raws, i, move, this.chosenIndices(rows)));
+  }
+  startColumnDrag(id, v, order, draggable, e) {
+    this.suppressClick = false;
+    // Choosing happens on pointer down, because Ctrl-click on a Mac fires contextmenu with no click.
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      if (draggable) this.toggleChosen(id);
+      this.suppressClick = true;
+      return;
+    }
+    if (!draggable || e.pointerType === 'touch' || e.button) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    this.drag = { type: 'column', pointerId: e.pointerId, id, y0: e.clientY, start: v, order, moved: false, step: 'drag:' + (++this.stepSerial) };
+  }
+  moveColumnDrag(e) {
+    const d = this.drag;
+    if (d === null || d.type !== 'column' || e.pointerId !== d.pointerId) return;
+    const dy = e.clientY - d.y0;
+    if (!d.moved) {
+      if (Math.abs(dy) <= 5) return;
+      d.moved = true;
+      this.setState({ frozenOrder: d.order, thermoId: d.id });
+    }
+    this.setColour(d.id, d.start - dy / 236, d.step); // 236px of thermometer spans the whole range
+  }
+  endColumnDrag(e) {
+    const d = this.drag;
+    if (d === null || d.type !== 'column' || e.pointerId !== d.pointerId) return;
+    this.drag = null;
+    this.endStep();
+    if (!d.moved) return;
+    this.suppressClick = true;
+    e.currentTarget.blur(); // columns are keyed by position, so after the re-sort this element shows another node
+    this.setState({ frozenOrder: null, thermoId: null });
+  }
+  onColumnClick(n) {
+    if (this.suppressClick) { this.suppressClick = false; return null; }
+    return this.openColumn(n);
+  }
+  onColumnKey(n, v, order, draggable, e) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openColumn(n); return; }
+    if (e.key === 'l' || e.key === 'L') { e.preventDefault(); if (draggable) this.toggleChosen(n.id); return; }
+    const step = e.shiftKey ? 0.01 : 0.05;
+    const d = { ArrowUp: step, ArrowDown: -step }[e.key];
+    if (d === undefined || !draggable) return;
+    e.preventDefault();
+    // Columns are keyed by position, so the order holds still until blur.
+    if (this.state.frozenOrder === null) this.setState({ frozenOrder: order });
+    this.setColour(n.id, colorValueOf(this.graph(), n.id, this.metaOf()) + d);
+  }
+  onColumnBlur() {
+    if (this.drag === null && this.state.frozenOrder !== null) this.setState({ frozenOrder: null });
+  }
+  openAdd(parent, v) { this.setState({ adding: { parent, v }, draftText: '', draftNote: '' }); }
+  cancelAdd() { this.setState({ adding: null }); }
+  /* A new child gets the colour value of the + it came from, and the mean size of its siblings, so it lands mid-sized. */
+  commitAdd() {
+    const s = this.state;
+    if (s.adding === null) throw new Error('bug: commit with no dialog open');
+    const title = s.draftText.trim().replace(/\s+/g, ' ');
+    if (title === '') throw new Error('bug: Add pressed with no title');
+    const { parent, v } = s.adding;
+    const key = this.sizeKey();
+    const sizes = childrenOf(s.nodes, parent).map((k) => k[key]).filter((x) => x !== null);
+    const id = 'n' + s.seq;
+    const node = { id, parent, title, x: null, y: null, tags: [], note: s.draftNote.trim(), refs: [],
+      [s.colorDim]: v, [key]: sizes.length ? Math.round(sizes.reduce((a, b) => a + b, 0) / sizes.length * 1000) / 1000 : null };
+    this.edit((st) => ({ nodes: [...st.nodes, node], seq: st.seq + 1, adding: null, draftText: '', draftNote: '', bornId: id }));
+  }
+  recalculate(id, mean) { this.setColour(id, mean); }
   /* The Questionnaire page: the open node's title, its health, and its children as a bar with every level below. */
   focusVals(nodes, cur, meta, m) {
     const s = this.state;
@@ -1842,8 +2024,9 @@ class Component extends DCLogic {
     const rootId = pinnedOk ? s.pinned : cur.id;
     const tree = focusTree(nodes, rootId, meta);
     const values = treeValues(tree);
-    const rows = factRows(tree, values, s.frozenOrder ?? null);
-    const editable = false;
+    const rows = factRows(tree, values, s.frozenOrder);
+    const order = rows.map((r) => r.node.slug);
+    const editable = !byId(nodes, rootId).readOnly;
     const isArea = s.chartView === 'area';
     const biggest = Math.max(...rows.map((r) => r.importance), 0);
     const val = (v) => v.toFixed(2);
@@ -1852,24 +2035,38 @@ class Component extends DCLogic {
     const noop = () => {};
     const cols = rows.map((r, i) => {
       const c = r.node;
+      const draggable = editable;
+      const dividerDraggable = editable && i < rows.length - 1;
+      const isChosen = s.chosen.includes(c.slug);
       return {
         isSelected: pinnedOk && c.slug === cur.id,
         slug: c.slug, text: c.text || 'New idea', grow: r.share.toFixed(5), pct: String(Math.round(r.share * 100)), signed: val(r.v),
-        aria: c.text + ': ' + Math.round(r.share * 100) + '% of ' + sizeName + ', ' + colorName + ' ' + val(r.v) + '. Press Enter to open.',
-        isChosen: false, pressed: 'false', canDrag: 'false',
-        op: fadeFor(m, c.slug), isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
+        aria: c.text + ': ' + Math.round(r.share * 100) + '% of ' + sizeName + ', ' + colorName + ' ' + val(r.v) + '. Press Enter to open' +
+          (draggable ? ', up and down arrows to change ' + colorName + ', L to choose it to take resizes' : '') + '.' + (isChosen ? ' Chosen: takes resizes.' : ''),
+        isChosen, pressed: String(isChosen), canDrag: String(draggable),
+        op: fadeFor(m, c.slug) * (isChosen ? 0.8 : 1), isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
         fill: colorFor(r.v, meta), bg: isArea ? 'transparent' : colorFor(r.v, meta), ink: textOn(colorFor(r.v, meta)),
         height: s.chartView === 'tall' ? (28 + 72 * (biggest === 0 ? 1 : r.importance / biggest)) + '%' : '100%',
-        born: 'false', cursor: 'pointer',
-        click: () => this.openColumn(c.n),
+        born: String(c.slug === s.bornId), cursor: draggable ? 'ns-resize' : 'pointer',
+        click: () => this.onColumnClick(c.n),
         menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
-        down: noop, move: noop, up: noop, blur: noop,
-        key: (e) => { if (e.key === 'Enter') this.openColumn(c.n); },
-        hasDivider: i < rows.length - 1, dividerDisabled: true, dividerCursor: 'default',
-        dividerLabel: 'Resize ' + sizeName + ' between “' + c.text + '” and the next column', dividerTitle: 'Drag to change ' + sizeName,
-        dividerDown: noop, dividerMove: noop, dividerUp: noop, dividerKey: noop
+        down: (e) => this.startColumnDrag(c.slug, r.v, order, draggable, e),
+        move: (e) => this.moveColumnDrag(e), up: (e) => this.endColumnDrag(e),
+        key: (e) => this.onColumnKey(c.n, r.v, order, draggable, e),
+        blur: () => this.onColumnBlur(),
+        hasDivider: i < rows.length - 1, dividerDisabled: !dividerDraggable, dividerCursor: dividerDraggable ? 'col-resize' : 'default',
+        dividerLabel: 'Resize ' + sizeName + ' between “' + c.text + '” and the next column. Use the left and right arrow keys.', dividerTitle: 'Drag to change ' + sizeName,
+        dividerDown: (e) => { if (dividerDraggable) this.startDivider(i, rows, e); },
+        dividerMove: (e) => this.moveDivider(e), dividerUp: (e) => this.endDivider(e),
+        dividerKey: (e) => { if (dividerDraggable) this.onDividerKey(i, rows, e); }
       };
     });
+    const thermoAt = rows.findIndex((r) => r.node.slug === s.thermoId);
+    const thermoLeft = thermoAt < 0 ? 0 : rows.slice(0, thermoAt).reduce((t, r) => t + r.share, 0) + rows[thermoAt].share / 2;
+    const kidVals = childrenOf(nodes, cur.id).map((k) => effective(nodes, k.id, s.colorDim).v).filter((x) => x !== null);
+    const mean = kidVals.length ? kidVals.reduce((a, b) => a + b, 0) / kidVals.length : null;
+    const canCommit = s.draftText.trim() !== '';
+    const chosenCount = s.chosen.filter((x) => nodes.some((n) => n.id === x)).length;
     const DEPTH_ROW = 30;
     const dividerPx = 8 * Math.max(rows.length - 1, 0);
     const cells = depthCells(rows, values).map((d) => ({
@@ -1877,10 +2074,12 @@ class Component extends DCLogic {
       width: 'calc((100% - ' + dividerPx + 'px) * ' + (+d.w.toFixed(5)) + ' - 1px)',
       top: d.row * DEPTH_ROW, height: DEPTH_ROW - 2, bg: colorFor(d.v, meta),
       title: d.node.text + ' (' + val(d.v) + ')', text: d.w > 0.05 ? d.node.text : '',
-      op: fadeFor(m, d.node.slug), isChosen: false, pressed: 'false',
+      op: fadeFor(m, d.node.slug), isChosen: s.chosen.includes(d.node.slug), pressed: String(s.chosen.includes(d.node.slug)),
       menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
-      down: noop, key: noop,
-      open: () => this.openColumn(d.node.n)
+      // Choosing happens on pointer down, because Ctrl-click on a Mac fires contextmenu with no click.
+      down: (e) => { this.suppressClick = !!(e.ctrlKey || e.metaKey || e.shiftKey); if (this.suppressClick && !d.node.readOnly) this.toggleChosen(d.node.slug); },
+      key: (e) => { if ((e.key === 'l' || e.key === 'L') && !d.node.readOnly) { e.preventDefault(); this.toggleChosen(d.node.slug); } },
+      open: () => this.onColumnClick(d.node.n)
     }));
     const depthRows = cells.reduce((n, d) => Math.max(n, d.top / DEPTH_ROW + 1), 0);
     const hv = colorValueOf(nodes, cur.id, meta);
@@ -1895,27 +2094,48 @@ class Component extends DCLogic {
         label: colorName + (own === null && childrenOf(nodes, cur.id).length ? ', from its children' : ''), value: val(hv),
         left: (Math.min(hv, 0.5) * 100).toFixed(1), width: (Math.abs(hv - 0.5) * 100).toFixed(1), fill: colorFor(hv, meta),
         aria: colorName + ' ' + val(hv) + ' on a scale from 0 to 1',
-        canRecalc: false, recalcTitle: '', recalc: noop
+        canRecalc: !cur.readOnly && mean !== null,
+        recalcTitle: mean === null ? '' : 'Set ' + colorName + ' to ' + val(mean) + ', the mean of its children',
+        recalc: () => { if (mean !== null) this.recalculate(cur.id, mean); }
       },
       pin: {
         pressed: String(pinnedOk), text: pinnedOk ? 'Pinned' : 'Pin', label: pinnedOk ? 'Unpin: the bar follows the open node again' : 'Pin the bar here, so clicking a column only shows its details',
         style: pinnedOk ? 'border-color: #2A4BD7; background: #F4F6FE; color: #1C3399' : 'border-color: var(--rule); background: var(--card); color: var(--ink)',
         toggle: () => this.setState({ pinned: pinnedOk ? null : cur.id })
       },
-      add: { canOpen: editable, left: noop, right: noop, leftTitle: '', rightTitle: '' },
+      add: {
+        canOpen: editable, adding: s.adding !== null,
+        left: () => this.openAdd(rootId, 0.25), right: () => this.openAdd(rootId, 0.75), wide: () => this.openAdd(rootId, null),
+        leftTitle: 'Add a child with ' + colorName + ' 0.25', rightTitle: 'Add a child with ' + colorName + ' 0.75',
+        text: s.draftText, note: s.draftNote, valueLabel: s.adding === null || s.adding.v === null ? '' : colorName + ' ' + val(s.adding.v),
+        hasValue: s.adding !== null && s.adding.v !== null,
+        onText: (e) => this.setState({ draftText: e.target.value }),
+        onNote: (e) => this.setState({ draftNote: e.target.value }),
+        onKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (canCommit) this.commitAdd(); } },
+        onDialogKey: (e) => { if (e.key === 'Escape') this.cancelAdd(); },
+        backdrop: (e) => { if (e.target === e.currentTarget) this.cancelAdd(); },
+        cancel: () => this.cancelAdd(), commit: () => { if (canCommit) this.commitAdd(); },
+        commitDisabled: !canCommit, commitOpacity: canCommit ? 1 : 0.45
+      },
       chart: {
-        hasCols: rows.length > 0, empty: rows.length === 0,
+        hasCols: rows.length > 0, empty: rows.length === 0 && editable, emptyReadOnly: rows.length === 0 && !editable,
         emptyText: cur.readOnly ? 'Nothing below this point.' : 'No points yet. Add children from the panel.',
         cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
         height: s.chartView === 'width' ? '120px' : 'min(46vh, 420px)', minHeight: s.chartView === 'width' ? '0' : '240px',
         overflow: s.chartView === 'width' ? 'visible' : 'hidden',
-        thermoTop: '12px', thermoHeight: 'calc(100% - 24px)', thermo: { has: false, left: '0', top: '50', label: '', side: 'left' },
+        thermoTop: s.chartView === 'width' ? 'calc(50% - 118px)' : '12px', thermoHeight: s.chartView === 'width' ? '236px' : 'calc(100% - 24px)',
+        thermo: thermoAt < 0 ? { has: false, left: '0', top: '50', label: '', side: 'left' } : {
+          has: true, left: (thermoLeft * 100).toFixed(2), top: ((1 - rows[thermoAt].v) * 100).toFixed(1), label: val(rows[thermoAt].v), side: thermoLeft > 0.85 ? 'right' : 'left'
+        },
+        hasChosen: chosenCount > 0, noChosen: chosenCount === 0, clearChosen: () => this.clearChosen(),
+        chosenText: chosenCount + ' chosen · a resize changes the chosen columns on each side of the border, or the column next to it',
         fillDir: 'column', fillPad: '8px', fillAlign: 'stretch',
         depth: { has: cells.length > 0, gutter: editable ? 56 : 0, height: depthRows * DEPTH_ROW, cells },
         views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
           id, label, pressed: String(s.chartView === id), style: seg(s.chartView === id), pick: () => this.setState({ chartView: id })
         })),
-        hint: 'Width is ' + sizeName + ' · colour is ' + colorName + ' · click a column to open it'
+        hint: editable ? 'Drag a divider for ' + sizeName + ' · drag up or down for ' + colorName + ' · click to open · Ctrl or ⌘-click to choose what a resize changes'
+          : 'Width is ' + sizeName + ' · colour is ' + colorName + ' · click a column to open it'
       }
     };
   }

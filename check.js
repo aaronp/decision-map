@@ -615,6 +615,171 @@ test('an unloaded ref column loads on click', async () => {
   assert.equal(c.fetches.length, 1);
 });
 
+// ---------------------------------------------------------------- questionnaire: editing
+const MAPQ = '# R\n- A {x:0.1 y:0.25}\n- B {x:0.3 y:0.5}\n- C {x:0.6 y:0.75}\n';
+const ev = (props = {}) => ({
+  pointerType: 'mouse', pointerId: 1, clientX: 0, clientY: 0, metaKey: false, ctrlKey: false, shiftKey: false, key: '', button: 0,
+  preventDefault() {}, currentTarget: { setPointerCapture() {}, blur() {}, closest: () => ({ getBoundingClientRect: () => ({ width: 1016 }) }) }, ...props,
+});
+const colOf = (c, t) => cols(c).find((x) => x.text === t);
+const xs = (c) => ['A', 'B', 'C'].map((t) => c.state.nodes.find((n) => n.title === t).x);
+const ys = (c, t) => c.state.nodes.find((n) => n.title === t).y;
+const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-6, a + ' ≉ ' + b);
+const dragDivider = (c, t, dx) => {
+  colOf(c, t).dividerDown(ev({ clientX: 0 }));
+  colOf(c, t).dividerMove(ev({ clientX: dx })); // width 1016 less two 8px dividers is 1000px
+  colOf(c, t).dividerUp(ev());
+};
+const choose = (c, t) => colOf(c, t).down(ev({ metaKey: true }));
+
+test('a divider drag changes only the two columns either side, as one undo step', () => {
+  const c = qBoot(MAPQ);
+  dragDivider(c, 'A', 500);
+  assert.deepEqual(xs(c), [0.38, 0.02, 0.6]); // B stops at the 2% floor
+  c.undo();
+  assert.deepEqual(xs(c), [0.1, 0.3, 0.6]);
+});
+
+test('sizes past 1 scale the siblings down and keep the shares', () => {
+  const c = qBoot('# R\n- A {x:0.9}\n- B {x:0.9}\n');
+  colOf(c, 'A').dividerDown(ev({ clientX: 0 }));
+  colOf(c, 'A').dividerMove(ev({ clientX: 302.4 })); // 1016 less one 8px divider is 1008px; 0.3 of it
+  const [a, b] = ['A', 'B'].map((t) => c.state.nodes.find((n) => n.title === t).x);
+  assert.equal(a, 1);
+  near(b, 0.25);
+});
+
+test('chosen columns take a resize, and Clear drops them', () => {
+  const c = qBoot(MAPQ);
+  choose(c, 'C');
+  assert.ok(colOf(c, 'C').isChosen);
+  dragDivider(c, 'A', 100);
+  assert.deepEqual(xs(c), [0.2, 0.3, 0.5]);
+  c.renderVals().chart.clearChosen();
+  assert.equal(colOf(c, 'C').isChosen, false);
+});
+
+test('a choose gesture does not open the column', () => {
+  const c = qBoot(MAPQ);
+  choose(c, 'A');
+  colOf(c, 'A').click(ev({ metaKey: true }));
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+});
+
+test('a vertical drag changes the colour value and re-sorts on release', () => {
+  const c = qBoot(MAPQ);
+  colOf(c, 'A').down(ev({ clientY: 200 }));
+  colOf(c, 'A').move(ev({ clientY: 200 - 94.4 })); // 236px is the whole 0–1 range
+  assert.equal(ys(c, 'A'), 0.65);
+  assert.deepEqual(cols(c).map((x) => x.text), ['A', 'B', 'C']);
+  assert.ok(c.renderVals().chart.thermo.has);
+  colOf(c, 'A').up(ev());
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'A', 'C']);
+  assert.equal(c.renderVals().chart.thermo.has, false);
+  colOf(c, 'A').click(ev()); // the click that ends a drag doesn't open it
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+  c.undo();
+  assert.equal(ys(c, 'A'), 0.25);
+});
+
+test('colour value stays within 0–1', () => {
+  const c = qBoot(MAPQ);
+  colOf(c, 'A').down(ev({ clientY: 0 }));
+  colOf(c, 'A').move(ev({ clientY: 5000 }));
+  assert.equal(ys(c, 'A'), 0);
+});
+
+test('keyboard: arrows change the colour value and hold the order until blur; Enter opens', () => {
+  const c = qBoot(MAPQ);
+  for (let n = 0; n < 6; n++) colOf(c, 'A').key(ev({ key: 'ArrowUp' }));
+  near(ys(c, 'A'), 0.55);
+  assert.deepEqual(cols(c).map((x) => x.text), ['A', 'B', 'C']);
+  colOf(c, 'A').blur(ev());
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'A', 'C']);
+  colOf(c, 'A').dividerKey(ev({ key: 'ArrowRight' }));
+  assert.deepEqual(xs(c), [0.12, 0.3, 0.58]); // A now sits between B and C, so its divider trades with C
+  colOf(c, 'B').key(ev({ key: 'Enter' }));
+  assert.equal(c.state.currentId, idOf(c, 'B'));
+});
+
+test('touch does not start drags', () => {
+  const c = qBoot(MAPQ);
+  colOf(c, 'A').down(ev({ pointerType: 'touch', clientY: 200 }));
+  colOf(c, 'A').move(ev({ pointerType: 'touch', clientY: 100 }));
+  colOf(c, 'A').dividerDown(ev({ pointerType: 'touch' }));
+  colOf(c, 'A').dividerMove(ev({ pointerType: 'touch', clientX: 100 }));
+  assert.equal(ys(c, 'A'), 0.25);
+  assert.deepEqual(xs(c), [0.1, 0.3, 0.6]);
+});
+
+test('the + buttons add at 0.25 and 0.75, sized like their siblings', () => {
+  const c = qBoot(MAPQ);
+  const add = (side, title) => {
+    c.renderVals().add[side]();
+    assert.deepEqual(unresolved(c.renderVals(), c), []);
+    c.renderVals().add.onText({ target: { value: title } });
+    c.renderVals().add.commit();
+  };
+  add('left', 'L');
+  add('right', 'Rt');
+  const L = c.state.nodes.find((n) => n.title === 'L');
+  const Rt = c.state.nodes.find((n) => n.title === 'Rt');
+  assert.equal(L.y, 0.25);
+  assert.equal(Rt.y, 0.75);
+  assert.equal(L.x, 0.333);
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+  assert.equal(c.state.adding, null);
+});
+
+test('a blank title cannot be added, and Escape cancels', () => {
+  const c = qBoot(MAPQ);
+  c.renderVals().add.left();
+  assert.equal(c.renderVals().add.commitDisabled, true);
+  c.renderVals().add.onDialogKey({ key: 'Escape' });
+  assert.equal(c.state.adding, null);
+});
+
+test('an empty node offers one +, which adds with no values', () => {
+  const c = qBoot('# Alone\n');
+  const v = c.renderVals();
+  assert.equal(v.chart.empty, true);
+  v.add.wide();
+  c.renderVals().add.onText({ target: { value: 'First' } });
+  c.renderVals().add.onKey({ key: 'Enter', preventDefault() {} });
+  const n = c.state.nodes.find((x) => x.title === 'First');
+  assert.equal(n.x, null);
+  assert.equal(n.y, null);
+});
+
+test('Recalculate sets the colour value to the mean of the children, as one undo step', () => {
+  const c = qBoot(MAPQ);
+  const h = c.renderVals().health;
+  assert.equal(h.canRecalc, true);
+  h.recalc();
+  assert.equal(c.state.nodes[0].y, 0.5);
+  c.undo();
+  assert.equal(c.state.nodes[0].y, null);
+  assert.equal(qBoot('# Alone\n').renderVals().health.canRecalc, false);
+});
+
+test('ref columns cannot be dragged, chosen or added to', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1 {y:0.2}\n- T2 {y:0.8}\n' });
+  c.setState({ layout: 'questionnaire' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  c.setState({ currentId: c.graph().find((n) => n.title === 'Theirs').id });
+  const before = c.state.nodes;
+  colOf(c, 'T1').down(ev({ clientY: 100 }));
+  colOf(c, 'T1').move(ev({ clientY: 0 }));
+  colOf(c, 'T1').up(ev());
+  colOf(c, 'T1').dividerDown(ev());
+  colOf(c, 'T1').dividerMove(ev({ clientX: 100 }));
+  colOf(c, 'T1').key(ev({ key: 'ArrowUp' }));
+  choose(c, 'T1');
+  assert.equal(c.state.nodes, before);
+  assert.equal(colOf(c, 'T1').isChosen, false);
+  assert.equal(c.renderVals().health.canRecalc, false);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
