@@ -1074,7 +1074,8 @@ function parseTitle(text, ln) {
 }
 /* ponytail: a title with a literal backslash right before "#" or "{" loses that backslash; escape "\" too if it ever matters. */
 function titleText(n) {
-  const t = n.title.replace(/\{/g, '\\{').replace(/(\s)#/g, '$1\\#');
+  // A blank title is written as the placeholder the app shows, so the line still reads as a node.
+  const t = (n.title.trim() === '' ? 'New idea' : n.title).replace(/\{/g, '\\{').replace(/(\s)#/g, '$1\\#');
   const vals = ['x', 'y'].filter((k) => n[k] !== null).map((k) => k + ':' + String(Math.round(n[k] * 1000) / 1000));
   return t + n.tags.map((g) => ' #' + g).join('') + (vals.length ? ' {' + vals.join(' ') + '}' : '');
 }
@@ -1144,7 +1145,7 @@ function serializeMap({ meta, nodes }) {
   const write = (n, depth) => {
     out.push(depth === 0 ? '# ' + titleText(n) : '  '.repeat(depth - 1) + '- ' + titleText(n));
     const pad = '  '.repeat(depth);
-    if (n.note !== '') n.note.split('\n').filter((l) => l.trim() !== '').forEach((l) => out.push(pad + (/^(- |@ |# |\\|\s)/.test(l) ? '\\' : '') + l));
+    if (n.note !== '') n.note.split('\n').forEach((l) => out.push(pad + (l === '' || /^(- |@ |# |\\|\s)/.test(l) ? '\\' : '') + l));
     n.refs.forEach((r) => out.push(pad + '@ ' + r));
     childrenOf(nodes, n.id).forEach((k) => write(k, depth + 1));
   };
@@ -1153,7 +1154,7 @@ function serializeMap({ meta, nodes }) {
 }
 /* Pure and strict: every line is placed or the whole map is rejected with its line number. */
 function parseMap(text) {
-  const lines = text.split('\n');
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
   const fm = parseFrontMatter(lines);
   const meta = fm.meta;
   let i = fm.next;
@@ -1708,7 +1709,7 @@ function themeById(id) {
   if (!t) throw new Error('bug: unknown theme ' + id);
   return t;
 }
-function normaliseTag(raw) { return raw.trim().replace(/^#/, '').toLowerCase().replace(/\s+/g, '-'); }
+function normaliseTag(raw) { return raw.trim().replace(/^#/, '').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/^-+/, ''); }
 function tagStyleOf(tagStyles, name) {
   if (!(name in tagStyles)) throw new Error('bug: tag without a style: ' + name);
   return tagStyles[name];
@@ -1830,7 +1831,7 @@ class Component extends DCLogic {
     const q = new URLSearchParams(location.search);
     if (q.get('view') !== this.state.layout) {
       q.set('view', this.state.layout);
-      history.replaceState(null, '', '?' + q.toString() + location.hash);
+      window.history.replaceState(null, '', '?' + q.toString() + location.hash);
     }
   }
   /* Startup: a share link, else ?src=, else the newest saved map, else the new map already shown. */
@@ -1838,8 +1839,12 @@ class Component extends DCLogic {
     const payload = sharePayload(location.hash);
     const src = new URLSearchParams(location.search).get('src');
     try {
-      if (payload !== null) { this.openText(await decodeShare(payload), 'Shared map', { force: true }); return; }
-      if (src !== null) { this.srcUrl = new URL(src, location.href).href; this.openText(await this.fetchMapText(this.srcUrl), shortUrl(this.srcUrl), { force: true }); return; }
+      if (payload !== null) {
+        // The map now lives in the page; keeping #m= would reopen the shared copy on reload instead of the saved one.
+        if (this.openText(await decodeShare(payload), 'Shared map', { force: true })) window.history.replaceState(null, '', location.pathname + location.search);
+        return;
+      }
+      if (src !== null) { const url = new URL(src, location.href).href; this.openText(await this.fetchMapText(url), shortUrl(url), { force: true, url }); return; }
       const saved = await this.store.list();
       if (saved.length) this.openText(saved[0].text, saved[0].name, { force: true, savedName: saved[0].name });
     } catch (err) {
@@ -1915,8 +1920,9 @@ class Component extends DCLogic {
     const url = raw.trim();
     if (url === '') return;
     try {
-      const text = await this.fetchMapText(new URL(url, location.href).href);
-      if (this.openText(text, sharePayload(url) !== null ? 'Shared map' : shortUrl(url))) this.setState({ openPanel: false, openUrl: '' });
+      const href = new URL(url, location.href).href;
+      const text = await this.fetchMapText(href);
+      if (this.openText(text, sharePayload(url) !== null ? 'Shared map' : shortUrl(url), { url: sharePayload(url) !== null ? null : href })) this.setState({ openPanel: false, openUrl: '' });
     } catch (err) { this.setState({ loadError: String(err.message || err) }); }
   }
   didInitialFit = false;
@@ -1944,7 +1950,7 @@ class Component extends DCLogic {
   ask(message) { return window.confirm(message); }
   async copy(text) { await navigator.clipboard.writeText(text); }
   /* The one way a map is opened: from a file, URL, share link or saved map. A parse error leaves the current map alone. */
-  openText(text, name, { force = false, savedName = null } = {}) {
+  openText(text, name, { force = false, savedName = null, url = null } = {}) {
     let parsed;
     try { parsed = parseMap(text); } catch (err) {
       if (!(err instanceof MapParseError)) throw err;
@@ -1952,6 +1958,13 @@ class Component extends DCLogic {
       return false;
     }
     if (!force && this.state.dirty && this.state.savedName === null && !this.ask('Discard changes?')) return false;
+    if (this.state.dirty && this.state.savedName !== null) {
+      // Edits from the last moments haven't autosaved yet: write them under the old name before the map changes.
+      clearTimeout(this.autosaveTimer);
+      const name0 = this.state.savedName;
+      this.store.put(name0, this.currentText()).catch((err) => this.setState({ notice: 'Autosave of "' + name0 + '" failed: ' + (err.message || err) }));
+    }
+    this.srcUrl = url;
     super.setState({
       ...applyMeta(parsed.meta), nodes: parsed.nodes, currentId: parsed.root.id, dirOpen: { [parsed.root.id]: true },
       selectedTag: Object.keys(parsed.meta.tagStyles)[0] ?? null, mapCollapsed: {}, refLoads: {}, filterTags: [], lastChild: {},
@@ -2559,7 +2572,7 @@ class Component extends DCLogic {
       rows: [], structure: [], sankey: { W: 0, H: 0, bars: [], links: [], viewBox: '0 0 0 0' }, summary: ''
     };
     if (s.mapB === null) return base;
-    const a = nodes.filter((n) => n.kind === 'own' || n.kind === 'refRoot');
+    const a = composeGraph(s.nodes, {});
     const b = composeGraph(s.mapB.nodes, {});
     const rows = compareMaps(a, b, meta);
     const num = (v) => (v === null ? '—' : v.toFixed(2));

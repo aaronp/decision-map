@@ -12,7 +12,8 @@ class DCLogic {
     if (done) done();
   }
 }
-const window = {};
+const replaced = [];
+const window = { history: { replaceState: (a, b, url) => replaced.push(url) } };
 const location = { search: '', hash: '', href: 'http://x/', origin: 'http://x', pathname: '/' };
 // Every top-level name the checks use; a name not defined yet comes back undefined so its tests fail, not the load.
 const NAMES = ['Component', 'parseMap', 'serializeMap', 'DEFAULT_META', 'newMapText', 'colorFor', 'THEMES', 'encodeShare', 'decodeShare',
@@ -967,6 +968,78 @@ test('examples parse and round-trip', () => {
     const m = parseMap(text);
     assert.equal(serializeMap(m), text, f);
   }
+});
+
+// ---------------------------------------------------------------- review fixes
+test('a blank or spaces-only title still saves as a file that opens', () => {
+  const c = boot(SMALL);
+  c.addChild(c.state.nodes[1].id);
+  c.addChild(c.state.nodes[0].id);
+  c.patchNode(c.state.currentId, { title: '   ' });
+  const back = parseMap(c.currentText());
+  assert.equal(back.nodes.length, 6);
+});
+
+test('typed tags are kept to letters, digits and dashes, so the file reopens', () => {
+  const c = boot(SMALL);
+  for (const t of ['To_do', 'Café', 'v1.2', 'Q&A', '-x', '#Big idea']) { c.setState({ tagDraft: t }); c.addTagToCurrent(); }
+  const back = parseMap(c.currentText());
+  assert.deepEqual(back.nodes[0].tags, ['todo', 'caf', 'v12', 'qa', 'x', 'big-idea']);
+});
+
+test('blank lines in a description survive a round trip', () => {
+  const nodes = [{ id: 'p0', parent: null, title: 'R', x: null, y: null, tags: [], note: 'para1\n\npara2\n   \nend', refs: [] }];
+  assert.equal(parseMap(serializeMap({ meta: DEFAULT_META, nodes })).nodes[0].note, 'para1\n\npara2\n   \nend');
+});
+
+test('Windows line endings open', () => {
+  const m = parseMap('---\r\ntheme: night\r\n---\r\n# Root\r\n- child {x:0.5}\r\n  @ https://a.org/m.md\r\n');
+  assert.equal(m.meta.theme, 'night');
+  assert.equal(m.nodes[1].title, 'child');
+  assert.deepEqual(m.nodes[1].refs, ['https://a.org/m.md']);
+});
+
+test('a ref to the map opened from a URL never fetches, and opening another map forgets that URL', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': REFMAP });
+  await c.openUrl('https://a.org/theirs.md');
+  const before = c.fetches.length;
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, before);
+  c.openText(REFMAP, 'file.md', { force: true });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, before + 1);
+});
+
+test('compare of a map with itself shows no differences, even with a ref open', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs {x:0.3}\n- T1\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  c.setState({ layout: 'compare' });
+  c.renderVals().cmp.useCurrent();
+  assert.equal(c.renderVals().cmp.summary, '0 changed · 0 only in A · 0 only in B');
+});
+
+test('opening another map first saves a named map\'s pending edits', async () => {
+  const c = boot(SMALL);
+  c.store = fakeStore();
+  await c.saveAs('Plan');
+  c.patchNode(c.state.nodes[1].id, { title: 'Just typed' });
+  c.componentDidUpdate();
+  c.openText(FULL, 'other', { force: true });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.match(c.store.db.get('Plan').text, /- Just typed/);
+  clearTimeout(c.autosaveTimer);
+});
+
+test('a share link leaves the address bar once its map is open', async () => {
+  const c = boot();
+  c.store = fakeStore();
+  location.hash = '#m=' + await app.encodeShare('# Shared\n');
+  location.search = '?view=tree';
+  replaced.length = 0;
+  await c.start();
+  location.hash = ''; location.search = '';
+  assert.equal(c.state.nodes[0].title, 'Shared');
+  assert.deepEqual(replaced, ['/?view=tree']);
 });
 
 (async () => {
