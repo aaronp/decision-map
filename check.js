@@ -40,18 +40,19 @@ function boot(text) {
 
 // Walks the template the way the runtime does and returns every {{binding}} that resolves to undefined.
 const template = html.slice(html.indexOf('<x-dc>'), html.indexOf('</x-dc>')).replace(/<!--[\s\S]*?-->/g, '');
-// The runtime also resolves names on the component itself (e.g. ref callbacks), so pass it as `c`.
-function unresolved(vals, c = {}) {
+// Like the runtime (support.js), names resolve only from renderVals() and props, never from the component itself.
+// The second argument is accepted for old call sites and ignored.
+function unresolved(vals) {
   const out = new Set();
   const lookup = (scopes, expr) => {
     const e = expr.trim();
     if (/^(true|false|null|-?\d+(\.\d+)?)$/.test(e)) return e;
     const [head, ...rest] = e.split('.');
-    const scope = [...scopes].reverse().find((sc) => (sc === c ? head in sc : Object.prototype.hasOwnProperty.call(sc, head)));
+    const scope = [...scopes].reverse().find((sc) => Object.prototype.hasOwnProperty.call(sc, head));
     if (!scope) return undefined;
     return rest.reduce((v, k) => (v === undefined || v === null ? undefined : v[k]), scope[head]);
   };
-  const scopes = [c, vals];
+  const scopes = [vals];
   const blocks = [];
   let dead = 0;
   const re = /<(\/?)(sc-for|sc-if)\b([^>]*)>|\{\{([^}]+)\}\}/g;
@@ -1237,6 +1238,51 @@ test('a saved map that opens on start is not selected, so a stray key cannot wip
   await tick();
   assert.equal(c.state.nodes[0].title, 'Mine');
   assert.equal(titleField.selected, 0);
+});
+
+test('Radial: every child sits further from the centre than its parent, even under a long chain', () => {
+  const deep = '# Hello\n- Next\n- Foo\n- Bar\n- Fiz\n- Buzz\n' +
+    [1, 2, 3, 4, 5, 6].map((d) => '  '.repeat(d) + '- New idea\n').join('') +
+    ['zeta', 'delta', 'tamma', 'pbeta', 'Alopha', 'New idea'].map((t) => '  '.repeat(7) + '- ' + t + '\n').join('');
+  const c = boot(deep);
+  c.setState({ layout: 'radial' });
+  const pos = c.positions();
+  const dist = (id) => Math.hypot(pos[id].x, pos[id].y);
+  const inward = c.state.nodes.filter((n) => n.parent !== null && dist(n.id) <= dist(n.parent)).map((n) => n.title);
+  assert.deepEqual(inward, []);
+  assert.deepEqual(overlaps(c), []);
+  const longest = Math.max(...c.state.nodes.filter((n) => n.parent !== null).map((n) => Math.hypot(pos[n.id].x - pos[n.parent].x, pos[n.id].y - pos[n.parent].y)));
+  assert.ok(longest < 260, 'children fan out around their parent, not across the map: longest line ' + longest.toFixed(0) + 'px');
+});
+
+test('Fit shows every node whole, scaled ones included', () => {
+  for (const layout of ['radial', 'tree']) {
+    const c = boot(fs.readFileSync('examples/demo/sam.md', 'utf8'));
+    c.setState({ layout, follow: false, vw: 900, vh: 700, panelOpen: false });
+    c.fit();
+    const pos = c.positions();
+    const box = c.layoutBoxes();
+    const view = c.visible();
+    const { zoom, pan } = c.state;
+    const out = Object.keys(pos).filter((id) => Math.abs(pos[id].x * zoom + pan.x) + box[id].hw * zoom > view.w / 2 + 1 || Math.abs(pos[id].y * zoom + pan.y) + box[id].hh * zoom > view.h / 2 + 1);
+    assert.deepEqual(out.map((id) => c.state.nodes.find((n) => n.id === id).title), [], layout);
+  }
+});
+
+test('opening a map fits it to the canvas, and Fit never zooms in past 100%', () => {
+  const c = boot('# R\n');
+  c.setState({ layout: 'radial', follow: false, vw: 1000, vh: 839 });
+  c.didInitialFit = true; // what the canvas's ResizeObserver sets once it has measured the canvas
+  c.fit();
+  assert.equal(c.state.zoom, 1); // one small node would otherwise fill the screen at 300%
+  c.openText(fs.readFileSync('examples/demo/sam.md', 'utf8'), 'sam.md', { force: true });
+  const pos = c.positions();
+  const box = c.layoutBoxes();
+  const view = c.visible();
+  const { zoom, pan } = c.state;
+  assert.ok(zoom < 1);
+  const out = Object.keys(pos).filter((id) => Math.abs(pos[id].x * zoom + pan.x) + box[id].hw * zoom > view.w / 2 + 1 || Math.abs(pos[id].y * zoom + pan.y) + box[id].hh * zoom > view.h / 2 + 1);
+  assert.deepEqual(out, []);
 });
 
 (async () => {

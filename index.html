@@ -1594,6 +1594,8 @@ function refCycle(graph, nodeId, url, rootSource = null) {
 }
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 3;
+// Fit shrinks a big map to the screen but never blows a small one up past life size.
+const FIT_MAX = 1;
 const ZOOM_STEP = 1.25;
 const LENS_STEPS = [1, 2, 3, 5, 8];
 const MARGIN = 32;
@@ -1664,33 +1666,45 @@ function layoutRadial(nodes, box) {
   const placed = [];
   const along = (b, c, s) => Math.abs(b.hw * c) + Math.abs(b.hh * s);
   const across = (b, c, s) => Math.abs(b.hw * s) + Math.abs(b.hh * c);
-  const place = (id, depth, a0, a1, parent) => {
-    const ang = (a0 + a1) / 2;
-    const c = Math.cos(ang);
-    const s = Math.sin(ang);
-    let r = 0;
-    if (parent !== null) {
-      const p = pos[parent];
-      const fromParent = p.x * c + p.y * s + along(box[parent], c, s) + along(box[id], c, s) + LAYOUT_GAP;
-      const toFit = (2 * across(box[id], c, s) + LAYOUT_GAP) / Math.min(a1 - a0, Math.PI);
-      r = Math.max(fromParent, toFit);
-      // A wide label at a slant can still reach into a neighbour's slice, so step out until it clears every node placed so far.
-      // ponytail: O(n²) per step; fine for hand-made maps, use a spatial index if maps reach thousands of nodes.
-      const b = box[id];
-      const clash = () => placed.some((o) => Math.abs(pos[o].x - r * c) < box[o].hw + b.hw + LAYOUT_GAP / 2 && Math.abs(pos[o].y - r * s) < box[o].hh + b.hh + LAYOUT_GAP / 2);
-      while (clash()) r += 8;
-    }
-    pos[id] = { x: r * c, y: r * s, depth };
-    placed.push(id);
-    const total = leafCount(nodes, id);
-    let a = a0;
-    childrenOf(nodes, id).forEach((k) => {
-      const span = (a1 - a0) * leafCount(nodes, k.id) / total;
-      place(k.id, depth + 1, a, a + span, id);
-      a += span;
+  // ponytail: each step checks every placed node, O(n²) per step; use a spatial index if maps reach thousands of nodes.
+  const clashes = (b, x, y) => placed.some((o) => Math.abs(pos[o].x - x) < box[o].hw + b.hw + LAYOUT_GAP / 2 && Math.abs(pos[o].y - y) < box[o].hh + b.hh + LAYOUT_GAP / 2);
+  const root = rootOf(nodes).id;
+  pos[root] = { x: 0, y: 0, depth: 0 };
+  placed.push(root);
+  // A level at a time, so siblings get the near places before anyone's grandchildren.
+  let level = [root];
+  for (let depth = 1; level.length; depth += 1) {
+    const next = [];
+    level.forEach((id) => {
+      const kids = childrenOf(nodes, id);
+      if (!kids.length) return;
+      const p = pos[id];
+      const isRoot = id === root;
+      // The fan faces away from the centre and is never wider than a half circle, so every child is further out than
+      // its parent. It's as wide as the children need side by side at a short distance; the root's is the whole circle.
+      const out = isRoot ? -Math.PI / 2 : Math.atan2(p.y, p.x);
+      const oc = Math.cos(out);
+      const os = Math.sin(out);
+      const need = kids.reduce((t, k) => t + 2 * across(box[k.id], oc, os) + LAYOUT_GAP, 0);
+      const fan = isRoot ? 2 * Math.PI : Math.min(Math.PI, Math.max(0.5, need / (along(box[id], oc, os) + 60)));
+      const total = leafCount(nodes, id);
+      let a = isRoot ? out : out - fan / 2;
+      kids.forEach((k) => {
+        const span = fan * leafCount(nodes, k.id) / total;
+        const ang = a + span / 2;
+        a += span;
+        const c = Math.cos(ang);
+        const s = Math.sin(ang);
+        let d = Math.max(along(box[id], c, s) + along(box[k.id], c, s) + LAYOUT_GAP, (2 * across(box[k.id], c, s) + LAYOUT_GAP) / Math.min(span, Math.PI));
+        // Anything still in the way (a wide label at a slant, a neighbour's subtree): step out until clear.
+        while (clashes(box[k.id], p.x + d * c, p.y + d * s)) d += 8;
+        pos[k.id] = { x: p.x + d * c, y: p.y + d * s, depth };
+        placed.push(k.id);
+        next.push(k.id);
+      });
     });
-  };
-  place(rootOf(nodes).id, 0, -Math.PI / 2, Math.PI * 1.5, null);
+    level = next;
+  }
   return pos;
 }
 function layoutTree(nodes, box) {
@@ -1759,9 +1773,6 @@ function fisheyePositions(pos, focusId, halfW, halfH, k) {
     out[p.id] = { x: ux * g * halfW, y: uy * g * halfH, depth: pos[p.id].depth, t, mag };
   });
   return out;
-}
-function nodeHalfWidth(n) {
-  return ((Math.max(n.title.length, 8) * 8 + 32) / 2) * (n.parent === null ? 1.4 : 1.25);
 }
 function luminance(rgb) {
   const lin = rgb.map((ch) => { const s = ch / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); });
@@ -2052,7 +2063,7 @@ class Component extends DCLogic {
       ...applyMeta(parsed.meta), nodes: parsed.nodes, currentId: parsed.root.id, dirOpen: { [parsed.root.id]: true },
       selectedTag: Object.keys(parsed.meta.tagStyles)[0] ?? null, mapCollapsed: {}, refLoads: {}, filterTags: [], lastChild: {},
       history: { past: [], future: [], step: null }, dirty: false, loadError: null, mapName: name, savedName
-    });
+    }, () => { if (this.state.layout in LAYOUTS && this.didInitialFit) this.fit(); });
     return true;
   }
   /* A new map starts with its placeholder title selected, so the first keystroke replaces it. Each view has its own
@@ -2141,24 +2152,25 @@ class Component extends DCLogic {
     if (s.layout === 'directory') throw new Error('bug: fit called in the directory view');
     if (s.fisheye) { this.setState({ lensIdx: 2 }); return; }
     const pos = this.positions();
-    const g = this.visibleGraph();
+    const sizes = this.layoutBoxes();
     const box = this.visible();
+    // The same drawn sizes the layout uses, so scaled and selected nodes fit whole.
     const ext = Object.keys(pos).map((id) => {
-      const hw = nodeHalfWidth(byId(g, id));
-      return { x0: pos[id].x - hw, x1: pos[id].x + hw, y0: pos[id].y - 24, y1: pos[id].y + 24 };
+      const { hw, hh } = sizes[id];
+      return { x0: pos[id].x - hw, x1: pos[id].x + hw, y0: pos[id].y - hh, y1: pos[id].y + hh };
     });
     if (s.follow) {
       const c = pos[s.currentId];
       const halfW = Math.max(...ext.map((e) => Math.max(c.x - e.x0, e.x1 - c.x)));
       const halfH = Math.max(...ext.map((e) => Math.max(c.y - e.y0, e.y1 - c.y)));
-      this.setState({ zoom: clamp(ZOOM_MIN, ZOOM_MAX, Math.min(box.w / 2 / halfW, box.h / 2 / halfH)) });
+      this.setState({ zoom: clamp(ZOOM_MIN, FIT_MAX, Math.min(box.w / 2 / halfW, box.h / 2 / halfH)) });
       return;
     }
     const x0 = Math.min(...ext.map((e) => e.x0));
     const x1 = Math.max(...ext.map((e) => e.x1));
     const y0 = Math.min(...ext.map((e) => e.y0));
     const y1 = Math.max(...ext.map((e) => e.y1));
-    const zoom = clamp(ZOOM_MIN, ZOOM_MAX, Math.min(box.w / (x1 - x0), box.h / (y1 - y0)));
+    const zoom = clamp(ZOOM_MIN, FIT_MAX, Math.min(box.w / (x1 - x0), box.h / (y1 - y0)));
     this.setState({ zoom, pan: { x: -((x0 + x1) / 2) * zoom, y: -((y0 + y1) / 2) * zoom } });
   }
   zoomBy(dir) {
@@ -3186,6 +3198,8 @@ class Component extends DCLogic {
         if (!LAYOUT_IDS.includes(v)) throw new Error('bug: unknown view ' + v);
         this.setState(!(v in LAYOUTS) ? { layout: v } : { layout: v, pan: { x: 0, y: 0 }, mapCollapsed: this.revealed(s.currentId, s.mapCollapsed) }, () => { if (v in LAYOUTS) this.fit(); });
       },
+      // The canvas ref has to come through renderVals: the runtime never looks names up on the component itself.
+      setCanvas: this.setCanvas,
       isMap: !noCanvas,
       isDirectory: isDir,
       isQuestion: s.layout === 'questionnaire',
