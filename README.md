@@ -17,143 +17,99 @@ This is based on the excellent [https://www.kialo-edu.com/](https://www.kialo-ed
 
 # Using it
 
-The data source for this is just markdown.
-
-You can create your own markdown files locally, or host them online in whatever way you wish.
-
-This tool simply provides a convenient way to edit and visualise that data, separate from the data itself.
-
-If you use git (github), you can clone an 'example' project which is a minimal repo for hosting the content.
-
-Simply use `make clone` and then push your saved markdown into whatever git repo you like.
+It works for any tree of ideas: a mind map, a decision tree, an opportunity matrix. The data is just markdown. Keep maps in this browser, download them as `.md` files, host them anywhere, or share a whole map as a link.
 
 ## The format
 
-Each fact is a heading, one `#` deeper than its parent, with properties directly under it:
-
 ```markdown
 ---
-title: Votes at 16
+x: Importance
+y: Support
+color: y
+colorMode: split
+colorLeft: #C0392B
+colorRight: #1E8449
+reverse: false
+theme: paper
+tag.evidence: fill #E3F1F6; border none solid; opacity 1
 ---
 
-# 16-year-olds should be allowed to vote in general elections.
-slug: votes-at-16
-by: Ms. Smith
-
-## Sixteen-year-olds can work and pay tax, so they should have a say.
-slug: pay-tax
-importance: 60
-impact: 0.8
-confidence: 4
-basis: Evidence that few 16-year-olds work
-
-Free text here is shown when the fact is selected.
-
-- [ref] [Some source](https://example.com) — what it shows
-
-### Most 16-year-olds don't earn enough to pay income tax.
-slug: little-income-tax
-importance: 45
-impact: -0.6
+# Should we move to a four-day week? #core {x:1}
+Free text under a node is its description.
+@ https://example.org/someone-elses-map.md
+- Happier staff {x:0.8 y:0.9}
+  - Survey of 40 staff #evidence
+    https://example.org/survey
+- Client cover on Fridays #risk {y:0.2}
 ```
 
-- `importance` is relative to the fact's siblings and has no upper limit. It's shown as a share.
-- `impact` runs from -1.0 (contrary) to 1.0 (supporting), and you always set it by hand: a fact's children don't change it.
-- A claim's **overall score** is Σ(importance × impact) ÷ Σ(importance) over its direct children.
-- A root can instead hold **premises**, competing answers marked `kind: premise`. A premise's impact is the score of its children, and its importance is (impact + 1) ÷ 2, so these are calculated and can't be edited.
+- One `#` heading is the root, and `- ` items indented by two spaces per level are its children.
+- Every node has a title, an optional description (the lines under it), two optional values **x** and **y** from 0 to 1, tags (`#name` after the title) and refs (`@ url` lines).
+- Front matter names the two values (`x:` and `y:`), says which one drives colour (`color:`; the other drives size), the colour mode, the theme and each tag's style. Every key is written on save, and an unknown key is an error.
+- A title that would otherwise read as syntax is escaped: `Issue \#12`, `Budget \{draft}`. A description line that starts with `- `, `@ `, `# ` or `\` gets a leading `\`.
+- Evidence, sources and the like are just children with a tag, such as `#evidence`.
 
-Older files in the `- [+] text {slug: …, weight: …}` list format still open, and are saved in this format once edited. `[+]` becomes impact 1.0 and `[-]` becomes -1.0.
+## Views
 
-## Creating a map
+The **View** menu in the header:
 
-**New** starts from a full-size card: a title, an optional description, and optional options when the discussion is "choose from options" and not a single thesis. The slug comes from the title.
+- **Radial** and **Tree**: the map as a mind map. **Follow** keeps the node you're editing centred, and **Fisheye** fits the whole map, magnified around the selected node. The arrow keys move through the tree (← parent, → child, ↑ ↓ siblings) when the cursor is at the start or end of the title. **Ctrl + arrow** goes to the node on that side of the screen instead, wherever it sits in the tree: in Radial, ← from the root reaches a child on the left, and ← from a child on the right goes back to the root.
+- **Directory**: the tree as an outline, with the node's details beside it.
+- **Questionnaire**: one node at a time, as a question to answer. Breadcrumbs lead back up, and the title and description are editable. The health bar shows the node's colour value, filled in from its children when it has none of its own. Its children are drawn as a bar, with every level below in rows underneath.
+  - Width is the size value. Colour, and the order from left to right, follow the colour value.
+  - Drag a divider to resize, or drag a column up or down to change its colour value. The arrow keys do both.
+  - Ctrl-click, ⌘-click or Shift-click (or **L**) chooses the columns a resize changes.
+  - The **+** on the left adds a child at 0.25 and the **+** on the right at 0.75. A node with no children shows one wide **+**.
+  - **Recalculate** sets the node's colour value to the mean of its children's.
+  - **Pin** keeps the bar where it is, so clicking a column only shows its details.
+  - The chart modes are *Width only* (a short bar), *Wide and tall* and *Area is the score*.
+- **Pie**: the same tree as rings around the open node. **Edit** turns on the hover buttons: **+** beside a slice adds a sibling, **+** outside a leaf adds a child, and the ⇔ handles resize.
+- **Compare**: this map (A) against a second map (B). B can be a copy of this map as it is now, a file, a URL, a share link or a saved map. Nodes are matched by their titles from the root down. There are three tabs:
+  - **Table**: every node, biggest change in x or y first, then nodes on one side only.
+  - **Structure**: both maps as one tree.
+  - **Sankey**: each side split by size, meeting in the middle.
 
-## The focus view
+The node panel edits the selected node's title, values, tags, refs and description. It sits on the right by default; Settings → Theme → **Node panel** moves it to the bottom, and that choice is kept in this browser, not in the map. On the right, › hides it to a thin column showing the node's title, which opens it again; at the bottom, Radial and Tree hide it to a pill.
 
-The screen is built around one point at a time: its title and description, a health bar for the overall result of its children, and the children themselves. Breadcrumbs jump to any level above, and the **Bar** and **Pie** icons in the header switch how the children are drawn. A point with no children shows one wide **+**. Otherwise there's a **+** on each side, the left starting a contrary point and the right a supporting one, and new points sort into place by impact.
+## Colour
 
-Click a title or description to edit it. **More** holds by, basis, confidence, evidence, Research, Check rationale, the slug and delete.
+Settings → Color & size picks which value drives colour, and how:
 
-### The bar
+- **Scale**: one blue, light to dark.
+- **Left / right**: one colour at 0 (red by default), neutral at 0.5, and another colour at 1 (green by default).
+- **Reverse** flips either mode, for values where higher is worse, like price.
 
-Columns are sorted from most contrary to most supporting. Colour is impact, and width is share of importance. There are three chart views, switched from the header: *Width only*, *Wide and tall*, and *Area is the score*. Rows under the bar show every level below, lined up under their parent column.
+Tags have their own fill, border and opacity (Settings → Tags), which show on every view.
 
-- **Click a column** or any cell in the rows below to open it.
-- **Pin** the bar to keep it on the point it shows. Clicking a column then shows that point's details, without moving the bar.
-- **Recalculate**, next to the health bar, sets the open point's impact to the overall score of its own points. Undo puts it back.
-- In the **Width only** chart view the bar is a short 120px, since height means nothing there. The other two views keep the tall bar.
-- **Change importance** by dragging a divider, or with the slider on an open point.
-- **Change impact** by dragging a column up or down, or with the slider on an open point.
-- **Choose the columns a resize changes** with Ctrl-click, ⌘-click or Shift-click, or **L** on the keyboard. Chosen columns get a diagonal pattern and dashed border. Dragging a divider then changes the chosen columns on each side of it, spread in proportion to their size, or the column next to the divider on a side with none chosen. Every other column keeps its size, and the divider stays under the pointer. You can also choose cells in the levels below, which apply when you resize at that level. Choices stay as you move between levels until **Clear** removes them. With nothing chosen, the two columns either side of the divider trade.
+## Refs: other people's maps as children
 
-Dividers also take the left and right arrow keys, and columns the up and down keys. On touch screens, use the sliders.
+A ref is a URL to another map, either a `.md` file or a share link. It shows as a read-only child and **loads only when you click to expand it**, never by itself. A ref to a map that is already open above it shows an error instead of loading again. Once loaded, a ref's values count towards its parent's like any child's. Its tag styles are used to draw it, but are never saved into your file.
 
-### The pie
+## Saving and sharing
 
-The same points as rings around the current point, sorted clockwise from the top, next to the current point's details. Slices with room show their impact.
+- **Save as…** keeps the map in this browser (IndexedDB) under a name. After that, edits save themselves 1.5 s after you stop. An asterisk after the name means unsaved changes. The page opens on the most recently saved map.
+- **Open…** lists saved maps, with rename and delete, and takes a dropped file, a chosen file, a URL or a share link.
+- **Download** saves a `.md` copy. **New** starts a blank map.
+- **Share** copies a link that holds the whole map, compressed after `#m=`. No server is involved. Refs stay as URLs inside it. Links over 8,000 characters still work, but some apps cut them short.
+- **Undo and redo** (⌘Z and ⌘⇧Z, or ↶ ↷) cover every edit to the map and its settings. A drag is one step.
 
-- **Edit** (the pencil next to the pin) turns on the hover buttons. Off by default, so hovering just shows a slice's details.
-- **Drag the ⇔ handle** that edit mode shows on a slice's edges to resize that slice against its siblings, on any ring. It takes the left and right arrow keys too.
-- **Choose slices** on any ring the same way as columns.
-- **Pin** the pie to keep it centred where it is. Clicking a slice then shows that point's details beside the pie, without moving the pie.
-- In edit mode, **hover a slice** for a **+** on each side, which adds a point beside it. A slice with no children also gets a **+** outside it for its first child.
+## Themes
 
-## Decision records
+Paper, Slate, Night and High contrast, under Settings → Theme. The theme is saved in the map's front matter. `?theme=` overrides it for one link.
 
-A decision record is a template with fixed tiers, for decisions shaped as "which option best meets our goals?". Choose **Decision record** on the New card.
+## Links
 
-- **Goals** have a title, a description and an importance relative to the other goals.
-- Each goal has its own **criteria**, weighted against each other.
-- Each goal has its own **options**: pick one already used elsewhere in the record, or add a new one. Each option gets a **score** from 0 to 10 on each criterion.
-- Each score can have **reasons**. A reason has a weight, which sets its emphasis but never changes the score, and the same extras as a point: by, basis, confidence and evidence.
+| Query | Effect |
+|---|---|
+| `#m=…` | The map inside a share link |
+| `?src=<url>` | Opens that markdown file |
+| `?theirs=<url>` | Opens a second map as B and starts on Compare |
+| `?view=radial\|tree\|directory\|questionnaire\|pie\|compare` | The view |
+| `?theme=paper\|slate\|night\|contrast` | Overrides the map's theme |
 
-An option's **goal score** is the sum of each criterion's share of the goal × its score, out of 10. The best goal score wins that goal. The **overall score** is the sum of each goal's share of importance × the option's goal score. A goal that doesn't include an option adds nothing to it, so an option can come first overall without winning any single goal.
+A URL must allow cross-origin requests (GitHub Pages and raw.githubusercontent.com do).
 
-```markdown
----
-title: Event store for the billing service
-template: decision-record
----
-
-# Event store for the billing service
-slug: billing-event-store
-
-## Reliability
-slug: reliability
-importance: 40
-
-### Durability
-slug: durability
-weight: 50
-
-#### DynamoDB
-option: dynamodb
-score: 9
-summary: Multi-AZ by default
-
-##### Multi-AZ replication by default
-slug: multi-az
-weight: 60
-```
-
-A score heading names its option with `option:` instead of a slug, because the same option appears under several criteria. `summary:` is an optional one-line reason for the score. Free text under a goal or criterion heading is its description. An option has one title throughout the file. A missing score reads as 0.
-
-The views are **Overview**, **Record**, **Markdown source** and **Compare**. A new decision record opens on Record, at its first step.
-
-**Record** is one page that opens up as you choose, with a step rail down the left: **Goals › Criteria › Options › Reasons**. Under each step, the rail shows what's chosen there. Click a step to scroll to it; a step with nothing chosen yet picks the first goal, option or criterion. On a narrow screen the rail becomes a row across the top. Selecting or adding a goal, criterion or option puts the cursor in its title, with the text selected, so you can type a new one straight away. Renaming an option renames it everywhere in the record. **Delete** next to a goal, criterion or option removes it in one click. Undo (⌘Z or ↶) brings it back. A goal always keeps at least one criterion. Goals, and each goal's criteria, get colours from the same palette in order.
-
-- **Goals:** a short bar of goal importance, with **+** to add a goal. Click a goal to select it and edit its title and description.
-- **Criteria** (once a goal is selected, after a divider): a short bar of its criteria by weight, with **+**. Click a criterion to edit its title and description, and to show its reasons below.
-- **Options:** a pill for each of the goal's options, with its goal score (★ marks the winner), a **Compare all** pill, and controls to add an option. Selecting an option shows a 0–10 slider and an optional short reason for each criterion, with **Reasons** for the full reasons. **Compare all** shows every option against every criterion; click a score to edit that option.
-- **Reasons** (once an option and a criterion are chosen): the score and its short reason, then the full reasons by weight. Each reason has its own weight, and the same extras as a point.
-
-**Overview**, its own tab, shows the ranking, with each option's bar split by what each goal adds. Goal weights and the selected goal's criteria weights use the bar or the pie, with Ctrl/⌘-click to choose what a resize changes, and a checkbox turns a goal off. Changes here are **what-if weights**: every view shows them, but nothing is saved until **Save as the record's weights**. **Reset** drops them. A goal saved while off gets `importance: 0`.
-
-**Compare** shows two records side by side, from the open file, its what-if weights, a second file, or a snapshot. Choose goals, one goal's criteria or one goal's scores, as paired bars or as composite bars split into their parts. The biggest differences are listed first. Click a score row to see each side's reasons.
-
-**Snapshots** save a named copy of the record as shown, what-if weights included. They're kept only in this browser, in IndexedDB, and can be loaded back as what-if weights or used in Compare.
-
-**Undo and redo** (⌘Z and ⌘⇧Z, or the ↶ ↷ buttons) cover every edit in maps and records, including what-if weights. A drag is one step. History starts again when a file is opened.
+Try `?src=examples/votes-at-16/map.md&theirs=examples/votes-at-16/obi.md`. For a pair made to show off Compare (changed scores, values that flip, and branches on one side only), try `?src=examples/demo/sam.md&theirs=examples/demo/priya.md&view=compare`.
 
 ## Run it
 
@@ -162,62 +118,12 @@ make dev          # http://localhost:8000 (needs bun)
 make check        # logic checks, no browser needed (needs bun)
 ```
 
-`make dev` serves this folder and proxies `/typesafe/*` to api.typesafe.ai,
-which doesn't accept calls straight from a browser. Opening `index.html` from
-disk won't work: browsers block the scripts over `file://`.
+Opening `index.html` from disk won't work: browsers block the scripts over `file://`.
 
-Pushing to `main` or `master` publishes the page to GitHub Pages
-(`.github/workflows/pages.yml`; one-time setup: Settings → Pages → Source:
-GitHub Actions).
-
-## Links
-
-| Query | Effect |
-|---|---|
-| _(none)_ | The new-map card, with Open… for a file, URL or recent file |
-| `?src=<url>` (alias `?ours=`) | Opens that markdown file as the map |
-| `?theirs=<url>` | Opens a second map as B and starts on the diff view; without it the diff view offers the Open panel for B |
-| `?view=map\|pie\|source\|diff` | The view (default `map`) |
-| `?focus=<slug>` | The claim in focus (default the thesis) |
-| `?theme=paper\|slate\|night\|contrast` | Overrides the map's own `theme:` |
-
-The address bar keeps `view`, `focus` and `theme` up to date, so it's always
-a link to what's on screen. A URL must allow cross-origin requests (GitHub
-Pages and raw.githubusercontent.com do).
-
-Try `?ours=examples/votes-at-16/map.md&theirs=examples/votes-at-16/obi.md`.
-
-## Files
-
-- **Open…** takes a dropped file, a file chooser or a URL, and lists the last
-  10 files under Recent.
-- **Save** writes back to a file opened from this computer (Chromium-based
-  browsers), and after the first Save, edits autosave 1.5 s after you stop.
-  An asterisk after the file name means unsaved changes.
-- **Download** saves a copy (with a save dialog where the browser has one).
-
-## Themes
-
-The same themes and accents as the risk register. Settings → Display writes
-`theme:` and `accent:` into the map's front matter, so the look travels with
-the file; `?theme=` overrides it for one link.
-
-## AI helpers (optional)
-
-Keys are kept in this browser's localStorage, never in the markdown.
-
-- **OpenRouter** key → **Research** next to *Add evidence* on a fact:
-  a web search for sources, each offered to add as evidence. Only sources the
-  search actually cited are offered.
-- **typesafe.ai** (Jev) key → **Check rationale** on a claim with contributing
-  factors: Jev's confidence that the supporting facts (impact above 0), taken
-  together, give good reason to accept the claim, and the contrary facts (impact
-  below 0) to reject it. Needs `make dev` (the proxy).
+Pushing to `main` or `master` publishes the page to GitHub Pages (`.github/workflows/pages.yml`; one-time setup: Settings → Pages → Source: GitHub Actions).
 
 ## Examples
 
-`examples/votes-at-16` is a slim data repo: the markdown plus an
-`index.html` that redirects to the published mapper with `?src=` pointing at
-it. `make clone REPO=you/your-repo` there copies it into a new repo.
-
-`examples/event-store/record.md` is an example decision record.
+- `examples/votes-at-16` is a slim data repo: two maps and an `index.html` that redirects to the published app with `?src=` pointing at it. `make clone REPO=you/your-repo` there copies it into a new repo.
+- `examples/demo` holds two people's answers to one question, Sam's and Priya's, for trying Compare.
+- `examples/event-store/map.md` is a decision laid out as a tree: goals, criteria under them, and options scored under each criterion.

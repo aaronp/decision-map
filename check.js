@@ -12,158 +12,36 @@ class DCLogic {
     if (done) done();
   }
 }
-const window = {};
-const Component = new Function('DCLogic', 'location', 'window', m[1] + '\n;return Component;')(DCLogic, { search: '', href: 'http://x/' }, window);
+const replaced = [];
+const storage = new Map();
+// A stand-in for the page's title field, so checks can see what got focused and selected.
+const titleField = { focused: 0, selected: 0, focus() { this.focused++; }, select() { this.selected++; } };
+const queried = [];
+const document = { querySelector: (sel) => { queried.push(sel); return sel.includes('title') || sel.includes('Title') ? titleField : null; } };
+const window = { document, localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) }, history: { replaceState: (a, b, url) => replaced.push(url) } };
+const location = { search: '', hash: '', href: 'http://x/', origin: 'http://x', pathname: '/' };
+// Every top-level name the checks use; a name not defined yet comes back undefined so its tests fail, not the load.
+const NAMES = ['Component', 'parseMap', 'serializeMap', 'DEFAULT_META', 'newMapText', 'colorFor', 'THEMES', 'encodeShare', 'decodeShare',
+  'sharePayload', 'nextName', 'composeGraph', 'refCycle', 'titlePath', 'compareMaps', 'spatialStep', 'questionRows', 'sizeOf', 'depthCells', 'borderResize'];
+const app = new Function('DCLogic', 'location', 'window', m[1] + '\n;return Object.fromEntries(' + JSON.stringify(NAMES) +
+  '.map((n) => { try { return [n, eval(n)]; } catch (e) { return [n, undefined]; } }));')(DCLogic, location, window);
+const { Component, parseMap, serializeMap, DEFAULT_META, newMapText } = app;
 
 let failed = 0;
 let passed = 0;
-const pending = [];
-function test(name, fn) {
-  const fail = (e) => { failed++; console.error(`FAIL ${name}\n  ${e.message}`); };
-  try {
-    const r = fn();
-    if (r && typeof r.then === 'function') pending.push(r.then(() => { passed++; }, fail));
-    else passed++;
-  } catch (e) { fail(e); }
-}
+// Tests run one at a time, in order, so async ones can't see each other's changes to location or window.
+const queue = [];
+function test(name, fn) { queue.push({ name, fn }); }
 
-const NEW = `---\ntitle: T\n---\n\n# Root claim\nslug: root\nby: Me\n\nRoot details.\n\n## Good: a fact\nslug: a\nimportance: 60\nimpact: 0.8\nby: Sam\nconfidence: 4\nbasis: Would change if X\n\nLine one.\n\nLine two.\n\n- [ref] [Src](https://example.com) — shows it\n\n### Child\nslug: b\nimportance: 45.5\nimpact: -0.6\n`;
-const parsed = () => Component.parse(NEW).map;
-
-test('parses the heading format', () => {
-  const { map, errors } = Component.parse(NEW);
-  assert.deepEqual(errors, []);
-  assert.equal(map.root.kind, 'root');
-  assert.equal(map.root.details, 'Root details.');
-  const a = map.root.children[0];
-  assert.equal(a.text, 'Good: a fact');
-  assert.deepEqual([a.importance, a.impact, a.by, a.confidence, a.basis], [60, 0.8, 'Sam', 4, 'Would change if X']);
-  assert.equal(a.details, 'Line one.\n\nLine two.');
-  assert.equal(a.refs[0].name, 'Src');
-  assert.deepEqual([a.children[0].importance, a.children[0].impact], [45.5, -0.6]);
-});
-
-test('round trips the heading format', () => {
-  assert.deepEqual(Component.parse(Component.serialize(parsed())).map, parsed());
-});
-
-test('rejects bad properties', () => {
-  for (const [bad, word] of [['impact: 1.5', 'impact'], ['impact: abc', 'impact'], ['importance: -1', 'importance'], ['colour: red', 'colour']]) {
-    const r = Component.parse(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## F\nslug: f\nimportance: 1\nimpact: 0\n${bad}\n`);
-    assert.ok(r.errors.some((e) => e.msg.includes(word)), bad);
-  }
-  assert.ok(Component.parse(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## F\nslug: f\nimportance: 1\n`).errors.some((e) => e.msg.includes('impact')));
-});
-
-test('a heading may go only one level deeper than its parent', () => {
-  assert.ok(Component.parse(`---\ntitle: T\n---\n\n# R\nslug: r\n\n### Too deep\nslug: f\nimportance: 1\nimpact: 0\n`).errors.length > 0);
-});
-
-test('accepts more than six heading levels', () => {
-  const deep = ['---', 'title: T', '---', '', '# R', 'slug: r', ''];
-  for (let d = 2; d <= 8; d++) deep.push(`${'#'.repeat(d)} L${d}`, `slug: l${d}`, 'importance: 1', 'impact: 0', '');
-  assert.deepEqual(Component.parse(deep.join('\n')).errors, []);
-});
-
-test('premises', () => {
-  const P = Component.parse(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n`).map;
-  assert.equal(P.root.children[0].kind, 'premise');
-  assert.equal(P.root.children[0].importance, null);
-  assert.ok(Component.parse(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n## F\nslug: f\nimportance: 1\nimpact: 1\n`).errors.length > 0);
-  assert.ok(Component.parse(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## F\nslug: f\nimportance: 1\nimpact: 1\n\n### P\nslug: p\nkind: premise\n`).errors.length > 0);
-});
-
-test('details that look like structure survive', () => {
-  const tricky = parsed();
-  tricky.root.children[0].details = '# not a heading\n- [ref] not evidence\n\\# already slashed';
-  const back = Component.parse(Component.serialize(tricky)).map.root.children[0];
-  assert.equal(back.details, tricky.root.children[0].details);
-  assert.equal(back.refs.length, 1);
-});
-
-test('imports the legacy format', () => {
-  const old = `---\ntitle: T\n---\n\n# R {slug: r}\n\n- [+] Pay {slug: pay-tax, weight: 60}\n  - [-] Sub {slug: sub, weight: 45}\n- [-] Inexp {slug: inexperience, weight: 70}\n`;
-  const L = Component.parse(old).map;
-  const pay = L.root.children.find((c) => c.slug === 'pay-tax');
-  assert.deepEqual([pay.kind, pay.importance, pay.impact], ['fact', 60, 1]);
-  assert.equal(L.root.children.find((c) => c.slug === 'inexperience').impact, -1);
-  assert.deepEqual(Component.parse(old.replace(/\n/g, '\r\n')).map, L);
-});
-
-test('legacy weight 0, premises and evidence survive a save', () => {
-  const zero = Component.parse(`---\ntitle: T\n---\n\n# R {slug: r}\n\n- [*] P {slug: p}\n  - [+] F {slug: f, weight: 0}\n    - [ref] Src — note\n    - [basis] Because\n`).map;
-  assert.equal(zero.root.children[0].kind, 'premise');
-  const f = zero.root.children[0].children[0];
-  assert.deepEqual([f.importance, f.impact, f.basis, f.refs[0].name], [0, 1, 'Because', 'Src']);
-  assert.deepEqual(Component.parse(Component.serialize(zero)).map, zero);
-});
-
-test('saved numbers are rounded', () => {
-  const rounded = parsed();
-  rounded.root.children[0].importance = 38.5714;
-  rounded.root.children[0].impact = -0.004;
-  const out = Component.serialize(rounded);
-  assert.ok(out.includes('importance: 38.6\n') && out.includes('impact: 0\n'));
-});
-
-// ---------------------------------------------------------------- scoring and resizing
-const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
-const fact = (slug, importance, impact, children = []) => ({ slug, text: slug, kind: 'fact', importance, impact, by: null, basis: null, confidence: null, details: null, refs: [], children });
-const prem = (slug, children) => ({ ...fact(slug, null, null, children), kind: 'premise' });
-const rootOf = (children) => ({ ...fact('r', null, null, children), kind: 'root' });
-
-test('score uses direct children and leaves a parent impact alone', () => {
-  const tree = rootOf([fact('a', 60, 0.5, [fact('x', 1, -1)]), fact('b', 40, -1)]);
-  const v = Component.allValues(tree);
-  near(v.get('r').score, 0.5 * 0.6 - 0.4);
-  near(v.get('a').impact, 0.5);
-  near(v.get('a').score, -1);
-  near(v.get('a').share, 0.6);
-  const rows = Component.factRows(tree, v);
-  assert.deepEqual(rows.map((r) => r.node.slug), ['b', 'a']);
-  near(rows[1].contribution, 0.3);
-  assert.equal(rows[1].calculated, false);
-});
-
-test('all-zero importance and single children give equal shares and no NaN', () => {
-  const z = rootOf([fact('a', 0, 1), fact('b', 0, -1)]);
-  const vz = Component.allValues(z);
-  near(vz.get('r').score, 0);
-  near(vz.get('a').share, 0.5);
-  near(Component.allValues(rootOf([fact('a', 7, 0.2)])).get('a').share, 1);
-  near(Component.allValues(rootOf([])).get('r').score, 0);
-});
-
-test('premise values are calculated from children', () => {
-  const pt = rootOf([prem('p1', [fact('x', 1, 1)]), prem('p2', []), prem('p3', [fact('y', 1, -1)])]);
-  const vp = Component.allValues(pt);
-  assert.equal(vp.get('r').score, null);
-  near(vp.get('p1').impact, 1);
-  near(vp.get('p1').share, 2 / 3);
-  near(vp.get('p2').share, 1 / 3);
-  near(vp.get('p3').share, 0);
-  assert.equal(Component.factRows(pt, vp)[0].calculated, true);
-  near(Component.allValues(rootOf([prem('p', [fact('y', 1, -1)])])).get('p').share, 1);
-});
-
-test('a frozen order is respected and tolerates changed children', () => {
-  const ord = rootOf([fact('a', 1, 0.9), fact('b', 1, -0.9), fact('c', 1, 0)]);
-  assert.deepEqual(Component.factRows(ord, Component.allValues(ord), ['a', 'gone', 'b']).map((r) => r.node.slug), ['a', 'b', 'c']);
-});
-
-
-
-// ---------------------------------------------------------------- whole-app checks, no browser needed
-const LEGACY_A = fs.readFileSync('check-fixtures/legacy-a.md', 'utf8');
-const LEGACY_B = fs.readFileSync('check-fixtures/legacy-b.md', 'utf8');
-function boot(a = LEGACY_A, b = '') {
-  window.AM_A = { name: 'a.md', text: a, url: null };
-  window.AM_B = b === '' ? undefined : { name: 'b.md', text: b, url: null };
+function boot(text) {
+  window.TREE_START = text === undefined ? undefined : { text };
   return new Component({});
 }
 
 // Walks the template the way the runtime does and returns every {{binding}} that resolves to undefined.
 const template = html.slice(html.indexOf('<x-dc>'), html.indexOf('</x-dc>')).replace(/<!--[\s\S]*?-->/g, '');
+// Like the runtime (support.js), names resolve only from renderVals() and props, never from the component itself.
+// The second argument is accepted for old call sites and ignored.
 function unresolved(vals) {
   const out = new Set();
   const lookup = (scopes, expr) => {
@@ -205,2038 +83,1212 @@ function unresolved(vals) {
   return [...out];
 }
 
-test('every view renders with no unresolved bindings', () => {
-  for (const view of ['map', 'pie', 'source', 'diff']) {
-    const c = boot(LEGACY_A, LEGACY_B);
-    c.setState({ view });
-    assert.deepEqual(unresolved(c.renderVals()), [], view);
+// ---------------------------------------------------------------- the template
+test('every sc-if and sc-for in the template is closed', () => {
+  const stack = [];
+  for (const t of template.matchAll(/<(\/?)(sc-if|sc-for)\b[^>]*>/g)) {
+    if (t[1] === '') stack.push(t[2]);
+    else assert.equal(stack.pop(), t[2]);
+  }
+  assert.deepEqual(stack, []);
+  assert.equal((template.match(/<div\b/g) || []).length, (template.match(/<\/div>/g) || []).length, 'every <div> is closed');
+});
+
+// ---------------------------------------------------------------- boot and layouts
+const SMALL = '# Root\n- A {x:0.5 y:0.7}\n  - A1\n- B #core\n';
+
+test('every layout renders with no unresolved bindings', () => {
+  for (const layout of ['radial', 'tree', 'directory']) {
+    const c = boot(SMALL);
+    c.setState({ layout });
+    assert.deepEqual(unresolved(c.renderVals(), c), [], layout);
+    assert.equal(c.state.nodes.length, 4, layout);
   }
 });
 
-// ---------------------------------------------------------------- the chart
-const MAP3 = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 10\nimpact: -0.5\n\n## B\nslug: b\nimportance: 30\nimpact: 0\n\n## C\nslug: c\nimportance: 60\nimpact: 0.5\n`;
-const chartOf = (c) => c.renderVals().chart;
-const colOf = (c, slug) => chartOf(c).cols.find((x) => x.slug === slug);
-const nodeOf = (c, slug) => (Component.findPath(c.state.map.root, slug) ?? [undefined]).at(-1);
-const ev = (props = {}) => ({
-  pointerType: 'mouse', pointerId: 1, clientX: 0, clientY: 0, metaKey: false, shiftKey: false, key: '',
-  preventDefault() {}, currentTarget: { setPointerCapture() {}, blur() {}, closest: () => ({ getBoundingClientRect: () => ({ width: 1016 }) }) }, ...props,
+// ---------------------------------------------------------------- the file format
+const FULL = `---
+x: Importance
+y: Support
+color: y
+colorMode: split
+colorLeft: #C0392B
+colorRight: #1E8449
+reverse: true
+theme: night
+tag.evidence: fill #E3F1F6; border none solid; opacity 1
+tag.risk: fill none; border #B4500A dashed; opacity 0.6
+tag.core: fill none; border none solid; opacity 1
+---
+
+# Should we adopt X? #core {x:1}
+Line one
+line two
+@ https://example.org/a.md
+- Faster onboarding {x:0.8 y:0.9}
+  - Survey of 40 new hires #evidence
+    https://example.org/survey
+  - Only x {x:0.25}
+- Migration cost #risk {y:0.2}
+  Unset values
+`;
+
+test('round trips a full map', () => {
+  const m = parseMap(FULL);
+  assert.equal(serializeMap(m), FULL);
+  assert.deepEqual(parseMap(serializeMap(m)), m);
+  assert.equal(m.nodes[0], m.root);
+  assert.equal(m.root.note, 'Line one\nline two');
+  assert.deepEqual(m.root.refs, ['https://example.org/a.md']);
+  assert.equal(m.meta.theme, 'night');
+  assert.deepEqual(m.meta.tagStyles.risk, { fill: null, border: '#B4500A', borderStyle: 'dashed', opacity: 0.6 });
 });
 
-test('impact colour helpers', () => {
-  assert.equal(Component.signed(0.8), '+0.80');
-  assert.equal(Component.signed(-0.6), '−0.60');
-  assert.equal(Component.signed(0), '0.00');
-  assert.ok(Component.impactFill(-1).includes('--con') && Component.impactFill(-1).includes('100%'));
-  assert.ok(Component.impactFill(0).includes('12%'));
-});
-
-test('columns are sorted by impact with widths as shares', () => {
-  const cols = chartOf(boot(MAP3)).cols;
-  assert.deepEqual(cols.map((x) => x.slug), ['a', 'b', 'c']);
-  near(cols[2].share, 0.6);
-  assert.deepEqual(cols.map((x) => x.hasDivider), [true, true, false]);
-});
-
-test('a drag changes only the two columns either side of the border', () => {
-  const c = boot(MAP3);
-  const before = Component.serialize(c.state.map);
-  // Width 1016 less two 8px dividers leaves 1000px of columns, so 500px is half the total.
-  colOf(c, 'a').dividerDown(ev({ clientX: 100 }));
-  colOf(c, 'a').dividerMove(ev({ clientX: 600 }));
-  colOf(c, 'a').dividerUp(ev());
-  assert.deepEqual(['a', 'b', 'c'].map((x) => nodeOf(c, x).importance), [38, 2, 60]); // b stops at the 2% floor
-  const changed = Component.serialize(c.state.map).split('\n').filter((l, i) => l !== before.split('\n')[i]);
-  assert.equal(changed.length, 2);
-});
-
-// Shared fixtures for the focus view. DEEP_MAP is r > level-1 > ... > level-6.
-const PREMISE_MAP = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n\n## Q\nslug: q\nkind: premise\n\n### G\nslug: g\nimportance: 1\nimpact: -0.5\n`;
-const DEEP_MAP = `---\ntitle: T\n---\n\n# R\nslug: r\n` + [1, 2, 3, 4, 5, 6].map((n) => `\n${'#'.repeat(n + 1)} L${n}\nslug: level-${n}\nimportance: 1\nimpact: 0.5\n`).join('');
-const imps = (c) => ['a', 'b', 'c'].map((sl) => nodeOf(c, sl).importance);
-const dragDivider = (c, slug, dx) => {
-  colOf(c, slug).dividerDown(ev({ clientX: 0 }));
-  colOf(c, slug).dividerMove(ev({ clientX: dx })); // width 1016 less two dividers is 1000px
-  colOf(c, slug).dividerUp(ev());
-};
-const choose = (c, slug) => colOf(c, slug).down(ev({ metaKey: true }));
-
-test('clicking a column opens it', () => {
-  const c = boot(MAP3);
-  colOf(c, 'b').click(ev());
-  assert.equal(c.state.focus, 'b');
-});
-
-test('chosen columns absorb a resize and the others keep their size', () => {
-  const c = boot(MAP3);
-  choose(c, 'c');
-  assert.ok(colOf(c, 'c').isChosen);
-  dragDivider(c, 'a', 100);
-  assert.deepEqual(imps(c), [20, 30, 50]);
-});
-
-test('with only the left column chosen, the divider resizes the right one from it', () => {
-  const c = boot(MAP3);
-  choose(c, 'a');
-  dragDivider(c, 'a', 100);
-  assert.deepEqual(imps(c), [20, 20, 60]);
-});
-
-test('a border away from the chosen column: the far neighbour and the chosen one change', () => {
-  const c = boot(MAP3);
-  choose(c, 'a');
-  dragDivider(c, 'b', 100);
-  assert.deepEqual(imps(c), [20, 30, 50]); // c shrinks, a grows, b slides
-});
-
-test('with nothing chosen, a drag leaves the columns away from the border alone', () => {
-  const c = boot(MAP3);
-  dragDivider(c, 'a', 500);
-  assert.equal(nodeOf(c, 'c').importance, 60);
-  assert.equal(nodeOf(c, 'b').importance, 2);
-});
-
-test('depth cells line up under their parent column, at every level', () => {
-  const c = boot(DEEP_MAP);
-  const values = Component.allValues(c.state.map.root);
-  const rows = Component.factRows(c.state.map.root, values);
-  const cells = Component.depthCells(rows, values);
-  assert.equal(Math.max(...cells.map((x) => x.row)), 4); // level-2 to level-6, past the old overview's limit of 5 levels
-  for (const cell of cells) assert.ok(cell.x >= 0 && cell.x + cell.w <= 1 + 1e-9);
-});
-
-test('siblings in a depth row share their parent width, sorted by impact', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 50\nimpact: 0\n\n### P\nslug: p\nimportance: 1\nimpact: 1\n\n### Q\nslug: q\nimportance: 3\nimpact: -1\n\n## B\nslug: b\nimportance: 50\nimpact: 1\n`);
-  const values = Component.allValues(c.state.map.root);
-  const cells = Component.depthCells(Component.factRows(c.state.map.root, values), values);
-  assert.deepEqual(cells.map((x) => x.node.slug), ['q', 'p']);
-  near(cells[0].w, 0.375);
-  near(cells[1].x, 0.375);
-  assert.deepEqual(cells.map((x) => x.topIndex), [0, 0]);
-});
-
-test('zero-importance children produce no NaN', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 50\nimpact: 0\n\n### P\nslug: p\nimportance: 0\nimpact: 1\n\n### Q\nslug: q\nimportance: 0\nimpact: -1\n`);
-  const values = Component.allValues(c.state.map.root);
-  for (const cell of Component.depthCells(Component.factRows(c.state.map.root, values), values)) assert.ok(Number.isFinite(cell.x) && Number.isFinite(cell.w));
-});
-
-test('clicking a depth cell opens it', () => {
-  const c = boot(DEEP_MAP);
-  chartOf(c).depth.cells[0].open();
-  assert.equal(c.state.focus, 'level-2');
-});
-
-test('depth cells line up with the dividers and dim under a filter', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 1\nimpact: -1\n\n## B\nslug: b\nimportance: 1\nimpact: 1\n\n### K\nslug: k\nimportance: 1\nimpact: 1\n`);
-  const d = chartOf(c).depth;
-  assert.equal(d.has, true);
-  assert.equal(d.height, 30);
-  assert.equal(d.cells[0].left, 'calc((100% - 8px) * 0.5 + 8px)');
-  assert.equal(d.cells[0].width, 'calc((100% - 8px) * 0.5 - 1px)');
-  c.setState({ q: 'zzz-no-match' });
-  assert.equal(chartOf(c).depth.cells[0].op, 0.22);
-  assert.equal(chartOf(boot(MAP3)).depth.has, false);
-});
-
-test('choices are kept across levels until Clear', () => {
-  const c = boot(MAP3);
-  choose(c, 'a');
-  assert.equal(chartOf(c).chosenCount, 1);
-  c.setFocus('b');
-  assert.deepEqual(c.state.chosenFacts, ['a']);
-  assert.equal(chartOf(c).chosenCount, 1, 'counted from any level');
-  chartOf(c).clearChosen();
-  assert.equal(chartOf(c).chosenCount, 0);
-});
-
-test('a choose on a point that no longer exists is ignored', () => {
-  const c = boot(MAP3);
-  c.setState({ chosenFacts: ['gone'] });
-  assert.equal(chartOf(c).chosenCount, 0);
-  dragDivider(c, 'a', 500);
-  assert.equal(nodeOf(c, 'c').importance, 60);
-});
-
-test('all-zero siblings resize to nothing, with no NaN', () => {
-  assert.deepEqual(Component.borderResize([0, 0, 0], 0, 0.1, []), [0, 0, 0]);
-  assert.deepEqual(Component.borderResize([0, 10, 5], 0, -0.01, []), [0, 10, 5]); // a zero column can't give any up
-});
-
-test('premises can be opened but not chosen', () => {
-  const c = boot(PREMISE_MAP);
-  chartOf(c).cols[0].down(ev({ metaKey: true }));
-  assert.deepEqual(c.state.chosenFacts, []);
-});
-
-test('L toggles a choose from the keyboard, and Ctrl-click stays out of the context menu', () => {
-  const c = boot(MAP3);
-  colOf(c, 'c').key(ev({ key: 'l' }));
-  assert.deepEqual(c.state.chosenFacts, ['c']);
-  colOf(c, 'c').key(ev({ key: 'L' }));
-  assert.deepEqual(c.state.chosenFacts, []);
-  let prevented = false;
-  colOf(c, 'a').menu({ ctrlKey: true, preventDefault() { prevented = true; } });
-  assert.ok(prevented);
-});
-
-test('a choose gesture doesn\'t open the column', () => {
-  const c = boot(MAP3);
-  choose(c, 'a');
-  colOf(c, 'a').click(ev({ metaKey: true }));
-  assert.equal(c.state.focus, 'r');
-});
-
-test('vertical drag changes impact, and re-sorts only on release', () => {
-  const c = boot(MAP3);
-  colOf(c, 'a').down(ev({ clientY: 200 }));
-  colOf(c, 'a').move(ev({ clientY: 200 - 118 })); // up by one unit: −0.5 to +0.5, past b
-  assert.equal(nodeOf(c, 'a').impact, 0.5);
-  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['a', 'b', 'c']);
-  assert.ok(chartOf(c).thermo.has);
-  colOf(c, 'a').up(ev());
-  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['b', 'a', 'c']);
-  assert.equal(chartOf(c).thermo.has, false);
-  colOf(c, 'a').click(ev()); // the click that ends a drag doesn't open it
-  assert.equal(c.state.focus, 'r');
-});
-
-test('impact stays within range when dragged far', () => {
-  const c = boot(MAP3);
-  colOf(c, 'a').down(ev({ clientY: 0 }));
-  colOf(c, 'a').move(ev({ clientY: 5000 }));
-  assert.equal(nodeOf(c, 'a').impact, -1);
-});
-
-test('keyboard impact holds the order until the column loses focus', () => {
-  const c = boot(MAP3);
-  for (let n = 0; n < 12; n++) colOf(c, 'a').key(ev({ key: 'ArrowUp' }));
-  near(nodeOf(c, 'a').impact, 0.1);
-  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['a', 'b', 'c']);
-  colOf(c, 'a').blur(ev());
-  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['b', 'a', 'c']);
-  colOf(c, 'b').key(ev({ key: 'Enter' }));
-  assert.equal(c.state.focus, 'b');
-});
-
-test('keyboard on a divider changes importance', () => {
-  const c = boot(MAP3);
-  colOf(c, 'a').dividerKey(ev({ key: 'ArrowRight' }));
-  assert.deepEqual(imps(c), [12, 28, 60]);
-});
-
-test('touch doesn\'t start drags', () => {
-  const c = boot(MAP3);
-  colOf(c, 'a').down(ev({ pointerType: 'touch', clientY: 200 }));
-  colOf(c, 'a').move(ev({ pointerType: 'touch', clientY: 100 }));
-  assert.equal(nodeOf(c, 'a').impact, -0.5);
-  colOf(c, 'a').dividerDown(ev({ pointerType: 'touch', clientX: 0 }));
-  colOf(c, 'a').dividerMove(ev({ pointerType: 'touch', clientX: 100 }));
-  assert.equal(nodeOf(c, 'a').importance, 10);
-});
-
-test('premise columns can be opened but not dragged', () => {
-  const src = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n\n## Q\nslug: q\nkind: premise\n`;
-  const c = boot(src);
-  const before = c.state.src;
-  colOf(c, 'q').down(ev({ clientY: 100 }));
-  colOf(c, 'q').move(ev({ clientY: 0 }));
-  colOf(c, 'q').up(ev());
-  colOf(c, 'q').dividerDown(ev({ clientX: 0 }));
-  colOf(c, 'q').dividerMove(ev({ clientX: 100 }));
-  colOf(c, 'q').key(ev({ key: 'ArrowUp' }));
-  colOf(c, 'q').dividerKey(ev({ key: 'ArrowRight' }));
-  assert.equal(c.state.src, before);
-  assert.equal(chartOf(c).thermo.has, false);
-  assert.match(c.renderVals().health.label, /^Leading: /);
-  colOf(c, 'q').click(ev());
-  assert.equal(c.state.focus, 'q');
-});
-
-test('a filter dims columns and keeps shares', () => {
-  const c = boot(MAP3);
-  c.setState({ q: 'zzz-no-match' });
-  const cols = chartOf(c).cols;
-  assert.equal(cols.length, 3);
-  near(cols[2].share, 0.6);
-  assert.equal(cols[2].op, 0.22);
-});
-
-test('overlays are markers on the column', () => {
-  const src = MAP3.replace('title: T', 'title: T\nshow-confidence: true\nshow-evidence: true\nshow-good-faith: true').replace('importance: 10', 'importance: 10\nconfidence: 3');
-  const marks = colOf(boot(src), 'a').marks;
-  assert.ok(marks.includes('★★★☆☆') && marks.includes('0') && marks.includes('no basis'), marks);
-});
-
-test('views and resize behaviours switch and show bindings', () => {
-  for (const id of ['width', 'tall', 'area']) {
-    const c = boot(MAP3);
-    chartOf(c).views.find((x) => x.id === id).pick();
-    assert.equal(c.state.chartView, id);
-    assert.deepEqual(unresolved(c.renderVals()), [], id);
-    colOf(c, 'a').down(ev({ clientY: 100 }));
-    colOf(c, 'a').move(ev({ clientY: 0 }));
-    assert.deepEqual(unresolved(c.renderVals()), [], `${id} with thermometer`);
+test('titles that look like syntax survive', () => {
+  for (const title of ['Issue #12', 'Budget {draft}', 'C# and F#']) {
+    const nodes = [{ id: 'p0', parent: null, title: 'R', x: null, y: null, tags: [], note: '', refs: [] },
+      { id: 'p1', parent: 'p0', title, x: null, y: null, tags: [], note: '', refs: [] }];
+    const back = parseMap(serializeMap({ meta: DEFAULT_META, nodes }));
+    assert.equal(back.nodes[1].title, title);
+    assert.deepEqual(back.nodes[1].tags, []);
   }
 });
 
-test('the chart view switch only shows on the bar view', () => {
-  const c = boot(MAP3);
-  assert.equal(c.renderVals().chartViewsShown, true);
-  for (const view of ['pie', 'source', 'diff']) { c.setState({ view }); assert.equal(c.renderVals().chartViewsShown, false, view); }
-});
-
-test('the header menu opens, and closes after a choice', () => {
-  const c = boot(MAP3);
-  c.renderVals().menu.toggle();
-  assert.equal(c.renderVals().menu.open, true);
-  c.renderVals().menu.fresh();
-  assert.equal(c.renderVals().menu.open, false);
-  assert.equal(c.state.newOpen, true);
-});
-
-test('the "+" buttons start at the agreed impacts, with importance 50', () => {
-  const start = (pick) => { const c = boot(MAP3); pick(c.renderVals().add); return c.state.adding.impact; };
-  assert.equal(start((a) => a.left()), -0.5);
-  assert.equal(start((a) => a.right()), 0.5);
-  const c = boot(MAP3);
-  c.renderVals().add.left();
-  c.setState({ draftText: 'New point', draftImpact: -0.25 });
-  c.commitAdd();
-  const n = nodeOf(c, 'new-point');
-  assert.equal(n.importance, 50);
-  assert.equal(n.impact, -0.25);
-  assert.equal(chartOf(c).cols[1].slug, 'new-point'); // between a (-0.5) and b (0)
-  assert.equal(c.state.adding, null);
-  assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
-});
-
-test('an empty point offers one wide "+", starting at 0', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
-  assert.equal(chartOf(c).hasCols, false);
-  assert.equal(chartOf(c).empty, true);
-  assert.equal(c.renderVals().add.wideLabel, 'Add the first point');
-  c.renderVals().add.wide();
-  assert.equal(c.state.adding.impact, 0);
-});
-
-test('on premises every "+" adds an option, with no impact', () => {
-  const c = boot(PREMISE_MAP);
-  c.renderVals().add.left();
-  assert.equal(c.state.adding.isPremise, true);
-  assert.equal(c.renderVals().add.isFact, false);
-  c.setState({ draftText: 'Another' });
-  c.commitAdd();
-  const n = c.state.map.root.children.find((k) => k.text === 'Another');
-  assert.deepEqual([n.kind, n.importance, n.impact], ['premise', null, null]);
-  assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
-});
-
-test('Add option starts the first option on an empty root', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
-  c.renderVals().tb.addPremise();
-  assert.equal(c.state.adding.isPremise, true);
-  c.setState({ draftText: 'One' });
-  c.commitAdd();
-  assert.equal(c.state.map.root.children[0].kind, 'premise');
-});
-
-test('a description is kept, a blank title cannot be added, and read-only maps offer no "+"', () => {
-  const c = boot(MAP3);
-  c.renderVals().add.right();
-  c.setState({ draftText: 'X1', draftDetails: 'Why' });
-  c.commitAdd();
-  assert.equal(nodeOf(c, 'x1').details, 'Why');
-  c.renderVals().add.right();
-  c.setState({ draftText: '   ' });
-  assert.equal(c.renderVals().add.commitDisabled, true);
-  c.setState({ draftText: '?!' });
-  assert.equal(c.renderVals().add.commitDisabled, true);
-  const bad = boot(MAP3);
-  bad.onSrc('not a map');
-  assert.equal(bad.renderVals().add.canOpen, false);
-});
-
-test('Escape cancels the dialog, and Enter in the title commits it', () => {
-  const c = boot(MAP3);
-  c.renderVals().add.right();
-  c.renderVals().add.onDialogKey(ev({ key: 'Escape' }));
-  assert.equal(c.state.adding, null);
-  c.renderVals().add.right();
-  c.renderVals().add.onText({ target: { value: 'Kept' } });
-  c.renderVals().add.onKey(ev({ key: 'Enter' }));
-  assert.ok(nodeOf(c, 'kept'));
-});
-
-// ---------------------------------------------------------------- the details panel
-const panelOf = (c) => c.renderVals().pn;
-const reloaded = (c) => assert.deepEqual(Component.parse(c.state.src).map, c.state.map);
-const NESTED = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 10\nimpact: -0.5\n\n### Kid\nslug: kid\nimportance: 1\nimpact: 1\n\n## B\nslug: b\nimportance: 30\nimpact: 0.5\n`;
-
-test('the share slider changes only this fact, and clamps', () => {
-  near(Component.importanceForShare([10, 30, 60], 0, 0.5), 90);
-  near(Component.importanceForShare([10, 30, 60], 0, 0.99), 810); // clamped to 90%
-  near(Component.importanceForShare([10, 30, 60], 0, 0), 90 * 0.02 / 0.98);
-  assert.equal(Component.importanceForShare([10, 0, 0], 0, 0.5), 10); // no siblings with weight to scale against
-});
-
-test('the slider on the open point writes only its own importance', () => {
-  const c = boot(MAP3);
-  c.setFocus('a');
-  panelOf(c).onShare({ target: { value: '50' } });
-  assert.deepEqual(['a', 'b', 'c'].map((sl) => nodeOf(c, sl).importance), [90, 30, 60]);
-  assert.equal(panelOf(c).pct, '50');
-});
-
-test('an only child can\'t change its share', () => {
-  const c = boot(DEEP_MAP);
-  c.setFocus('level-2');
-  assert.equal(panelOf(c).shareDisabled, true);
-  c.setFocus('r');
-});
-
-test('the health label follows the score, ignoring small values', () => {
-  const label = (n) => Component.healthLabel(n);
-  assert.equal(label(0.05), 'Balanced');
-  assert.equal(label(-0.1), 'Balanced');
-  assert.equal(label(0.4), 'Mostly supported');
-  assert.equal(label(-0.4), 'Mostly contrary');
-});
-
-test('a point with no children reads No points yet, and options show the leader', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
-  assert.equal(c.renderVals().health.label, 'No points yet');
-  assert.equal(c.renderVals().health.has, false);
-  const p = boot(PREMISE_MAP);
-  assert.equal(p.renderVals().health.label, 'Leading: P');
-  assert.equal(p.renderVals().health.signed, '+1.00');
-});
-
-test('the health bar grows from the centre on the side of the score', () => {
-  const c = boot(MAP3); // score is (10 × -0.5 + 60 × 0.5) ÷ 100 = 0.25
-  const h = c.renderVals().health;
-  assert.equal(h.signed, '+0.25');
-  assert.equal(h.left, '50.0');
-  assert.equal(h.width, '12.5');
-  assert.equal(h.fill, 'var(--pro-fill)');
-});
-
-test('editing the root title follows the file title only if they matched', () => {
-  const c = boot(`---\ntitle: R\n---\n\n# R\nslug: r\n`);
-  c.renderVals().pn.onText({ target: { value: 'New' } });
-  assert.equal(c.state.map.title, 'New');
-  const d = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n`);
-  d.renderVals().pn.onText({ target: { value: 'New' } });
-  assert.equal(d.state.map.title, 'T');
-});
-
-test('a slug never changes when text is edited', () => {
-  const c = boot(MAP3);
-  c.setFocus('a');
-  c.renderVals().pn.onText({ target: { value: 'Different' } });
-  assert.equal(nodeOf(c, 'a').slug, 'a');
-});
-
-test('breadcrumbs list every level above, with the whole title and the point\'s values', () => {
-  const c = boot(DEEP_MAP);
-  c.setFocus('level-6');
-  const v = c.renderVals();
-  assert.equal(v.crumbs.length, 6);
-  assert.equal(v.crumbs[0].title, 'R');
-  assert.equal(v.crumbCurrent, 'L6');
-  assert.equal(v.crumbMeta, '+0.50 · 100% of this level');
-  v.crumbs[2].go();
-  assert.equal(c.state.focus, 'level-2');
-  assert.equal(boot(DEEP_MAP).renderVals().hasParent, false);
-});
-
-test('safeFocus falls back to what exists', () => {
-  const t2 = rootOf([fact('a', 1, 0, [fact('b', 1, 0)])]);
-  assert.equal(Component.safeFocus(t2, 'b'), 'b');
-  assert.equal(Component.safeFocus(t2, 'gone'), 'r');
-});
-
-test('the panel shows the point in focus', () => {
-  const c = boot(NESTED);
-  assert.equal(panelOf(c).slug, 'r');
-  colOf(c, 'a').click(ev());
-  assert.equal(panelOf(c).slug, 'a');
-  assert.equal(panelOf(c).text, 'A');
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-
-test('the panel edits the point in focus and saves it', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  panelOf(c).onText({ target: { value: 'A edited' } });
-  panelOf(c).onBy({ target: { value: 'Sam' } });
-  panelOf(c).onDetails({ target: { value: 'Some detail\n\n# hash line' } });
-  panelOf(c).onImpact({ target: { value: '0.75' } });
-  c.renderVals().bc.onBasis({ target: { value: 'Because' } });
-  c.renderVals().bc.stars[2].pick();
-  const n = nodeOf(c, 'a');
-  assert.deepEqual([n.text, n.by, n.details, n.impact, n.basis, n.confidence], ['A edited', 'Sam', 'Some detail\n\n# hash line', 0.75, 'Because', 3]);
-  assert.equal(c.state.map.root.text, 'R');
-  reloaded(c);
-  panelOf(c).onBy({ target: { value: '' } });
-  panelOf(c).onDetails({ target: { value: '' } });
-  assert.deepEqual([nodeOf(c, 'a').by, nodeOf(c, 'a').details], [null, null]);
-  reloaded(c);
-});
-
-test('bad number input is ignored', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  for (const value of ['', 'abc']) panelOf(c).onShare({ target: { value } });
-  panelOf(c).onImpact({ target: { value: '' } });
-  assert.deepEqual([nodeOf(c, 'a').importance, nodeOf(c, 'a').impact], [10, -0.5]);
-  panelOf(c).onImpact({ target: { value: '7' } });
-  assert.equal(nodeOf(c, 'a').impact, 1);
-});
-
-test('text can hold braces but not end in a slug block', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  panelOf(c).onText({ target: { value: 'Uses {braces} fine' } });
-  assert.equal(nodeOf(c, 'a').text, 'Uses {braces} fine');
-  panelOf(c).onText({ target: { value: 'Bad {slug: x}' } });
-  assert.equal(nodeOf(c, 'a').text, 'Uses {braces} fine');
-  assert.ok(c.state.notice);
-});
-
-test('evidence attaches to the point in focus', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  c.renderVals().ev.openAdd();
-  c.renderVals().ev.onName({ target: { value: 'Src' } });
-  c.renderVals().ev.save();
-  assert.equal(nodeOf(c, 'a').refs[0].name, 'Src');
-  reloaded(c);
-});
-
-test('add puts a child under the point in focus', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  c.renderVals().add.right();
-  c.renderVals().add.onText({ target: { value: 'New kid' } });
-  c.renderVals().add.commit();
-  assert.deepEqual(nodeOf(c, 'a').children.map((k) => k.slug), ['kid', 'new-kid']);
-  assert.equal(c.state.focus, 'a');
-  reloaded(c);
-});
-
-test('opening a point makes its children the chart', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['kid']);
-});
-
-test('delete removes the point in focus and moves up to its parent', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  panelOf(c).askDel();
-  panelOf(c).doDel();
-  assert.equal(nodeOf(c, 'a'), undefined);
-  assert.equal(c.state.focus, 'r');
-  assert.equal(panelOf(c).slug, 'r');
-});
-
-test('deleting the focused claim moves up to its parent', () => {
-  const c = boot(NESTED);
-  c.setFocus('a');
-  panelOf(c).doDel();
-  assert.equal(c.state.focus, 'r');
-});
-
-test('the root and premises offer only what they can hold', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n`);
-  let v = c.renderVals();
-  assert.deepEqual([v.pn.canDelete, v.pn.isFact, v.bc.show, v.ev.show], [false, false, false, false]);
-  colOf(c, 'p').click(ev());
-  v = c.renderVals();
-  assert.deepEqual([v.pn.canDelete, v.pn.isFact, v.pn.calculated, v.bc.show, v.ev.show], [true, false, true, false, false]);
-  assert.equal(v.pn.signed, '+1.00');
-  v.pn.onDetails({ target: { value: 'About the premise' } });
-  assert.equal(c.state.map.root.children[0].details, 'About the premise');
-  reloaded(c);
-});
-
-test('a focused point removed from the source falls back cleanly', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  c.onSrc(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## B\nslug: b\nimportance: 30\nimpact: 0.5\n`);
-  assert.equal(panelOf(c).slug, 'r');
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-
-test('a stale focus never crashes the render', () => {
-  const c = boot(NESTED);
-  c.setState({ focus: 'gone' });
-  assert.equal(panelOf(c).slug, 'r');
-});
-
-test('locked maps still open points but can\'t edit', () => {
-  const c = boot(NESTED);
-  colOf(c, 'a').click(ev());
-  c.onSrc('not a map');
-  assert.ok(c.state.srcErrors.length > 0);
-  const v = c.renderVals();
-  assert.equal(v.add.canOpen, false);
-});
-
-test('a new map\'s title can\'t end in a slug block', () => {
-  const c = boot(NESTED);
-  c.renderVals().nm.onTitle({ target: { value: 'Fine' } });
-  c.renderVals().nm.onTitle({ target: { value: 'Bad {slug: x}' } });
-  assert.equal(c.state.newTitle, 'Fine');
-});
-
-// ---------------------------------------------------------------- overview, sunburst and diff
-const mapOf = (root) => ({ title: 'T', display: {}, root });
-const rowsFor = (a, b) => Component.diff(mapOf(rootOf(a)), mapOf(rootOf(b)), 10).rows;
-const rowOf = (rows, slug) => rows.find((r) => r.slug === slug);
-
-test('an impact change alone counts as changed, at threshold ÷ 100', () => {
-  const d = rowOf(rowsFor([fact('a', 1, 0.8)], [fact('a', 1, 0.1)]), 'a');
-  assert.ok(d.changed && !d.flipped);
-  near(d.impactDelta, -0.7);
-  assert.equal(rowOf(rowsFor([fact('a', 1, 0.8)], [fact('a', 1, 0.75)]), 'a').changed, false);
-});
-
-test('a share change counts as changed, in percentage points', () => {
-  const d = rowOf(rowsFor([fact('a', 50, 0), fact('b', 50, 0)], [fact('a', 70, 0), fact('b', 30, 0)]), 'a');
-  assert.ok(d.changed);
-  near(d.shareDelta, 20);
-  near(d.shareA, 50);
-  near(d.shareB, 70);
-});
-
-test('flipped needs strictly opposite signs', () => {
-  assert.equal(rowOf(rowsFor([fact('a', 1, 0.5)], [fact('a', 1, -0.5)]), 'a').flipped, true);
-  const d = rowOf(rowsFor([fact('a', 1, 0.5)], [fact('a', 1, 0)]), 'a');
-  assert.ok(d.changed && !d.flipped);
-});
-
-test('a premise compares on its calculated values', () => {
-  const d = rowOf(rowsFor([prem('p', [fact('x', 1, 1)]), prem('q', [])], [prem('p', [fact('x', 1, -1)]), prem('q', [])]), 'p');
-  assert.equal(d.flipped, true);
-});
-
-test('rows for a fact only on one side have no deltas', () => {
-  const rows = rowsFor([fact('a', 1, 1)], [fact('a', 1, 1), fact('b', 1, 1)]);
-  assert.equal(rowOf(rows, 'b').status, 'onlyB');
-  assert.equal(rowOf(rows, 'b').shareDelta, null);
-  assert.equal(rowOf(rows, 'b').changed, false);
-  assert.equal(rowOf(rows, 'r').changed, false);
-});
-
-test('depth cells colour by impact', () => {
-  assert.equal(chartOf(boot(NESTED)).depth.cells[0].bg, Component.impactFill(1));
-});
-
-test('layout values never collapse', () => {
-  const lv = Component.allValues(rootOf([fact('a', 0, 1), fact('b', 10, 1)]));
-  near(Component.layoutWeight({ slug: 'a' }, lv), 0.01);
-});
-
-test('whole-map shares add up', () => {
-  const root = rootOf([fact('a', 1, 1, [fact('x', 1, 1), fact('y', 3, 1)]), fact('b', 1, -1)]);
-  const sh = Component.shares(mapOf(root), Component.allValues(root));
-  near(sh.get('a'), 0.5);
-  near(sh.get('y'), 0.375);
-});
-
-test('the sunburst colours by impact', () => {
-  const c = boot(MAP3);
-  c.setState({ view: 'pie' });
-  const p = c.renderVals();
-  assert.ok(p.pie.slices.some((b) => b.fill === Component.impactFill(-0.5)));
-  assert.deepEqual(unresolved(p), []);
-});
-
-test('every diff tab, chip and selection renders', () => {
-  for (const diffTab of ['sankey', 'table', 'structure']) {
-    for (const diffFilter of ['all', 'changed', 'onlyA', 'onlyB', 'flipped', 'moved', 'text']) {
-      const c = boot(LEGACY_A, LEGACY_B);
-      c.setState({ view: 'diff', diffTab, diffFilter });
-      assert.deepEqual(unresolved(c.renderVals()), [], `${diffTab}/${diffFilter}`);
-    }
-    const c = boot(LEGACY_A, LEGACY_B);
-    c.setState({ view: 'diff', diffTab, diffSel: 'pay-tax', diffHover: 'pay-tax' });
-    assert.deepEqual(unresolved(c.renderVals()), [], `${diffTab} selected`);
+test('notes that look like structure survive', () => {
+  const note = '- not a child\n@ https://x.org/a.md\n# not a root\n\\back\n  indented';
+  for (const parent of [null, 'p0']) {
+    const nodes = [{ id: 'p0', parent: null, title: 'R', x: null, y: null, tags: [], note: parent === null ? note : '', refs: [] },
+      { id: 'p1', parent: 'p0', title: 'A', x: null, y: null, tags: [], note: parent === null ? '' : note, refs: [] }];
+    const back = parseMap(serializeMap({ meta: DEFAULT_META, nodes }));
+    assert.equal(back.nodes.length, 2);
+    assert.equal(back.nodes[parent === null ? 0 : 1].note, note);
+    assert.deepEqual(back.nodes[0].refs, []);
   }
 });
 
-test('a diff can compare premises', () => {
-  const src = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: 1\n`;
-  const c = boot(src, src.replace('impact: 1', 'impact: -1'));
-  c.setState({ view: 'diff', diffSel: 'p' });
-  const v = c.renderVals();
-  assert.deepEqual(unresolved(v), []);
-  assert.equal(v.diff.leans[0].signed, '—');
-  c.setState({ diffTab: 'table', diffSel: null });
-  assert.ok(c.renderVals().diff.rows.some((r) => r.badges.some((b) => b.label === 'Flipped')));
+test('unknown front matter key is a line-numbered error', () => {
+  assert.throws(() => parseMap('---\nfoo: 1\n---\n# R'), (e) => e.message.startsWith('Line 2:'));
+  assert.throws(() => parseMap('---\ncolorMode: rainbow\n---\n# R'), (e) => e.message.startsWith('Line 2:'));
+  assert.throws(() => parseMap('---\ntag.x: fill red\n---\n# R'), (e) => e.message.startsWith('Line 2:'));
 });
 
-test('the diff table has no NaN', () => {
-  const c = boot(LEGACY_A, LEGACY_B);
-  c.setState({ view: 'diff', diffTab: 'table' });
-  assert.ok(!JSON.stringify(c.renderVals().diff.rows).includes('NaN'));
+test('defaults', () => {
+  assert.deepEqual(parseMap(newMapText()).meta, DEFAULT_META);
+  assert.deepEqual(DEFAULT_META.dims, { x: 'Importance', y: 'Support' });
+  assert.equal(DEFAULT_META.colorDim, 'y');
+  assert.equal(DEFAULT_META.colorMode, 'scale');
+  assert.equal(DEFAULT_META.reverse, false);
+  assert.equal(DEFAULT_META.theme, 'paper');
+  assert.deepEqual(Object.keys(DEFAULT_META.tagStyles), ['evidence']);
 });
 
-// ---------------------------------------------------------------- the port is complete
-const HELPERS = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## Bad fact\nslug: a\nimportance: 1\nimpact: -0.5\n\n## Zero fact\nslug: b\nimportance: 1\nimpact: 0\n\n## Good fact\nslug: c\nimportance: 1\nimpact: 0.5\n`;
-function capturingFetch(run) {
-  const bodies = [];
-  const real = globalThis.fetch;
-  globalThis.fetch = (url, o) => { bodies.push(String(o && o.body)); return new Promise(() => {}); };
-  try { run(); } finally { globalThis.fetch = real; }
-  return bodies.join('\n');
-}
-
-test('check rationale splits by the sign of impact and skips zero', () => {
-  const c = boot(HELPERS);
-  c.setState({ apiKeySaved: 'k' });
-  assert.ok(c.renderVals().rat.show);
-  const sent = capturingFetch(() => c.renderVals().rat.run());
-  assert.ok(sent.includes('Bad fact') && sent.includes('Good fact'), sent);
-  assert.ok(!sent.includes('Zero fact'), sent);
+test('the app starts on the map it was given, with its settings', () => {
+  const c = boot(FULL);
+  assert.deepEqual(c.state.dims, { x: 'Importance', y: 'Support' });
+  assert.equal(c.state.colorDim, 'y');
+  assert.equal(c.state.theme, 'night');
+  assert.deepEqual(app.Component.prototype.metaOf.call(c), parseMap(FULL).meta);
 });
 
-test('research describes a fact by the sign of its impact', () => {
-  const c = boot(HELPERS);
-  c.setState({ orKeySaved: 'k' });
-  colOf(c, 'a').click(ev());
-  assert.ok(capturingFetch(() => c.renderVals().ev.research()).includes('against'));
-  c.setFocus('r');
-  colOf(c, 'c').click(ev());
-  assert.ok(capturingFetch(() => c.renderVals().ev.research()).includes('for'));
-});
-
-test('no pro/con model remains outside the old-format reader', () => {
-  const live = m[1].replace(/  static parseLegacy[\s\S]*?  static parseRef/, '  static parseRef').replace(/  static parseAttrs[\s\S]*?  static serialize/, '  static serialize');
-  // l.side and b.side are the Sankey's A/B side of a link or bar, not a node's pro/con.
-  for (const dead of [/(?<!\b[lb])\.side\b/, /\.weight\b/, /withLegacyFields/, /scoreAll/, /orderedKids/, /pros and cons/i]) assert.ok(!dead.test(live), String(dead));
-});
-
-test('the format help describes the current format', () => {
-  const tpl = template;
-  assert.ok(tpl.includes('importance: 60') && tpl.includes('kind: premise'));
-  assert.ok(!tpl.includes('[+]') && !tpl.includes('[*]'));
-  assert.ok(tpl.includes('Compare options instead of one thesis'));
-});
-
-test('a new map takes its slug from the title, with an optional description', () => {
-  const c = boot();
-  c.setState({ newTitle: 'Where to?', newDesc: '', newOptions: [] });
-  c.createMap();
-  assert.equal(c.state.map.root.slug, 'where-to');
-  assert.equal(c.state.map.root.text, 'Where to?');
-  assert.equal(c.state.map.title, 'Where to?');
-  assert.equal(c.state.map.root.details, null);
-  assert.equal(Component.parse(c.state.src).errors.length, 0);
-  reloaded(c);
-});
-
-test('a description becomes the root details', () => {
-  const c = boot();
-  c.setState({ newTitle: 'T1', newDesc: 'Why it matters', newOptions: [] });
-  c.createMap();
-  assert.equal(c.state.map.root.details, 'Why it matters');
-});
-
-test('options become premises with unique slugs, and blanks are ignored', () => {
-  const c = boot();
-  c.setState({ newTitle: 'Lisbon', newDesc: '', newOptions: ['Lisbon', 'lisbon', '  ', 'Berlin'] });
-  c.createMap();
-  const kids = c.state.map.root.children;
-  assert.deepEqual(kids.map((k) => k.kind), ['premise', 'premise', 'premise']);
-  const slugs = [c.state.map.root.slug, ...kids.map((k) => k.slug)];
-  assert.equal(new Set(slugs).size, 4);
-  assert.equal(Component.parse(c.state.src).errors.length, 0);
-  reloaded(c);
-});
-
-test('Create is disabled until the title has a letter or digit', () => {
-  const c = boot();
-  c.setState({ newOpen: true, newTitle: '?!' });
-  assert.equal(c.renderVals().nm.createDisabled, true);
-  c.setState({ newTitle: 'a' });
-  assert.equal(c.renderVals().nm.createDisabled, false);
-});
-
-test('the card can add and remove options', () => {
-  const c = boot();
-  c.renderVals().nm.startOptions();
-  assert.equal(c.renderVals().nm.options.length, 2);
-  c.renderVals().nm.addOption();
-  c.renderVals().nm.options[1].onChange({ target: { value: 'Mid' } });
-  c.renderVals().nm.options[0].remove();
-  assert.deepEqual(c.state.newOptions, ['Mid', '']);
-});
-
-test('with no map open the new-map card shows without Cancel', () => {
-  const c = boot('');
-  assert.equal(c.renderVals().hasMap, false);
-  assert.equal(c.renderVals().nm.open, true);
-  assert.equal(c.renderVals().nm.canCancel, false);
-  const d = boot(MAP3);
-  assert.equal(d.renderVals().nm.open, false);
-  d.setState({ newOpen: true });
-  assert.equal(d.renderVals().nm.canCancel, true);
-  assert.equal(d.renderVals().pageDisplay, 'none');
-});
-
-test('an edit turns an old-format source into the new format', () => {
-  const c = boot(LEGACY_A);
-  assert.ok(c.state.src.includes('[+]'));
-  colOf(c, 'pay-tax').click(ev());
-  panelOf(c).onImpact({ target: { value: '0.5' } });
-  assert.ok(!c.state.src.includes('[+]') && c.state.src.includes('impact: 0.5'));
-  reloaded(c);
-});
-
-test('the examples are migrated and keep every fact', () => {
-  for (const [f, fixture] of [['map', LEGACY_A], ['obi', LEGACY_B]]) {
-    const src = fs.readFileSync(`examples/votes-at-16/${f}.md`, 'utf8');
-    assert.ok(!src.includes('[+]') && !src.includes('[-]'), f);
-    const { map, errors } = Component.parse(src);
-    assert.deepEqual(errors, []);
-    assert.deepEqual(map, Component.parse(fixture).map, f);
-  }
-});
-
-// ---------------------------------------------------------------- findings from the whole-branch review
-const pieOf = (c) => { c.setState({ view: 'pie' }); return c.renderVals().pie; };
-const ctlsOf = (c) => pieOf(c).slices.flatMap((x) => x.ctls);
-const editing = (c) => { pieOf(c).toggleEdit(); return c; };
-const movesOf = (c, slug) => { pieOf(c).slices.find((x) => x.slug === slug).enter(); return pieOf(c).slices.find((x) => x.slug === slug).moves; };
-
-test('the hover buttons only show in edit mode, toggled next to the pin', () => {
-  const c = boot(MAP3);
-  assert.equal(pieOf(c).editPressed, 'false');
-  assert.equal(movesOf(c, 'b').length, 0);
-  assert.equal(ctlsOf(c).length, 0);
-  editing(c);
-  assert.equal(pieOf(c).editPressed, 'true');
-  assert.equal(ctlsOf(c).length, 3);
-  assert.equal(pieOf(c).slices.find((x) => x.slug === 'b').moves.length, 2);
-  const at = template.indexOf('{{pie.toggleEdit}}');
-  assert.ok(at > 0 && Math.abs(at - template.lastIndexOf('{{pie.togglePin}}')) < 2000);
-  assert.ok(!template.includes('{{pie.edges}}'), 'no hot zone on the edges');
-});
-
-test('a hovered inner slice gets a move handle at each edge it shares, none at the wrap', () => {
-  const c = editing(boot(MAP3));
-  assert.deepEqual(['a', 'b', 'c'].map((x) => movesOf(c, x).length), [1, 2, 1]);
-  const p = editing(boot(PREMISE_MAP));
-  assert.equal(movesOf(p, pieOf(p).slices[0].slug).length, 0);
-  const d = editing(boot(DEEP_MAP));
-  assert.equal(movesOf(d, pieOf(d).slices.find((x) => x.depth > 1).slug).length, 0);
-});
-
-test('a move handle moves its edge: the two slices either side trade', () => {
-  const c = editing(boot(MAP3));
-  movesOf(c, 'b')[0].key(ev({ key: 'ArrowRight' }));
-  assert.deepEqual(imps(c), [12, 28, 60]);
-});
-
-test('angleDelta takes the short way around', () => {
-  near(Component.angleDelta(3, -3), 2 * Math.PI - 6);
-  near(Component.angleDelta(-3, 3), 6 - 2 * Math.PI);
-  near(Component.angleDelta(0, 0.5), 0.5);
-});
-
-test('dragging a slice edge takes from the chosen slices only', () => {
-  const c = boot(MAP3);
-  pieOf(c).slices.find((x) => x.slug === 'c').down(ev({ metaKey: true }));
-  assert.deepEqual(c.state.chosenFacts, ['c']);
-  editing(c);
-  const rect = { left: 0, top: 0, width: 200, height: 200 };
-  const e = (x, y) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) } });
-  const handle = movesOf(c, 'a')[0];
-  handle.down(e(100, 0)); // straight up from the centre
-  c.renderVals().pie.leave();
-  assert.equal(pieOf(c).slices.find((x) => x.slug === 'a').moves.length, 1, 'the handle stays while dragging');
-  handle.move(e(200, 100)); // a quarter turn clockwise, or 0.25 of the total
-  handle.up(e(200, 100));
-  assert.equal(nodeOf(c, 'b').importance, 30);
-  near(nodeOf(c, 'a').importance + nodeOf(c, 'c').importance, 70);
-  assert.ok(nodeOf(c, 'a').importance > 10);
-});
-
-test('with nothing chosen, a slice edge trades its two slices, and arrows work', () => {
-  const c = editing(boot(MAP3));
-  movesOf(c, 'a')[0].key(ev({ key: 'ArrowRight' }));
-  assert.deepEqual(imps(c), [12, 28, 60]);
-});
-
-test('slices on any ring can be chosen, and a chosen slice shows it', () => {
-  const c = boot(DEEP_MAP);
-  const deep = pieOf(c).slices.find((x) => x.depth > 1);
-  deep.down(ev({ metaKey: true }));
-  assert.deepEqual(c.state.chosenFacts, [deep.slug]);
-  const inner = pieOf(c).slices.find((x) => x.depth === 1);
-  inner.key(ev({ key: 'l' }));
-  assert.deepEqual(c.state.chosenFacts, [deep.slug, 'level-1']);
-  assert.equal(pieOf(c).slices.find((x) => x.slug === deep.slug).isChosen, true);
-  assert.equal(pieOf(c).hatches.length, 2);
-});
-
-const TWO_DEEP = `---\ntitle: T\n---\n\n# R\nslug: r\n\n## A\nslug: a\nimportance: 50\nimpact: -0.5\n\n### X\nslug: x\nimportance: 10\nimpact: -0.6\n\n### Y\nslug: y\nimportance: 30\nimpact: 0\n\n### Z\nslug: z\nimportance: 60\nimpact: 0.6\n\n## B\nslug: b\nimportance: 50\nimpact: 0.5\n`;
-
-test('a deeper ring gets move handles that trade only among its own chosen siblings', () => {
-  const c = editing(boot(TWO_DEEP));
-  assert.deepEqual(['x', 'y', 'z'].map((v) => movesOf(c, v).length), [1, 2, 1]);
-  pieOf(c).slices.find((v) => v.slug === 'z').down(ev({ metaKey: true }));
-  movesOf(c, 'x')[0].key(ev({ key: 'ArrowRight' }));
-  assert.equal(nodeOf(c, 'y').importance, 30);
-  assert.equal(nodeOf(c, 'a').importance, 50);
-  near(nodeOf(c, 'x').importance + nodeOf(c, 'z').importance, 70);
-  assert.ok(nodeOf(c, 'x').importance > 10);
-});
-
-test('dragging a deeper handle follows the pointer around its parent\'s arc', () => {
-  const c = editing(boot(TWO_DEEP));
-  pieOf(c).slices.find((v) => v.slug === 'z').down(ev({ metaKey: true }));
-  const rect = { left: 0, top: 0, width: 200, height: 200 };
-  const e = (x, y) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) } });
-  const handle = movesOf(c, 'x')[0];
-  handle.down(e(100, 0));
-  handle.move(e(200, 100)); // a quarter turn: half of A's half of the circle
-  handle.up(e(200, 100));
-  near(nodeOf(c, 'x').importance, 60);
-  near(nodeOf(c, 'z').importance, 10);
-});
-
-test('a depth-row cell can be chosen with Ctrl-click without opening it', () => {
-  const c = boot(TWO_DEEP);
-  c.setState({ view: 'map' });
-  const cellOf = (slug) => chartOf(c).depth.cells.find((d) => d.slug === slug);
-  cellOf('y').down(ev({ metaKey: true }));
-  cellOf('y').open(ev({ metaKey: true }));
-  assert.equal(c.state.focus, 'r');
-  assert.deepEqual(c.state.chosenFacts, ['y']);
-  assert.equal(cellOf('y').pressed, 'true');
-  cellOf('y').key(ev({ key: 'l' }));
-  assert.deepEqual(c.state.chosenFacts, []);
-  cellOf('y').down(ev());
-  cellOf('y').open(ev());
-  assert.equal(c.state.focus, 'y');
-});
-
-test('a choose gesture on a slice doesn\'t open it, but a click does', () => {
-  const c = boot(MAP3);
-  const a = pieOf(c).slices.find((x) => x.slug === 'a');
-  a.down(ev({ metaKey: true }));
-  a.pick(ev({ metaKey: true }));
-  assert.equal(c.state.focus, 'r');
-  a.down(ev());
-  a.pick(ev());
-  assert.equal(c.state.focus, 'a');
-});
-
-test('hovering shows a "+" each side, and a leaf gets one more for a first child', () => {
-  const c = editing(boot(MAP3));
-  pieOf(c).slices[0].enter();
-  const ctls = ctlsOf(c);
-  assert.equal(ctls.length, 3);
-  ctls[0].add();
-  assert.equal(c.state.adding.parent, 'r');
-  assert.equal(c.state.adding.impact, -0.75);
-  c.setState({ adding: null });
-  ctlsOf(c)[1].add();
-  assert.equal(c.state.adding.impact, -0.25);
-  c.setState({ adding: null });
-  ctlsOf(c)[2].add();
-  assert.equal(c.state.adding.parent, 'a');
-  assert.equal(c.state.adding.impact, 0);
-});
-
-test('a slice with children gets no leaf "+"; premise siblings have no impact', () => {
-  const c = editing(boot(DEEP_MAP));
-  pieOf(c).slices.find((x) => x.hasChildren).enter();
-  assert.equal(ctlsOf(c).length, 2);
-  const p = editing(boot(PREMISE_MAP));
-  pieOf(p).slices[0].enter();
-  ctlsOf(p)[0].add();
-  assert.equal(p.state.adding.isPremise, true);
-});
-
-test('read-only maps have no edit button, handles or "+" on the pie', () => {
-  const c = boot(MAP3);
-  c.setState({ view: 'pie', pieEdit: true, srcErrors: [{ line: 1, message: 'x' }] });
-  assert.equal(c.renderVals().pie.canEdit, false);
-  c.renderVals().pie.slices[1].enter();
-  assert.equal(c.renderVals().pie.slices.flatMap((x) => [...x.ctls, ...x.moves]).length, 0);
-});
-
-test('zero-share premises draw no NaN', () => {
-  const c = boot(`---\ntitle: T\n---\n\n# R\nslug: r\n\n## P\nslug: p\nkind: premise\n\n### F\nslug: f\nimportance: 1\nimpact: -1\n\n## Q\nslug: q\nkind: premise\n\n### G\nslug: g\nimportance: 1\nimpact: -1\n`);
-  for (const x of pieOf(c).slices) assert.ok(!x.d.includes('NaN'));
-});
-
-test('a slice\'s "+" buttons come right after it in Tab order, above the later slices', () => {
-  const slices = template.indexOf('{{pie.slices}}');
-  const buttons = template.indexOf('{{s.ctls}}');
-  assert.ok(slices < buttons && buttons < template.indexOf('{{pie.hatches}}'));
-  const c = editing(boot(MAP3));
-  pieOf(c).slices[1].enter();
-  assert.deepEqual(pieOf(c).slices.map((x) => x.ctls.length), [0, 3, 0]);
-  c.setState({ hover: 'a' });
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-
-test('a right-button press starts no drag', () => {
-  const c = boot(MAP3);
-  colOf(c, 'a').down(ev({ button: 2, clientY: 200 }));
-  colOf(c, 'a').move(ev({ clientY: 100 }));
-  assert.equal(nodeOf(c, 'a').impact, -0.5);
-  colOf(c, 'a').dividerDown(ev({ button: 2, clientX: 0 }));
-  colOf(c, 'a').dividerMove(ev({ clientX: 100 }));
-  assert.equal(nodeOf(c, 'a').importance, 10);
-  const rect = { left: 0, top: 0, width: 200, height: 200 };
-  const e = (x, y, extra = {}) => ev({ clientX: x, clientY: y, currentTarget: { setPointerCapture() {}, closest: () => ({ getBoundingClientRect: () => rect }) }, ...extra });
-  editing(c);
-  const handle = movesOf(c, 'a')[0];
-  handle.down(e(100, 0, { button: 2 }));
-  handle.move(e(200, 100));
-  assert.equal(nodeOf(c, 'a').importance, 10);
-});
-
-test('title and description get enough rows without field-sizing', () => {
-  assert.equal(Component.textRows('', 48), 1);
-  assert.equal(Component.textRows('short', 48), 1);
-  assert.equal(Component.textRows('x'.repeat(100), 48), 3);
-  assert.equal(Component.textRows('one\ntwo\nthree', 90), 3);
-  const c = boot(MAP3);
-  c.setFocus('a');
-  c.renderVals().pn.onDetails({ target: { value: 'x'.repeat(200) } });
-  assert.equal(c.renderVals().pn.detailsRows, 3);
-  assert.equal(c.renderVals().pn.titleRows, 1);
-});
-
-test('pinning keeps the pie centred while a clicked slice shows its details', () => {
-  const c = boot(NESTED);
-  c.setState({ view: 'pie' });
-  assert.equal(pieOf(c).pinPressed, 'false');
-  pieOf(c).togglePin();
-  assert.equal(pieOf(c).pinPressed, 'true');
-  const a = pieOf(c).slices.find((x) => x.slug === 'a');
-  a.down(ev());
-  a.pick(ev());
-  assert.equal(c.state.focus, 'a');
-  assert.equal(panelOf(c).text, 'A');
-  assert.ok(pieOf(c).slices.some((x) => x.slug === 'b'), 'still shows the siblings');
-  assert.equal(pieOf(c).slices.find((x) => x.slug === 'a').isSelected, true);
-  pieOf(c).togglePin();
-  assert.deepEqual(pieOf(c).slices.map((x) => x.slug), ['kid']);
-});
-
-test('selecting a leaf while pinned keeps the pie, with no wide "+"', () => {
-  const c = boot(NESTED);
-  pieOf(c).togglePin();
-  c.setFocus('kid');
-  assert.equal(chartOf(c).pieShown, true);
-  assert.equal(chartOf(c).empty, false);
-  assert.equal(chartOf(c).hintShown, true);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-
-test('a pinned pie resizes and chooses on its own ring, whichever slice is selected', () => {
-  const c = boot(NESTED);
-  pieOf(c).togglePin();
-  pieOf(c).slices.find((x) => x.slug === 'b').key(ev({ key: 'l' }));
-  c.setFocus('a');
-  assert.deepEqual(c.state.chosenFacts, ['b']);
-  assert.equal(chartOf(c).chosenCount, 1);
-  editing(c);
-  assert.equal(movesOf(c, 'a').length, 1);
-  movesOf(c, 'a')[0].key(ev({ key: 'ArrowRight' }));
-  assert.ok(nodeOf(c, 'b').importance < 30); // the chosen slice absorbs
-  near(nodeOf(c, 'a').importance + nodeOf(c, 'b').importance, 40);
-});
-
-test('a stale or deleted pin falls back to following the focus', () => {
-  const c = boot(NESTED);
-  c.setFocus('a');
-  pieOf(c).togglePin();
-  panelOf(c).askDel();
-  panelOf(c).doDel();
-  assert.equal(pieOf(c).pinPressed, 'false');
-  c.setState({ pinned: 'gone' });
-  assert.equal(pieOf(c).pinPressed, 'false');
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-
-test('a new map or file drops the pin', () => {
-  const c = boot(NESTED);
-  pieOf(c).togglePin();
-  c.setState({ newTitle: 'Fresh', newDesc: '', newOptions: [] });
-  c.createMap();
-  assert.equal(c.state.pinned, null);
-});
-
-test('slices wide enough carry a signed label, and thin ones don\'t', () => {
-  const c = boot(MAP3);
-  const labels = pieOf(c).labels;
-  assert.equal(labels.length, 3);
-  assert.ok(labels.some((l) => l.text === Component.signed(-0.5)));
-  const thin = boot(MAP3.replace('importance: 10', 'importance: 0.5'));
-  assert.equal(pieOf(thin).labels.length, 2);
-  for (const l of labels) assert.ok(Number.isFinite(Number(l.x)) && Number.isFinite(Number(l.y)));
-});
-
-test('the pie has no "+" buttons beside it, and sits next to the details', () => {
-  const start = template.indexOf('{{chart.pieShown}}');
-  const pieBlock = template.slice(start, template.indexOf('{{chart.hintShown}}'));
-  assert.ok(!pieBlock.includes('{{add.left}}') && !pieBlock.includes('{{add.right}}'));
-  const c = boot(MAP3);
-  assert.equal(c.renderVals().focusLayout.dir, 'column');
-  c.setState({ view: 'pie' });
-  assert.equal(c.renderVals().focusLayout.dir, 'row');
-});
-
-test('switching between bar and pie keeps choices', () => {
-  const c = boot(MAP3);
-  colOf(c, 'c').down(ev({ metaKey: true }));
-  c.setState({ view: 'pie' });
-  assert.deepEqual(c.state.chosenFacts, ['c']);
-  assert.equal(c.renderVals().pie.slices.find((x) => x.slug === 'c').isChosen, true);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-
-test('the pie sits under the current point, and the bar only shows on its view', () => {
-  const c = boot(MAP3);
-  assert.deepEqual([chartOf(c).barShown, chartOf(c).pieShown], [true, false]);
-  c.setState({ view: 'pie' });
-  assert.deepEqual([chartOf(c).barShown, chartOf(c).pieShown], [false, true]);
-  assert.equal(c.renderVals().isFocusView, true);
-  assert.equal(c.renderVals().pie.center, '+0.25');
-  assert.equal(pieOf(boot(PREMISE_MAP)).showCenter, false);
-});
-
-test('column text stays on a readable backing at every impact', () => {
-  const c = boot(MAP3.replace('impact: 0.5', 'impact: 0.6'));
-  const col = colOf(c, 'c');
-  assert.equal(col.ink, 'var(--ink)');
-  const filled = template.slice(template.indexOf('{{c.isFilled}}'), template.indexOf('{{c.hasDivider}}'));
-  assert.equal((filled.match(/color-mix\(in srgb, var\(--card\) 80%, transparent\)/g) || []).length, 2);
-});
-
-test('ending an impact drag drops keyboard focus, so arrows can\'t edit a neighbour', () => {
-  const c = boot(MAP3);
-  let blurred = 0;
-  const target = { setPointerCapture() {}, blur() { blurred++; } };
-  colOf(c, 'a').down(ev({ clientY: 200, currentTarget: target }));
-  colOf(c, 'a').move(ev({ clientY: 82, currentTarget: target }));
-  colOf(c, 'a').up(ev({ currentTarget: target }));
-  assert.equal(blurred, 1);
-  const plain = boot(MAP3);
-  colOf(plain, 'a').down(ev({ clientY: 200, currentTarget: target }));
-  colOf(plain, 'a').up(ev({ currentTarget: target }));
-  assert.equal(blurred, 1); // a plain click keeps focus
-});
-
-
-test('opening a diff row goes through the normal focus change', () => {
-  const c = boot(LEGACY_A, LEGACY_B);
-  c.setState({ view: 'map' });
-  colOf(c, 'pay-tax').click(ev());
-  c.setState({ view: 'diff', diffTab: 'table', chosenFacts: ['pay-tax'] });
-  c.renderVals().diff.rows.find((r) => r.text.startsWith('Teenagers don')).open();
-  assert.equal(c.state.view, 'map');
-  assert.equal(c.state.focus, 'inexperience');
-  assert.deepEqual(c.state.chosenFacts, ['pay-tax'], 'choices are kept across levels');
-});
-
-// ---------------------------------------------------------------- decision record
-const REC = `---\ntitle: Store\ntemplate: decision-record\ntheme: paper\naccent: blue\nshow-confidence: false\nshow-evidence: false\nshow-good-faith: false\n---\n\n# Store\nslug: store\n\n## Reliability\nslug: reliability\nimportance: 40\n\n### Durability\nslug: durability\nweight: 50\n\n#### Postgres\noption: postgres\nscore: 8\n\n##### Runbooks exist\nslug: runbooks\nweight: 60\nby: Sam\nconfidence: 4\nbasis: We run 14 clusters\n\n- [ref] [Wiki](https://example.com) — the runbooks\n\n#### DynamoDB\noption: dynamodb\nscore: 9\n\n### Ops\nslug: ops\nweight: 50\n\n#### Postgres\noption: postgres\nscore: 6\n\n## Cost\nslug: cost\nimportance: 60\n\n### Bill\nslug: bill\nweight: 1\n\n#### DynamoDB\noption: dynamodb\nscore: 4\n`;
-const recOf = (src = REC) => Component.parse(src).map;
-
-test('a record round-trips byte for byte', () => assert.equal(Component.serialize(recOf()), REC));
-test('maps never gain a template line', () => {
-  for (const f of [NEW, LEGACY_A]) assert.ok(!Component.serialize(Component.parse(f).map).includes('template:'));
-});
-test('goal scores weigh criteria by share, and a missing score is 0', () => {
-  const g = Component.recordModel(recOf()).goals[0];
-  near(g.goalScores.postgres, 0.5 * 8 + 0.5 * 6);
-  near(g.goalScores.dynamodb, 0.5 * 9 + 0.5 * 0);
-  assert.equal(g.winner, 'postgres');
-});
-test('overall: an option missing from a goal scores 0 there, and wins are listed', () => {
-  const r = Component.recordModel(recOf()).ranking;
-  near(r.find((x) => x.option === 'postgres').total, 0.4 * 7);
-  near(r.find((x) => x.option === 'dynamodb').total, 0.4 * 4.5 + 0.6 * 4);
-  assert.deepEqual(r.map((x) => x.option), ['dynamodb', 'postgres']);
-  assert.deepEqual(r[0].wins, ['cost']);
-});
-test('an overlay replaces goal and criterion weights; importance 0 turns a goal off', () => {
-  const m = Component.recordModel(recOf(), { cost: 0, ops: 0, nope: 5 });
-  assert.equal(m.goals[1].on, false);
-  near(m.ranking.find((x) => x.option === 'postgres').total, 8);
-});
-test('record parse errors', () => {
-  const bad = (from, to) => Component.parse(REC.replace(from, to)).errors.map((e) => e.msg).join(' | ');
-  assert.match(bad('score: 8', 'score: 11'), /score "11" must be a whole number from 0 to 10/);
-  assert.match(bad('score: 8', 'score: 7.5'), /whole number/);
-  assert.match(bad('#### DynamoDB\noption: dynamodb\nscore: 4', '#### Dynamo\noption: dynamodb\nscore: 4'), /option "dynamodb" is called "DynamoDB" elsewhere/);
-  assert.match(bad('option: postgres\nscore: 6', 'score: 6'), /missing option/);
-  assert.match(bad('weight: 60', 'impact: 1'), /unknown property "impact"/);
-  assert.match(bad('template: decision-record', 'template: other'), /template "other"/);
-});
-test('newRecord has one goal with one criterion, slugs from the title', () => {
-  const m = Component.newRecord('Pick a store', '');
-  assert.equal(m.template, 'record');
-  assert.equal(m.root.slug, 'pick-a-store');
-  assert.deepEqual(Component.parse(Component.serialize(m)).errors, []);
+test('a loaded ref adds its nodes once, under the ref root', () => {
+  const own = parseMap('# R\n@ https://a.org/m.md\n').nodes;
+  const tree = parseMap('# Theirs\n- T1\n');
+  const g = app.composeGraph(own, { [own[0].id + ' https://a.org/m.md']: { status: 'loaded', tree } });
+  assert.deepEqual(g.map((n) => n.title), ['R', 'Theirs', 'T1']);
 });
 
 // ---------------------------------------------------------------- undo and redo
-test('undo and redo step through edits; a drag is one step', () => {
-  const c = boot(MAP3);
-  dragDivider(c, 'a', 100);
-  colOf(c, 'c').key(ev({ key: 'ArrowUp' }));
-  const afterBoth = Component.serialize(c.state.map);
-  c.undo();
-  assert.equal(nodeOf(c, 'c').impact, 0.5);
-  c.undo();
-  assert.deepEqual(imps(c), [10, 30, 60]);
-  assert.equal(c.renderVals().undoBtn.disabled, true);
-  c.redo(); c.redo();
-  assert.equal(Component.serialize(c.state.map), afterBoth);
-});
-test('a new edit clears redo; typing in one field is one step', () => {
-  const c = boot(MAP3);
-  c.setFocus('a');
-  const pn = () => c.renderVals().pn;
-  pn().onText({ target: { value: 'A1' } });
-  pn().onText({ target: { value: 'A12' } });
-  pn().onTextBlur();
-  c.undo();
-  assert.equal(nodeOf(c, 'a').text, 'A');
-  c.redo();
-  c.setFocus('r'); // the bar shows the top level again
-  dragDivider(c, 'a', 50);
-  assert.equal(c.renderVals().redoBtn.disabled, true);
-});
-test('undo never crosses into another file', () => {
-  const c = boot(MAP3);
-  dragDivider(c, 'a', 100);
-  c.loadA(NEW, 'new.md');
-  assert.equal(c.renderVals().undoBtn.disabled, true);
-  c.undo();
-  assert.equal(c.state.map.root.slug, 'root');
-});
-test('⌘Z outside text fields undoes; inside one the browser handles it', () => {
-  const c = boot(MAP3);
-  dragDivider(c, 'a', 100);
-  const dragged = imps(c);
-  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { tagName: 'TEXTAREA' }, preventDefault() {} });
-  assert.deepEqual(imps(c), dragged); // the target was a text field
-  c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target: { tagName: 'DIV' }, preventDefault() {} });
-  assert.deepEqual(imps(c), [10, 30, 60]);
+const key = (props) => ({ key: 'z', metaKey: true, ctrlKey: false, shiftKey: false, target: {}, preventDefault() {}, ...props });
+
+test('undo and redo cover nodes and meta', () => {
+  const c = boot(SMALL);
+  const start = c.state.nodes;
+  const a = c.state.nodes[1].id;
+  c.patchNode(a, { title: 'Renamed' });
+  c.setState({ dims: { ...c.state.dims, x: 'Cost' } });
+  c.addChild(a);
+  assert.equal(c.state.nodes.length, 5);
+  c.undo(); c.undo(); c.undo();
+  assert.equal(c.state.nodes, start);
+  assert.equal(c.state.dims.x, 'Importance');
+  c.redo(); c.redo(); c.redo();
+  assert.equal(c.state.nodes.length, 5);
+  assert.equal(c.state.nodes[1].title, 'Renamed');
+  assert.equal(c.state.dims.x, 'Cost');
 });
 
-// ---------------------------------------------------------------- record views
-test('New can create a decision record, which opens on the Goals step', () => {
-  const c = boot(MAP3);
-  const nm = () => c.renderVals().nm;
-  nm().pickRecord();
-  nm().onTitle({ target: { value: 'Pick a store' } });
-  nm().create();
-  assert.equal(c.state.map.template, 'record');
-  assert.equal(c.state.view, 'record');
-  assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Overview', 'Record', 'Markdown source', 'Compare']);
-  assert.equal(c.renderVals().isRecLevel.goals, true); // new records start on the Goals step
+test('a drag is one step', () => {
+  const c = boot(SMALL);
+  const a = c.state.nodes[1].id;
+  for (const x of [0.1, 0.2, 0.3]) c.edit((s) => ({ nodes: s.nodes.map((n) => (n.id === a ? { ...n, x } : n)) }), 'drag');
+  c.endStep();
+  assert.equal(c.state.nodes[1].x, 0.3);
+  c.undo();
+  assert.equal(c.state.nodes[1].x, 0.5);
+  assert.equal(c.state.history.past.length, 0);
 });
-test('every record view renders with no unresolved bindings, and maps keep their views', () => {
-  for (const view of ['overall', 'goals', 'source', 'compare']) {
-    const c = boot(REC);
-    c.setState({ view });
-    assert.deepEqual(unresolved(c.renderVals()), [], view);
+
+test('typing merges into one step, and the next kind of edit is its own step', () => {
+  const c = boot(SMALL);
+  const a = c.state.nodes[1].id;
+  c.patchNode(a, { title: 'B' }, 'title:' + a);
+  c.patchNode(a, { title: 'Bo' }, 'title:' + a);
+  c.addChild(a);
+  c.undo();
+  assert.equal(c.state.nodes.length, 4);
+  assert.equal(c.state.nodes[1].title, 'Bo');
+  c.undo();
+  assert.equal(c.state.nodes[1].title, 'A');
+});
+
+test('an edit marks the map changed', () => {
+  const c = boot(SMALL);
+  assert.equal(c.state.dirty, false);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  assert.equal(c.state.dirty, true);
+});
+
+test('⌘Z and ⌘⇧Z, but not in a text field', () => {
+  const c = boot(SMALL);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  c.onGlobalKey(key({ target: { tagName: 'INPUT', type: 'text' } }));
+  assert.equal(c.state.nodes[1].title, 'X');
+  c.onGlobalKey(key());
+  assert.equal(c.state.nodes[1].title, 'A');
+  c.onGlobalKey(key({ shiftKey: true }));
+  assert.equal(c.state.nodes[1].title, 'X');
+});
+
+// ---------------------------------------------------------------- colour and themes
+test('colorFor', () => {
+  const { colorFor } = app;
+  const meta = (p) => ({ ...DEFAULT_META, ...p });
+  assert.equal(colorFor(0, meta({})), '#EEF2FD');
+  assert.equal(colorFor(1, meta({})), '#16307F');
+  assert.equal(colorFor(0, meta({ colorMode: 'split' })), '#C0392B');
+  assert.equal(colorFor(0.5, meta({ colorMode: 'split' })), '#DADAD3');
+  assert.equal(colorFor(1, meta({ colorMode: 'split' })), '#1E8449');
+  assert.equal(colorFor(0, meta({ colorMode: 'split', reverse: true })), '#1E8449');
+  assert.equal(colorFor(1, meta({ reverse: true })), '#EEF2FD');
+  assert.equal(colorFor(null, meta({})), '#DADAD3');
+});
+
+test('every theme renders, and sets the page colours', () => {
+  for (const t of app.THEMES) {
+    const c = boot(SMALL);
+    c.setState({ theme: t.id, settingsOpen: true, settingsTab: 'theme' });
+    const v = c.renderVals();
+    assert.deepEqual(unresolved(v, c), [], t.id);
+    assert.ok(v.themeVars.includes('--bg: ' + t.bg), t.id);
   }
-  const c = boot(REC);
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'reliability' });
-  assert.deepEqual(unresolved(c.renderVals()), [], 'goal');
-  const m = boot(MAP3);
-  m.setState({ view: 'overall' });
-  assert.equal(m.renderVals().isMap, true);
 });
 
-// ---------------------------------------------------------------- goals and goal views
-const recBoot = () => { const c = boot(REC); c.setState({ view: 'goals' }); return c; };
-const goalsWt = (c) => c.renderVals().goalsLevel.weights;
-test('dragging the goal divider trades importance, respecting choices', () => {
-  const c = recBoot();
-  goalsWt(c).dividers[0].down(ev({ clientX: 0 }));
-  goalsWt(c).dividers[0].move(ev({ clientX: 100 }));
-  goalsWt(c).dividers[0].up(ev());
-  assert.ok(nodeOf(c, 'reliability').importance > 40);
+test('?theme= overrides the map theme without saving it', () => {
+  location.search = '?theme=night';
+  const c = boot(SMALL);
+  location.search = '';
+  assert.ok(c.renderVals().themeVars.includes('--bg: #101216'));
+  assert.equal(c.metaOf().theme, 'paper');
+});
+
+test('the colour mode settings render in both modes', () => {
+  for (const colorMode of ['scale', 'split']) {
+    const c = boot(SMALL);
+    c.setState({ colorMode, settingsOpen: true, settingsTab: 'encoding' });
+    assert.deepEqual(unresolved(c.renderVals(), c), [], colorMode);
+  }
+});
+
+// ---------------------------------------------------------------- share links
+test('share round trip, including non-ASCII text', async () => {
+  const text = '# Ünïcødé 🌳 日本語\n- Ça va? #core {x:0.5}\n';
+  const payload = await app.encodeShare(text);
+  assert.match(payload, /^[A-Za-z0-9_-]+$/);
+  assert.equal(await app.decodeShare(payload), text);
+});
+
+test('sharePayload', () => {
+  assert.equal(app.sharePayload('https://a.org/x#m=abc'), 'abc');
+  assert.equal(app.sharePayload('https://a.org/x.md'), null);
+  assert.equal(app.sharePayload('not a url'), null);
+});
+
+test('a broken share link keeps the current map', () => {
+  const c = boot(SMALL);
+  const before = c.state.nodes;
+  assert.equal(c.openText('# R\n      - bad', 'x', { force: true }), false);
+  assert.equal(c.state.nodes, before);
+  assert.ok(c.state.loadError.startsWith('Line 2:'), c.state.loadError);
+});
+
+test('opening a map replaces the map, its settings and the history', () => {
+  const c = boot(SMALL);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  c.ask = () => true;
+  assert.equal(c.openText(FULL, 'full'), true);
+  assert.equal(c.state.nodes[0].title, 'Should we adopt X?');
+  assert.equal(c.state.theme, 'night');
+  assert.equal(c.state.history.past.length, 0);
+  assert.equal(c.state.dirty, false);
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+});
+
+test('unsaved, unnamed changes are only dropped after asking', () => {
+  const c = boot(SMALL);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  let asked = 0;
+  c.ask = () => { asked++; return false; };
+  assert.equal(c.openText(FULL, 'full'), false);
+  assert.equal(asked, 1);
+  assert.equal(c.state.nodes[1].title, 'X');
+  c.setState({ savedName: 'Mine' });
+  assert.equal(c.openText(FULL, 'full'), true);
+  assert.equal(asked, 1);
+});
+
+test('the share link warns when long', async () => {
+  const c = boot(SMALL);
+  let copied = null;
+  c.copy = async (t) => { copied = t; };
+  await c.share();
+  assert.ok(copied.startsWith('http://x/#m='));
+  assert.equal(c.state.notice, 'Link copied');
+  const big = '# R\n' + Array.from({ length: 2000 }, (_, i) => '- ' + Math.random().toString(36).repeat(3) + i).join('\n') + '\n';
+  c.openText(big, 'big', { force: true });
+  await c.share();
+  assert.match(c.state.notice, /^Link copied, but it's \d+ characters/);
+});
+
+test('notices and load errors render', () => {
+  const c = boot(SMALL);
+  c.setState({ notice: 'Link copied', loadError: 'Line 2: bad' });
+  const v = c.renderVals();
+  assert.deepEqual(unresolved(v, c), []);
+  assert.equal(v.hasNotice, true);
+  assert.equal(v.hasLoadError, true);
+});
+
+// ---------------------------------------------------------------- saved maps and startup
+function fakeStore(saved = []) {
+  const db = new Map(saved.map((r) => [r.name, r]));
+  return {
+    db,
+    list: async () => [...db.values()].sort((a, b) => b.updated - a.updated),
+    put: async (name, text) => { db.set(name, { name, text, updated: Date.now() }); },
+    del: async (name) => { db.delete(name); },
+    rename: async (from, to) => { if (db.has(to)) throw new Error('taken'); db.set(to, { ...db.get(from), name: to }); db.delete(from); }
+  };
+}
+
+test('nextName', () => {
+  assert.equal(app.nextName('Plan', ['Plan', 'Plan 2']), 'Plan 3');
+  assert.equal(app.nextName('Plan', []), 'Plan');
+});
+
+test('Save as stores the map and marks it saved', async () => {
+  const c = boot(SMALL);
+  c.store = fakeStore();
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  await c.saveAs('Plan');
+  assert.equal(c.state.savedName, 'Plan');
+  assert.equal(c.state.dirty, false);
+  assert.equal(c.store.db.get('Plan').text, serializeMap({ meta: c.metaOf(), nodes: c.state.nodes }));
+});
+
+test('autosave writes a named map after an edit', async () => {
+  const c = boot(SMALL);
+  c.store = fakeStore();
+  await c.saveAs('Plan');
+  c.patchNode(c.state.nodes[1].id, { title: 'Later' });
+  assert.equal(c.state.dirty, true);
+  await c.autosave();
+  assert.equal(c.state.dirty, false);
+  assert.match(c.store.db.get('Plan').text, /- Later/);
+});
+
+test('startup opens the newest saved map, else a new map', async () => {
+  const c = boot();
+  c.store = fakeStore([{ name: 'Old', text: '# Old\n', updated: 1 }, { name: 'New', text: '# Newest\n', updated: 2 }]);
+  await c.start();
+  assert.equal(c.state.nodes[0].title, 'Newest');
+  assert.equal(c.state.savedName, 'New');
+  const d = boot();
+  d.store = fakeStore();
+  await d.start();
+  assert.equal(d.state.nodes[0].title, 'root');
+});
+
+test('startup prefers a share link over ?src= and saved maps', async () => {
+  const c = boot();
+  c.store = fakeStore([{ name: 'Saved', text: '# Saved\n', updated: 1 }]);
+  c.fetchMapText = async () => '# From src\n';
+  location.hash = '#m=' + await app.encodeShare('# Shared\n');
+  location.search = '?src=https://a.org/m.md';
+  await c.start();
+  assert.equal(c.state.nodes[0].title, 'Shared');
+  location.hash = '';
+  await c.start();
+  assert.equal(c.state.nodes[0].title, 'From src');
+  location.search = '';
+});
+
+test('?view= picks the starting view', () => {
+  location.search = '?view=tree';
+  const c = boot(SMALL);
+  location.search = '';
+  assert.equal(c.state.layout, 'tree');
+});
+
+test('the Open panel renders with saved maps', () => {
+  const c = boot(SMALL);
+  c.setState({ openPanel: true, saved: [{ name: 'Plan', text: '# P\n', updated: 1 }] });
+  const v = c.renderVals();
+  assert.deepEqual(unresolved(v, c), []);
+  assert.equal(v.savedRows.length, 1);
+});
+
+// ---------------------------------------------------------------- refs
+const REFMAP = '# Mine\n- Child\n  @ https://a.org/theirs.md\n';
+function refBoot(texts) {
+  const c = boot(REFMAP);
+  c.fetches = [];
+  c.fetchMapText = async (url) => { c.fetches.push(url); if (!(url in texts)) throw new Error(url + ': HTTP 404'); return texts[url]; };
+  return c;
+}
+const childId = (c) => c.state.nodes[1].id;
+
+test('a ref loads only when asked', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs #theirs\n- T1\n' });
+  for (const layout of ['radial', 'tree', 'directory']) { c.setState({ layout }); c.renderVals(); }
+  c.setState({ q: 'T1', searchOpen: true }); c.renderVals();
+  c.currentText();
+  assert.equal(c.fetches.length, 0);
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, 1);
+  assert.deepEqual(c.graph().map((n) => n.title), ['Mine', 'Child', 'Theirs', 'T1']);
+});
+
+test('refs inside a loaded ref are refs too, and load only when asked', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n  @ https://b.org/deeper.md\n', 'https://b.org/deeper.md': '# Deeper\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  const t1 = c.graph().find((n) => n.title === 'T1');
+  assert.deepEqual(t1.refs, ['https://b.org/deeper.md']);
+  const inner = c.graph().find((n) => n.kind === 'refRoot' && n.source === 'https://b.org/deeper.md');
+  assert.equal(inner.loadStatus, 'idle');
+  assert.equal(c.fetches.length, 1);
+  await c.loadRef(t1.id, 'https://b.org/deeper.md');
+  assert.ok(c.graph().some((n) => n.title === 'Deeper'));
+});
+
+test('a cycle never fetches', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n  @ https://a.org/theirs.md\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  const t1 = c.graph().find((n) => n.title === 'T1');
+  await c.loadRef(t1.id, 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, 1);
+  const r = c.graph().find((n) => n.parent === t1.id && n.kind === 'refRoot');
+  assert.equal(r.loadStatus, 'error');
+  assert.equal(c.state.refLoads[t1.id + ' https://a.org/theirs.md'].error, 'This map is already open above here');
+});
+
+test('a ref to the open map itself never fetches', async () => {
+  const c = refBoot({});
+  c.srcUrl = 'https://a.org/theirs.md';
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, 0);
+  assert.equal(c.state.refLoads[childId(c) + ' https://a.org/theirs.md'].status, 'error');
+});
+
+test('a broken ref shows the line error', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# R\n      - bad' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.ok(c.state.refLoads[childId(c) + ' https://a.org/theirs.md'].error.startsWith('Line 2:'));
+});
+
+test('ref tag styles stay out of the file, and loading a ref is not an edit', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '---\ntag.theirs: fill #F6DADA; border none solid; opacity 1\n---\n# Theirs #theirs\n- T1 #other\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.doesNotMatch(c.currentText(), /tag\.theirs|tag\.other/);
+  assert.equal(c.state.dirty, false);
+  assert.equal(c.state.history.past.length, 0);
+  for (const layout of ['radial', 'tree', 'directory']) { c.setState({ layout, currentId: c.graph().find((n) => n.title === 'T1').id }); assert.deepEqual(unresolved(c.renderVals(), c), [], layout); }
+});
+
+test('expanding an unloaded ref on the map loads it', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  const node = c.renderVals().nodes.find((n) => n.title.includes('theirs'));
+  assert.equal(node.hasKids, true);
+  assert.equal(node.collapsed, true);
+  await node.toggle();
+  assert.equal(c.fetches.length, 1);
+  assert.ok(c.graph().some((n) => n.title === 'T1'));
+});
+
+test('the share link of a ref is decoded, not fetched', async () => {
+  const c = boot(SMALL);
+  const link = 'https://elsewhere.org/app/#m=' + await app.encodeShare('# Shared\n');
+  assert.equal(await c.fetchMapText(link), '# Shared\n');
+});
+
+// ---------------------------------------------------------------- questionnaire: the bar
+const Q3 = '# R\n- A {x:0.1 y:0.9}\n  - A1 {x:0.5 y:0.2}\n  - A2 {x:0.5 y:0.8}\n- B {x:0.3 y:0.1}\n- C {x:0.6 y:0.5}\n';
+const qBoot = (text = Q3) => { const c = boot(text); c.setState({ layout: 'questionnaire' }); return c; };
+const byIdC = (c) => c.graph().find((n) => n.id === c.state.currentId);
+const idOf = (c, title) => c.state.nodes.find((n) => n.title === title).id;
+const cols = (c) => c.renderVals().chart.cols;
+
+test('columns sorted by colour value with widths as shares', () => {
+  const c = qBoot();
+  const rows = app.questionRows(c.graph(), c.state.nodes[0].id, c.metaOf());
+  assert.deepEqual(rows.map((r) => r.node.text), ['B', 'C', 'A']);
+  assert.deepEqual(rows.map((r) => +r.share.toFixed(3)), [0.3, 0.6, 0.1]);
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'C', 'A']);
+  assert.equal(cols(c)[0].bg, app.colorFor(0.1, c.metaOf()));
+});
+
+test('unset and zero sizes give shares with no NaN', () => {
+  const c = qBoot('# R\n- A {x:0}\n- B {x:0}\n');
+  assert.deepEqual(app.questionRows(c.graph(), c.state.nodes[0].id, c.metaOf()).map((r) => r.share), [0.5, 0.5]);
+  const d = qBoot('# R\n- A\n- B {x:1}\n');
+  assert.equal(app.sizeOf(d.graph(), idOf(d, 'A'), d.metaOf()), 0.5);
+  assert.deepEqual(app.questionRows(d.graph(), d.state.nodes[0].id, d.metaOf()).map((r) => +r.share.toFixed(3)), [0.333, 0.667]);
+});
+
+test('depth cells line up under their parent column', () => {
+  const c = qBoot();
+  const cells = c.renderVals().chart.depth.cells;
+  assert.deepEqual(cells.map((d) => d.title.split(' (')[0]), ['A1', 'A2']);
+  assert.match(cells[0].left, /\* 0\.9 \+ 16px\)$/);
+  assert.match(cells[1].left, /\* 0\.95 \+ 16px\)$/);
+});
+
+test('clicking a column or a cell opens it', () => {
+  const c = qBoot();
+  cols(c).find((x) => x.text === 'A').click();
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  c.setState({ currentId: c.state.nodes[0].id });
+  c.renderVals().chart.depth.cells[0].open();
+  assert.equal(c.state.currentId, idOf(c, 'A1'));
+});
+
+test('breadcrumbs list every level above', () => {
+  const c = qBoot();
+  c.setState({ currentId: idOf(c, 'A1') });
+  const v = c.renderVals();
+  assert.deepEqual(v.crumbs.map((x) => x.label), ['R', 'A']);
+  v.crumbs[0].go();
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+});
+
+test('the health bar shows the derived colour value', () => {
+  const c = qBoot();
+  c.setState({ currentId: idOf(c, 'A') });
+  assert.equal(c.renderVals().health.value, '0.90');
+  c.patchNode(idOf(c, 'A'), { y: null });
+  assert.equal(c.renderVals().health.value, '0.50');
+});
+
+test('a pinned bar stays put while a column opens the details', () => {
+  const c = qBoot();
+  c.renderVals().pin.toggle();
+  cols(c).find((x) => x.text === 'A').click();
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'C', 'A']);
+  assert.equal(cols(c).find((x) => x.text === 'A').isSelected, true);
+});
+
+test('the chart modes switch, and Width only is the short bar', () => {
+  const c = qBoot();
+  for (const m of c.renderVals().chart.views) { m.pick(); assert.equal(c.state.chartView, m.id); }
+  c.setState({ chartView: 'width' });
+  assert.equal(c.renderVals().chart.height, '120px');
+});
+
+test('questionnaire renders with no unresolved bindings: full, empty, ref and read-only', async () => {
+  for (const [text, at] of [[Q3, null], ['# Alone\n', null], [REFMAP, 'Child']]) {
+    const c = qBoot(text);
+    if (at) c.setState({ currentId: idOf(c, at) });
+    for (const chartView of ['width', 'tall', 'area']) {
+      c.setState({ chartView });
+      assert.deepEqual(unresolved(c.renderVals(), c), [], text + chartView);
+    }
+  }
+  const r = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  r.setState({ layout: 'questionnaire' });
+  await r.loadRef(childId(r), 'https://a.org/theirs.md');
+  r.setState({ currentId: r.graph().find((n) => n.title === 'Theirs').id });
+  assert.deepEqual(unresolved(r.renderVals(), r), []);
+  assert.equal(r.renderVals().add.canOpen, false);
+});
+
+test('an unloaded ref column loads on click', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  c.setState({ layout: 'questionnaire', currentId: childId(c) });
+  await cols(c)[0].click();
+  assert.equal(c.fetches.length, 1);
+});
+
+// ---------------------------------------------------------------- questionnaire: editing
+const MAPQ = '# R\n- A {x:0.1 y:0.25}\n- B {x:0.3 y:0.5}\n- C {x:0.6 y:0.75}\n';
+const ev = (props = {}) => ({
+  pointerType: 'mouse', pointerId: 1, clientX: 0, clientY: 0, metaKey: false, ctrlKey: false, shiftKey: false, key: '', button: 0,
+  preventDefault() {}, currentTarget: { setPointerCapture() {}, blur() {}, closest: () => ({ getBoundingClientRect: () => ({ width: 1016 }) }) }, ...props,
+});
+const colOf = (c, t) => cols(c).find((x) => x.text === t);
+const xs = (c) => ['A', 'B', 'C'].map((t) => c.state.nodes.find((n) => n.title === t).x);
+const ys = (c, t) => c.state.nodes.find((n) => n.title === t).y;
+const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-6, a + ' ≉ ' + b);
+const dragDivider = (c, t, dx) => {
+  colOf(c, t).dividerDown(ev({ clientX: 0 }));
+  colOf(c, t).dividerMove(ev({ clientX: dx })); // width 1016 less two 8px dividers is 1000px
+  colOf(c, t).dividerUp(ev());
+};
+const choose = (c, t) => colOf(c, t).down(ev({ metaKey: true }));
+
+test('a divider drag changes only the two columns either side, as one undo step', () => {
+  const c = qBoot(MAPQ);
+  dragDivider(c, 'A', 500);
+  assert.deepEqual(xs(c), [0.38, 0.02, 0.6]); // B stops at the 2% floor
   c.undo();
-  assert.equal(nodeOf(c, 'reliability').importance, 40);
-});
-test('a goal opens to a grid of options by criteria, best first, with its winner', () => {
-  const c = recBoot();
-  c.renderVals().goalsLevel.weights.segments[0].pick();
-  c.renderVals().criteriaLevel.compareAll();
-  const g = c.renderVals().optionsLevel;
-  assert.deepEqual(g.grid.rows.map((r) => r.option), ['postgres', 'dynamodb']);
-  assert.deepEqual(g.grid.rows[1].cells.map((x) => x.n), [9, 0]);
-  assert.equal(g.grid.rows[0].isWinner, true);
-});
-test('setting a missing score creates it; the file round-trips', () => {
-  const c = recBoot();
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'reliability' });
-  c.setScore('reliability', 'ops', 'dynamodb', 7);
-  assert.equal(Component.recordModel(c.state.map).goals[0].scores.dynamodb.ops, 7);
-  assert.deepEqual(Component.parse(c.state.src).errors, []);
-});
-test('adding an existing option to a goal, and a new one', () => {
-  const c = recBoot();
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'cost' });
-  const gv = () => c.renderVals().criteriaLevel;
-  assert.deepEqual(gv().existing.map((o) => o.slug), ['postgres']);
-  gv().existing[0].add();
-  gv().onNewOption({ target: { value: 'Kafka + S3' } });
-  gv().addNewOption();
-  assert.deepEqual(Component.recordModel(c.state.map).goals[1].options, ['dynamodb', 'postgres', 'kafka-s3']);
-});
-test('bar and pie share one switch, and the pie has handles but none at the wrap', () => {
-  const c = recBoot();
-  c.renderVals().recordChart.pick('pie');
-  assert.equal(goalsWt(c).isPie, true);
-  assert.equal(goalsWt(c).handles.length, 1);
-  c.renderVals().goalsLevel.weights.segments[0].down(ev({ metaKey: true }));
-  assert.deepEqual(unresolved(c.renderVals()), []);
-  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'ops' });
-  assert.deepEqual(unresolved(c.renderVals()), []);
+  assert.deepEqual(xs(c), [0.1, 0.3, 0.6]);
 });
 
-// ---------------------------------------------------------------- reasons
-test('reasons list by weight, and their weight never changes the score', () => {
-  const c = recBoot();
-  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
-  const panel = () => c.renderVals().reasonsLevel;
-  panel().onNewReason({ target: { value: 'Cheap to run' } });
-  panel().addReason();
-  assert.deepEqual(panel().reasons.map((r) => r.text), ['Runbooks exist', 'Cheap to run']);
-  panel().reasons[1].onWeight({ target: { value: '90' } });
-  assert.deepEqual(panel().reasons.map((r) => r.text), ['Cheap to run', 'Runbooks exist']);
-  assert.equal(Component.recordModel(c.state.map).goals[0].scores.postgres.durability, 8);
-});
-test('a reason has the same extras as a point', () => {
-  const c = recBoot();
-  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
-  c.renderVals().reasonsLevel.reasons[0].open();
-  assert.equal(c.renderVals().bc.basis, 'We run 14 clusters');
-  assert.equal(c.renderVals().ev.items.length, 1);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-  c.renderVals().pn.askDel();
-  c.renderVals().pn.doDel();
-  assert.equal(c.state.reason, null);
-  assert.equal(Component.findPath(c.state.map.root, 'runbooks'), null);
-  assert.deepEqual(Component.parse(c.state.src).errors, []);
+test('sizes past 1 scale the siblings down and keep the shares', () => {
+  const c = qBoot('# R\n- A {x:0.9}\n- B {x:0.9}\n');
+  colOf(c, 'A').dividerDown(ev({ clientX: 0 }));
+  colOf(c, 'A').dividerMove(ev({ clientX: 302.4 })); // 1016 less one 8px divider is 1008px; 0.3 of it
+  const [a, b] = ['A', 'B'].map((t) => c.state.nodes.find((n) => n.title === t).x);
+  assert.equal(a, 1);
+  near(b, 0.25);
 });
 
-// ---------------------------------------------------------------- overall and what-if
-const overallOf = (c) => c.renderVals().overall;
-test('what-if weights move the ranking without touching the file, and Save writes them', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  const before = c.state.src;
-  overallOf(c).goals[1].toggle(); // Cost off
-  assert.equal(overallOf(c).ranking[0].option, 'postgres');
-  assert.equal(c.state.src, before);
-  assert.equal(c.renderVals().whatIfBar.shown, true);
-  c.renderVals().whatIfBar.save();
-  assert.equal(nodeOf(c, 'cost').importance, 0);
-  assert.equal(c.state.whatIf, null);
+test('chosen columns take a resize, and Clear drops them', () => {
+  const c = qBoot(MAPQ);
+  choose(c, 'C');
+  assert.ok(colOf(c, 'C').isChosen);
+  dragDivider(c, 'A', 100);
+  assert.deepEqual(xs(c), [0.2, 0.3, 0.5]);
+  c.renderVals().chart.clearChosen();
+  assert.equal(colOf(c, 'C').isChosen, false);
+});
+
+test('a choose gesture does not open the column', () => {
+  const c = qBoot(MAPQ);
+  choose(c, 'A');
+  colOf(c, 'A').click(ev({ metaKey: true }));
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+});
+
+test('a vertical drag changes the colour value and re-sorts on release', () => {
+  const c = qBoot(MAPQ);
+  colOf(c, 'A').down(ev({ clientY: 200 }));
+  colOf(c, 'A').move(ev({ clientY: 200 - 94.4 })); // 236px is the whole 0–1 range
+  assert.equal(ys(c, 'A'), 0.65);
+  assert.deepEqual(cols(c).map((x) => x.text), ['A', 'B', 'C']);
+  assert.ok(c.renderVals().chart.thermo.has);
+  colOf(c, 'A').up(ev());
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'A', 'C']);
+  assert.equal(c.renderVals().chart.thermo.has, false);
+  colOf(c, 'A').click(ev()); // the click that ends a drag doesn't open it
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
   c.undo();
-  assert.equal(nodeOf(c, 'cost').importance, 60);
-});
-test('turning a goal back on restores its weight', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  overallOf(c).goals[1].toggle();
-  overallOf(c).goals[1].toggle();
-  assert.equal(c.state.whatIf.cost, 60);
-});
-test('selecting a goal shows its criteria editor', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  overallOf(c).goals[0].select();
-  assert.deepEqual(overallOf(c).criteria.segments.map((x) => x.label), ['Durability', 'Ops']);
-});
-test('while what-if is on, every view shows it, and a Source edit is picked up', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  overallOf(c).goals[1].toggle();
-  c.setState({ view: 'goals' });
-  assert.deepEqual(goalsWt(c).segments.map((x) => x.label), ['Reliability']);
-  c.onSrc(c.state.src.replace(/## Cost[\s\S]*$/, '## Speed\nslug: speed\nimportance: 30\n\n### Fast\nslug: fast\nweight: 1\n'));
-  c.renderVals().whatIfBar.save();
-  assert.ok(!Component.findPath(c.state.map.root, 'cost'));
-  assert.equal(nodeOf(c, 'speed').importance, 30);
-});
-test('a top option that wins no goal says so', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  const top = overallOf(c).ranking[0];
-  assert.equal(top.noWins, top.wins.length === 0);
+  assert.equal(ys(c, 'A'), 0.25);
 });
 
-// ---------------------------------------------------------------- snapshots
-test('snapshot list operations', () => {
-  let l = Component.snapshotAdd([], { name: 'A', file: 'x.md', root: 'store', title: 'Store', at: 1, src: REC });
-  l = Component.snapshotAdd(l, { name: 'B', file: 'y.md', root: 'other', title: 'O', at: 2, src: REC });
-  assert.deepEqual(Component.snapshotsFor(l, 'store').map((s) => s.name), ['A']);
-  l = Component.snapshotRename(l, 'snap-1', 'A2');
-  l = Component.snapshotRemove(l, 'snap-2');
-  assert.deepEqual(l.map((s) => s.name), ['A2']);
+test('colour value stays within 0–1', () => {
+  const c = qBoot(MAPQ);
+  colOf(c, 'A').down(ev({ clientY: 0 }));
+  colOf(c, 'A').move(ev({ clientY: 5000 }));
+  assert.equal(ys(c, 'A'), 0);
 });
-test('saving a snapshot copies the record as shown, what-if included, and loading it restores the weights', async () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  overallOf(c).goals[1].toggle();
-  overallOf(c).snap.onName({ target: { value: 'No cost' } });
-  await overallOf(c).snap.save();
-  const s = c.state.snapshots[0];
-  assert.match(s.src, /## Cost\nslug: cost\nimportance: 0/);
-  c.renderVals().whatIfBar.reset();
-  overallOf(c).snap.items[0].load();
-  assert.equal(c.state.whatIf.cost, 0);
-  assert.deepEqual(unresolved(c.renderVals()), []);
+
+test('keyboard: arrows change the colour value and hold the order until blur; Enter opens', () => {
+  const c = qBoot(MAPQ);
+  for (let n = 0; n < 6; n++) colOf(c, 'A').key(ev({ key: 'ArrowUp' }));
+  near(ys(c, 'A'), 0.55);
+  assert.deepEqual(cols(c).map((x) => x.text), ['A', 'B', 'C']);
+  colOf(c, 'A').blur(ev());
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'A', 'C']);
+  colOf(c, 'A').dividerKey(ev({ key: 'ArrowRight' }));
+  assert.deepEqual(xs(c), [0.12, 0.3, 0.58]); // A now sits between B and C, so its divider trades with C
+  colOf(c, 'B').key(ev({ key: 'Enter' }));
+  assert.equal(c.state.currentId, idOf(c, 'B'));
 });
-test('when the browser refuses storage, snapshots say so and nothing throws', async () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  overallOf(c).snap.onName({ target: { value: 'X' } });
-  await overallOf(c).snap.save(); // indexedDB is undefined in check.js
-  assert.match(c.renderVals().overall.snap.notice, /can’t be kept in this browser/);
-  assert.equal(c.state.snapshots.length, 1);
+
+test('touch does not start drags', () => {
+  const c = qBoot(MAPQ);
+  colOf(c, 'A').down(ev({ pointerType: 'touch', clientY: 200 }));
+  colOf(c, 'A').move(ev({ pointerType: 'touch', clientY: 100 }));
+  colOf(c, 'A').dividerDown(ev({ pointerType: 'touch' }));
+  colOf(c, 'A').dividerMove(ev({ pointerType: 'touch', clientX: 100 }));
+  assert.equal(ys(c, 'A'), 0.25);
+  assert.deepEqual(xs(c), [0.1, 0.3, 0.6]);
+});
+
+test('the + buttons add at 0.25 and 0.75, sized like their siblings', () => {
+  const c = qBoot(MAPQ);
+  const add = (side, title) => {
+    c.renderVals().add[side]();
+    assert.deepEqual(unresolved(c.renderVals(), c), []);
+    c.renderVals().add.onText({ target: { value: title } });
+    c.renderVals().add.commit();
+  };
+  add('left', 'L');
+  add('right', 'Rt');
+  const L = c.state.nodes.find((n) => n.title === 'L');
+  const Rt = c.state.nodes.find((n) => n.title === 'Rt');
+  assert.equal(L.y, 0.25);
+  assert.equal(Rt.y, 0.75);
+  assert.equal(L.x, 0.333);
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+  assert.equal(c.state.adding, null);
+});
+
+test('a blank title cannot be added, and Escape cancels', () => {
+  const c = qBoot(MAPQ);
+  c.renderVals().add.left();
+  assert.equal(c.renderVals().add.commitDisabled, true);
+  c.renderVals().add.onDialogKey({ key: 'Escape' });
+  assert.equal(c.state.adding, null);
+});
+
+test('an empty node offers one +, which adds with no values', () => {
+  const c = qBoot('# Alone\n');
+  const v = c.renderVals();
+  assert.equal(v.chart.empty, true);
+  v.add.wide();
+  c.renderVals().add.onText({ target: { value: 'First' } });
+  c.renderVals().add.onKey({ key: 'Enter', preventDefault() {} });
+  const n = c.state.nodes.find((x) => x.title === 'First');
+  assert.equal(n.x, null);
+  assert.equal(n.y, null);
+});
+
+test('Recalculate sets the colour value to the mean of the children, as one undo step', () => {
+  const c = qBoot(MAPQ);
+  const h = c.renderVals().health;
+  assert.equal(h.canRecalc, true);
+  h.recalc();
+  assert.equal(c.state.nodes[0].y, 0.5);
+  c.undo();
+  assert.equal(c.state.nodes[0].y, null);
+  assert.equal(qBoot('# Alone\n').renderVals().health.canRecalc, false);
+});
+
+test('ref columns cannot be dragged, chosen or added to', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1 {y:0.2}\n- T2 {y:0.8}\n' });
+  c.setState({ layout: 'questionnaire' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  c.setState({ currentId: c.graph().find((n) => n.title === 'Theirs').id });
+  const before = c.state.nodes;
+  colOf(c, 'T1').down(ev({ clientY: 100 }));
+  colOf(c, 'T1').move(ev({ clientY: 0 }));
+  colOf(c, 'T1').up(ev());
+  colOf(c, 'T1').dividerDown(ev());
+  colOf(c, 'T1').dividerMove(ev({ clientX: 100 }));
+  colOf(c, 'T1').key(ev({ key: 'ArrowUp' }));
+  choose(c, 'T1');
+  assert.equal(c.state.nodes, before);
+  assert.equal(colOf(c, 'T1').isChosen, false);
+  assert.equal(c.renderVals().health.canRecalc, false);
+});
+
+// ---------------------------------------------------------------- pie
+const pBoot = (text = Q3) => { const c = boot(text); c.setState({ layout: 'pie' }); return c; };
+const sliceOf = (c, t) => c.renderVals().pie.slices.find((x) => x.text === t);
+const pieBox = { closest: () => ({ getBoundingClientRect: () => ({ left: 0, top: 0, width: 520, height: 520 }) }), setPointerCapture() {}, blur() {} };
+
+test('rings by depth, with angles as shares of size', () => {
+  const c = pBoot();
+  const sl = c.renderVals().pie.slices;
+  assert.deepEqual(sl.map((x) => [x.text, x.depth]), [['B', 1], ['C', 1], ['A', 1], ['A1', 2], ['A2', 2]]);
+  near(sliceOf(c, 'A').span, 0.1);
+  near(sliceOf(c, 'A1').span, 0.05);
+});
+
+test('pie renders with no unresolved bindings, in and out of edit mode', () => {
+  const c = pBoot();
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'C').enter();
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+  assert.deepEqual(unresolved(pBoot('# Alone\n').renderVals(), c), []);
+});
+
+test('edit mode off: hovering shows details but no + or handles', () => {
+  const c = pBoot();
+  sliceOf(c, 'C').enter();
+  assert.equal(sliceOf(c, 'C').ctls.length, 0);
+  assert.equal(sliceOf(c, 'C').moves.length, 0);
+  assert.match(c.renderVals().pie.hint, /^C: /);
+  c.renderVals().pie.toggleEdit();
+  assert.equal(sliceOf(c, 'C').ctls.length, 3); // + either side and + outside a leaf
+  assert.equal(sliceOf(c, 'C').moves.length, 2);
+});
+
+test('an edge drag resizes against siblings, as one undo step', () => {
+  const c = pBoot();
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'B').enter();
+  const m = sliceOf(c, 'B').moves[0];
+  m.down({ ...ev(), currentTarget: pieBox, clientX: 260, clientY: 160 });
+  m.move({ ...ev(), currentTarget: pieBox, clientX: 360, clientY: 260 }); // a quarter turn clockwise
+  m.up({ ...ev(), currentTarget: pieBox });
+  assert.deepEqual(xs(c), [0.1, 0.55, 0.35]);
+  c.undo();
+  assert.deepEqual(xs(c), [0.1, 0.3, 0.6]);
+});
+
+test('the handles take the arrow keys', () => {
+  const c = pBoot();
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'B').enter();
+  sliceOf(c, 'B').moves[0].key(ev({ key: 'ArrowRight' }));
+  assert.deepEqual(xs(c), [0.1, 0.32, 0.58]);
+});
+
+test('the + beside a slice adds a sibling a step either side of it, and outside a leaf adds a child', () => {
+  const c = pBoot();
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'C').enter();
+  const [before, after, under] = sliceOf(c, 'C').ctls;
+  before.add();
+  assert.deepEqual(c.state.adding, { parent: c.state.nodes[0].id, v: 0.375 });
+  after.add();
+  assert.deepEqual(c.state.adding, { parent: c.state.nodes[0].id, v: 0.625 });
+  under.add();
+  assert.deepEqual(c.state.adding, { parent: idOf(c, 'C'), v: null });
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+});
+
+test('clicking a slice opens it; a choose gesture chooses it instead', () => {
+  const c = pBoot();
+  sliceOf(c, 'A').down(ev({ metaKey: true }));
+  sliceOf(c, 'A').pick();
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+  assert.ok(sliceOf(c, 'A').isChosen);
+  sliceOf(c, 'A1').pick();
+  assert.equal(c.state.currentId, idOf(c, 'A1'));
+});
+
+test('ref slices are read-only', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  c.setState({ layout: 'pie' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  c.setState({ currentId: childId(c) });
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'T1').enter();
+  assert.equal(sliceOf(c, 'T1').ctls.length, 0);
+  assert.equal(sliceOf(c, 'T1').moves.length, 0);
+  sliceOf(c, 'T1').down(ev({ metaKey: true }));
+  assert.equal(sliceOf(c, 'T1').isChosen, false);
 });
 
 // ---------------------------------------------------------------- compare
-const REC_B = REC.replace('importance: 40', 'importance: 80').replace('score: 9', 'score: 3');
-test('Compare lines up two records by slug, biggest differences first', () => {
-  const c = boot(REC, REC_B);
-  c.setState({ view: 'compare' });
-  const cmp = () => c.renderVals().compare;
-  assert.equal(cmp().rows[0].label, 'Reliability');
-  near(cmp().rows[0].a, 40);
-  cmp().pickTier('scores');
-  cmp().pickGoal('reliability');
-  assert.equal(cmp().rows[0].label, 'DynamoDB');
-  assert.equal(cmp().rows[0].sub, 'Durability');
-  assert.equal(cmp().top.length, 3);
-  assert.equal(cmp().top[0].label, 'DynamoDB'); // 6 of 10 apart beats 17 of 100
-});
-test('composite bars split each side into its parts', () => {
-  const c = boot(REC, REC_B);
-  c.setState({ view: 'compare' });
-  c.renderVals().compare.pickStyle('composite');
-  const sides = c.renderVals().compare.composite.sides;
-  assert.deepEqual(sides.map((s) => s.parts.map((p) => p.pct)), [[40, 60], [57, 43]]);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-  c.renderVals().compare.pickTier('scores');
-  assert.equal(c.renderVals().compare.composite.options.length, 2);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-  c.renderVals().compare.pickStyle('side');
-  c.renderVals().compare.rows[0].pick();
-  assert.equal(c.renderVals().compare.sel.has, true);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-test('a snapshot or the what-if weights can be either side', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall', snapshots: Component.snapshotAdd([], { name: 'Old', file: 'x.md', root: 'store', title: 'Store', at: 1, src: REC_B }) });
-  overallOf(c).goals[1].toggle();
-  c.setState({ view: 'compare' });
-  const keys = c.renderVals().compare.sources.map((x) => x.key);
-  assert.deepEqual(keys, ['a', 'a-whatif', 'snap-1']);
-});
-test('comparing a record with a map explains itself', () => {
-  const c = boot(REC, MAP3);
-  c.setState({ view: 'compare' });
-  assert.match(c.renderVals().compare.notice, /decision map/);
-  assert.deepEqual(unresolved(c.renderVals()), []);
+const graphOf = (text) => app.composeGraph(parseMap(text).nodes, {});
+const CA = '# Root\n- Alpha {x:0.5 y:0.2}\n  - Leaf {x:0.5 y:0.5}\n- Beta {x:0.5 y:0.6}\n- Gone {x:0.1 y:0.5}\n';
+const CB = '# Root\n- alpha {x:0.5 y:0.9}\n  - Leaf {x:0.5 y:0.45}\n- Beta {x:0.2 y:0.6}\n- New one {y:0.3}\n';
+
+test('titlePath: lower-cased title chain, same-named siblings kept apart', () => {
+  const g = graphOf('# R\n- Dup\n- dup \n  - X\n');
+  assert.deepEqual(g.map((n) => app.titlePath(g, n.id)), ['r', 'r / dup', 'r / dup #2', 'r / dup #2 / x']);
 });
 
-// ---------------------------------------------------------------- example record
-test('the example record parses and round-trips', () => {
-  const src = fs.readFileSync('examples/event-store/record.md', 'utf8');
-  assert.deepEqual(Component.parse(src).errors, []);
-  assert.equal(Component.serialize(Component.parse(src).map), src);
+test('compare matches by title path, and lists nodes only on one side', () => {
+  const rows = app.compareMaps(graphOf(CA), graphOf(CB), DEFAULT_META);
+  const by = Object.fromEntries(rows.map((r) => [r.path, r]));
+  assert.equal(by['root / alpha'].only, null);
+  near(by['root / alpha'].dy, 0.7);
+  assert.equal(by['root / gone'].only, 'a');
+  assert.equal(by['root / new one'].only, 'b');
+  assert.equal(by['root / alpha / leaf'].changed, true);
 });
 
+test('compare rows: biggest difference first, then one-sided, then unchanged', () => {
+  const rows = app.compareMaps(graphOf(CA), graphOf(CB), DEFAULT_META);
+  assert.deepEqual(rows.map((r) => r.path), ['root / alpha', 'root / beta', 'root / alpha / leaf', 'root / gone', 'root / new one', 'root']);
+});
 
-// ---------------------------------------------------------------- final review fixes
-const reasonOpen = () => {
-  const c = boot(REC);
-  c.setState({ view: 'record', recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
-  c.renderVals().reasonsLevel.reasons[0].open();
-  return c;
-};
-test('review: a reason\'s basis, confidence and evidence can be edited', () => {
-  const c = reasonOpen();
-  c.renderVals().bc.onBasis({ target: { value: 'Ops logs' } });
-  c.renderVals().bc.stars[1].pick();
-  c.renderVals().ev.openAdd();
-  c.renderVals().ev.onName({ target: { value: 'Runbook' } });
-  c.renderVals().ev.onUrl({ target: { value: 'https://example.com/r' } });
-  c.renderVals().ev.save();
-  const r = nodeOf(c, 'runbooks');
-  assert.equal(r.basis, 'Ops logs');
-  assert.equal(r.confidence, 2);
-  assert.equal(r.refs.length, 2);
+test('flipped only in left/right mode, when the colour value crosses 0.5', () => {
+  const split = app.compareMaps(graphOf(CA), graphOf(CB), { ...DEFAULT_META, colorMode: 'split' });
+  assert.equal(split.find((r) => r.path === 'root / alpha').flipped, true);
+  assert.equal(split.find((r) => r.path === 'root / alpha / leaf').flipped, false);
+  const scale = app.compareMaps(graphOf(CA), graphOf(CB), DEFAULT_META);
+  assert.equal(scale.find((r) => r.path === 'root / alpha').flipped, false);
 });
-test('review: a map\'s Diff with a record as B explains itself instead of crashing', () => {
-  const c = boot(MAP3, REC);
-  c.setState({ view: 'diff' });
-  assert.match(c.renderVals().diff.kindNotice, /decision record/);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-test('review: a goal that no longer exists falls back to the goal list', () => {
-  const c = boot(REC);
-  c.setState({ view: 'goals' });
-  c.renderVals().goalsLevel.weights.add(); // adding a goal selects it
-  assert.equal(c.renderVals().isRecLevel.criteria, true);
-  c.undo();
-  assert.equal(c.renderVals().isRecLevel.criteria, false);
-  assert.equal(c.renderVals().isRecLevel.goals, true);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-test('review: opening a file with errors drops the old file\'s record state', () => {
-  const c = boot(REC);
-  c.setState({ view: 'record', whatIf: { cost: 0 }, recLevel: 'criteria', recGoal: 'cost', chosenFacts: ['cost'] });
-  c.confirmDropThen = null;
-  c.loadA('not a map', 'bad.md', null, true);
-  assert.equal(c.state.whatIf, null);
-  assert.equal(c.state.recGoal, null);
-  assert.deepEqual(c.state.chosenFacts, []);
-});
-test('review: opening another file or New asks before dropping unsaved what-if weights', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall' });
-  overallOf(c).goals[1].toggle();
-  c.loadA(NEW, 'new.md');
-  assert.equal(c.state.map.root.slug, 'store', 'not opened yet');
-  assert.equal(c.renderVals().dropAsk.shown, true);
-  c.renderVals().dropAsk.cancel();
-  assert.equal(c.renderVals().dropAsk.shown, false);
-  assert.equal(c.state.whatIf.cost, 0);
-  c.loadA(NEW, 'new.md');
-  c.renderVals().dropAsk.go();
-  assert.equal(c.state.map.root.slug, 'root');
-  const d = boot(REC);
-  d.setState({ view: 'overall' });
-  overallOf(d).goals[1].toggle();
-  d.setState({ newKind: 'record', newTitle: 'Other' });
-  d.createMap();
-  assert.equal(d.state.map.root.slug, 'store');
-  d.renderVals().dropAsk.go();
-  assert.equal(d.state.map.root.slug, 'other');
-});
-test('review: record weights start at 50 and a drag never takes one to 0', () => {
-  const m = Component.newRecord('Pick', '');
-  assert.equal(m.root.children[0].importance, 50);
-  assert.equal(m.root.children[0].children[0].importance, 50);
-  const c = boot(Component.serialize(m));
-  c.setState({ view: 'record', recLevel: 'criteria', recGoal: 'first-goal' });
-  c.addCriterion('first-goal');
-  const wtc = () => c.renderVals().criteriaLevel.weights;
-  for (let k = 0; k < 5; k++) {
-    wtc().dividers[0].down(ev({ clientX: 0 }));
-    wtc().dividers[0].move(ev({ clientX: -5000 }));
-    wtc().dividers[0].up(ev());
+
+const cBoot = () => { const c = boot(CA); c.setState({ layout: 'compare' }); return c; };
+
+test('compare renders with no unresolved bindings, with and without B, on every tab', () => {
+  const c = cBoot();
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+  assert.equal(c.renderVals().cmp.hasB, false);
+  assert.equal(c.setB(CB, 'b.md'), true);
+  for (const t of c.renderVals().cmp.tabs) {
+    t.pick();
+    assert.deepEqual(unresolved(c.renderVals(), c), [], t.label);
   }
-  assert.ok(Component.findPath(c.state.map.root, 'first-criterion').at(-1).importance > 0);
-  assert.equal(wtc().segments.length, 2);
-});
-test('review: ⌘Z works with focus on a slider or checkbox, not in a text field', () => {
-  const c = boot(MAP3);
-  dragDivider(c, 'a', 100);
-  const dragged = imps(c);
-  const key = (target) => c.onGlobalKey({ key: 'z', metaKey: true, shiftKey: false, target, preventDefault() {} });
-  key({ tagName: 'TEXTAREA' });
-  key({ tagName: 'INPUT', type: 'text' });
-  assert.deepEqual(imps(c), dragged);
-  key({ tagName: 'INPUT', type: 'range' });
-  assert.deepEqual(imps(c), [10, 30, 60]);
-});
-test('review: snapshots are stored one per key, and a refused store or load says so', async () => {
-  const data = new Map();
-  const fakeDB = {
-    open() {
-      const req = {};
-      setTimeout(() => {
-        req.result = {
-          close() {},
-          transaction() {
-            const tx = {};
-            const store = {
-              put(v, k) { data.set(k, v); return {}; }, delete(k) { data.delete(k); return {}; }, get(k) { return { result: data.get(k) }; },
-              getAll(range) { return { result: [...data.entries()].filter(([k]) => k >= range.lower && k <= range.upper).map(([, v]) => v) }; },
-            };
-            tx.objectStore = () => store;
-            setTimeout(() => tx.oncomplete && tx.oncomplete());
-            return tx;
-          },
-        };
-        req.onsuccess();
-      });
-      return req;
-    },
-  };
-  globalThis.indexedDB = fakeDB;
-  globalThis.IDBKeyRange = { bound: (lower, upper) => ({ lower, upper }) };
-  try {
-    const c = boot(REC);
-    c.setState({ view: 'overall' });
-    overallOf(c).snap.onName({ target: { value: 'One' } });
-    await overallOf(c).snap.save();
-    assert.deepEqual([...data.keys()].filter((k) => k.startsWith('snap:')).length, 1);
-    const other = boot(REC);
-    await other.restoreSnapshots();
-    assert.equal(other.state.snapshots.length, 1);
-    overallOf(other).snap.onName({ target: { value: 'Two' } });
-    await overallOf(other).snap.save();
-    await c.restoreSnapshots();
-    assert.equal(c.state.snapshots.length, 2, 'the other tab\'s save didn\'t wipe this one');
-  } finally {
-    delete globalThis.indexedDB;
-    delete globalThis.IDBKeyRange;
-  }
-  const d = boot(REC);
-  await d.restoreSnapshots();
-  assert.match(d.state.snapNotice, /can’t be kept in this browser/);
-});
-test('review: record weights with more than one decimal are a parse error', () => {
-  const errs = Component.parse(REC.replace('weight: 50', 'weight: 33.33')).errors.map((e) => e.msg).join(' | ');
-  assert.match(errs, /at most one decimal place/);
-});
-test('review: Clear in one weight panel keeps the other panel\'s choices', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall', overallGoal: 'reliability' });
-  overallOf(c).weights.segments[0].down(ev({ metaKey: true }));
-  overallOf(c).criteria.segments[0].down(ev({ metaKey: true }));
-  overallOf(c).criteria.clear();
-  assert.deepEqual(c.state.chosenFacts, ['reliability']);
-});
-test('review: Compare is only worked out in the Compare view', () => {
-  const c = boot(REC);
-  c.setState({ view: 'overall', snapshots: Component.snapshotAdd([], { name: 'Old', file: 'x.md', root: 'store', title: 'Store', at: 1, src: REC }) });
-  const parse = Component.parse;
-  let n = 0;
-  Component.parse = (...a) => { n++; return parse(...a); };
-  try { c.renderVals(); } finally { Component.parse = parse; }
-  assert.equal(n, 0);
-});
-test('review: the facts filter is hidden for records', () => {
-  assert.equal(boot(REC).renderVals().showFilter, false);
-  assert.equal(boot(MAP3).renderVals().showFilter, true);
+  assert.ok(c.renderVals().cmp.sankey.links.length > 0);
 });
 
-// ---------------------------------------------------------------- revision 2: border resize
-test('border resize: nothing chosen trades the two neighbours', () => {
-  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 2, -0.05, []), [28, 30, 20, 22]);
-});
-test('border resize: chosen columns on one side take the change, the far neighbour the opposite', () => {
-  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 2, -0.05, [1]), [28, 25, 25, 22]);
-  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 0, 0.05, [3]), [33, 30, 25, 12]);
-  assert.deepEqual(Component.borderResize([28, 30, 25, 17], 1, -0.05, [1]), [28, 25, 30, 17]);
-});
-test('border resize: chosen on both sides change, unchosen neighbours slide', () => {
-  assert.deepEqual(Component.borderResize([20, 20, 20, 20, 20], 1, 0.1, [0, 3]), [30, 20, 20, 10, 20]);
-  const out = Component.borderResize([10, 20, 20, 30, 20], 1, 0.1, [0, 3, 4]);
-  near(out[0], 20); near(out[3], 30 - 10 * 30 / 50); near(out[4], 20 - 10 * 20 / 50);
-  assert.deepEqual([out[1], out[2]], [20, 20]);
-});
-test('border resize: stops at a 2% share for any changing column', () => {
-  assert.deepEqual(Component.borderResize([10, 30, 60], 0, -0.5, []), [2, 38, 60]);
-  assert.deepEqual(Component.borderResize([10, 30, 60], 0, 0.9, [2]), [68, 30, 2]);
-});
-test('a map bar drag keeps the border under the pointer', () => {
-  const c = boot(MAP3);
-  dragDivider(c, 'a', 100); // 100px of 1000px is 10% of the total
-  assert.deepEqual(imps(c), [20, 20, 60]);
+test('a broken B shows its error and keeps the old B', () => {
+  const c = cBoot();
+  c.setB(CB, 'b.md');
+  assert.equal(c.setB('# R\n      - bad', 'bad.md'), false);
+  assert.equal(c.state.mapB.name, 'b.md');
+  assert.ok(c.renderVals().cmp.error.startsWith('Line 2:'));
 });
 
-// ---------------------------------------------------------------- revision 2: summaries
-test('a score summary round-trips and is read into the model', () => {
-  const src = REC.replace('option: postgres\nscore: 8\n', 'option: postgres\nscore: 8\nsummary: We run 14 clusters\n');
-  assert.equal(Component.serialize(Component.parse(src).map), src);
-  assert.equal(Component.recordModel(Component.parse(src).map).goals[0].summaries.postgres.durability, 'We run 14 clusters');
-  assert.match(Component.parse(REC.replace('weight: 50\n\n#### Postgres', 'weight: 50\nsummary: x\n\n#### Postgres')).errors[0].msg, /can't have "summary"/);
-});
-test('setSummary creates a missing score, keeps one line, and refuses braces', () => {
-  const c = boot(REC);
-  c.setSummary('ops', 'dynamodb', 'Managed\nfor us');
-  assert.equal(Component.recordModel(c.state.map).goals[0].summaries.dynamodb.ops, 'Managed for us');
-  c.setSummary('ops', 'dynamodb', 'a {b}');
-  assert.match(c.state.notice, /braces/i);
-  assert.deepEqual(Component.parse(c.state.src).errors, []);
+test('B can be the current map as it is now, or a saved map', async () => {
+  const c = cBoot();
+  c.renderVals().cmp.useCurrent();
+  assert.equal(c.state.mapB.name, 'Current map (copy)');
+  c.store = fakeStore([{ name: 'Saved', text: CB, updated: 1 }]);
+  await c.refreshSaved();
+  c.renderVals().cmp.savedB[0].pick();
+  assert.equal(c.state.mapB.name, 'Saved');
 });
 
-// ---------------------------------------------------------------- revision 2: record levels
-const rec2 = (patch = {}) => { const c = boot(REC); c.setState({ view: 'record', ...patch }); return c; };
-test('an existing record opens on the Overview with no rail, and old view names still work', () => {
-  const c = rec2();
-  assert.equal(c.renderVals().isRecLevel.overview, true);
-  assert.equal(c.renderVals().hasRail, false);
-  const g = rec2({ view: 'goals' });
-  assert.equal(g.renderVals().isRecLevel.goals, true);
-  assert.deepEqual(c.renderVals().tabs.map((t) => t.label), ['Overview', 'Record', 'Markdown source', 'Compare']);
+test('?theirs= loads B and opens Compare', async () => {
+  location.search = '?theirs=https://a.org/b.md';
+  const c = boot(CA);
+  c.store = fakeStore();
+  c.fetchMapText = async () => CB;
+  await c.start();
+  location.search = '';
+  assert.equal(c.state.layout, 'compare');
+  assert.equal(c.state.mapB.name, 'b.md');
 });
-test('the rail shows the selected goal, criterion and option under each step; a click keeps the selection', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
-  const st = () => c.renderVals().recSteps;
-  assert.equal(c.renderVals().hasRail, true);
-  assert.deepEqual(st().map((x) => x.tier), ['Goals', 'Criteria', 'Options', 'Reasons']);
-  assert.deepEqual(st().map((x) => x.detail), ['Reliability', 'Durability', 'Postgres', '1 reason']);
-  st()[1].go();
-  assert.equal(c.renderVals().isRecLevel.reasons, true);
-  assert.deepEqual(st().map((x) => x.current), [false, false, false, true]);
-  assert.deepEqual(st().map((x) => x.done), [true, true, true, false]);
+
+test('compare never loads refs', () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n' });
+  c.setState({ layout: 'compare' });
+  c.setB(REFMAP, 'same.md');
+  for (const t of c.renderVals().cmp.tabs) { t.pick(); c.renderVals(); }
+  assert.equal(c.fetches.length, 0);
 });
-test('selecting reveals the next sections below, each after a divider and a heading', () => {
-  const c = rec2({ recLevel: 'goals' });
-  const secs = () => c.renderVals().recSections.map((x) => [x.kind, x.hasDivider, x.heading]);
-  assert.deepEqual(secs(), [['goals', false, 'Goals']]);
-  c.renderVals().goalsLevel.weights.segments[0].pick();
-  assert.deepEqual(secs(), [['goals', false, 'Goals'], ['criteria', true, 'Criteria'], ['options', true, 'Options']]);
-  c.renderVals().criteriaLevel.options[0].open();
-  assert.deepEqual(secs().map((x) => x[0]), ['goals', 'criteria', 'options']);
-  assert.equal(c.renderVals().isRecLevel.options, true);
-  c.renderVals().optionsLevel.rows[0].openReasons();
-  assert.deepEqual(secs().map((x) => x[0]), ['goals', 'criteria', 'options', 'reasons']);
-  assert.deepEqual(c.renderVals().criteriaLevel.options.map((o) => o.pressed), ['true', 'false']);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-test('a level whose goal, option or criterion is gone falls back, with every binding resolved', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'reasons', recGoal: 'reliability', recOption: 'postgres', recCrit: 'nope' });
-  assert.equal(c.renderVals().isRecLevel.options, true);
-  c.recNav({ recGoal: 'gone' });
-  assert.equal(c.renderVals().isRecLevel.goals, true);
-  for (const lv of ['overview', 'goals', 'criteria', 'options', 'reasons']) {
-    c.recNav({ recLevel: lv, recGoal: 'reliability', recOption: 'postgres', recCrit: 'durability' });
-    assert.deepEqual(unresolved(c.renderVals()), [], lv);
+
+// ---------------------------------------------------------------- examples
+test('examples parse and round-trip', () => {
+  for (const f of ['examples/votes-at-16/map.md', 'examples/votes-at-16/obi.md', 'examples/event-store/map.md', 'examples/demo/sam.md', 'examples/demo/priya.md']) {
+    const text = fs.readFileSync(f, 'utf8');
+    const m = parseMap(text);
+    assert.equal(serializeMap(m), text, f);
   }
 });
 
-// ---------------------------------------------------------------- revision 2: goals and criteria levels
-test('All goals: a short bar with a "+" column; clicking a goal shows its details', () => {
-  const c = rec2({ recLevel: 'goals' });
-  const gl = () => c.renderVals().goalsLevel;
-  assert.equal(gl().weights.hasAdd, true);
-  gl().weights.segments[1].pick();
-  assert.equal(gl().detail.title, 'Cost');
-  gl().detail.onDesc({ target: { value: 'Money and people' } });
-  assert.equal(nodeOf(c, 'cost').details, 'Money and people');
-  assert.equal(c.renderVals().isRecLevel.criteria, true, 'selecting a goal reveals its criteria');
-  gl().weights.add();
-  assert.equal(Component.recordModel(c.state.map).goals.length, 3);
+// ---------------------------------------------------------------- review fixes
+test('a blank or spaces-only title still saves as a file that opens', () => {
+  const c = boot(SMALL);
+  c.addChild(c.state.nodes[1].id);
+  c.addChild(c.state.nodes[0].id);
+  c.patchNode(c.state.currentId, { title: '   ' });
+  const back = parseMap(c.currentText());
+  assert.equal(back.nodes.length, 6);
 });
-test('a goal\'s criteria: bar with "+", criterion details, and options by goal score', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'criteria', recGoal: 'reliability' });
-  const cl = () => c.renderVals().criteriaLevel;
-  cl().weights.segments[1].pick();
-  cl().detail.onDesc({ target: { value: 'How hard it is to run' } });
-  assert.equal(nodeOf(c, 'ops').details, 'How hard it is to run');
-  assert.deepEqual(cl().options.map((o) => [o.title, o.isWinner]), [['Postgres', true], ['DynamoDB', false]]);
-  cl().options[1].open();
-  assert.equal(c.state.recOption, 'dynamodb');
-  assert.equal(c.renderVals().isRecLevel.options, true);
+
+test('typed tags are kept to letters, digits and dashes, so the file reopens', () => {
+  const c = boot(SMALL);
+  for (const t of ['To_do', 'Café', 'v1.2', 'Q&A', '-x', '#Big idea']) { c.setState({ tagDraft: t }); c.addTagToCurrent(); }
+  const back = parseMap(c.currentText());
+  assert.deepEqual(back.nodes[0].tags, ['todo', 'caf', 'v12', 'qa', 'x', 'big-idea']);
 });
-test('goals and criteria levels resolve every binding, as bar and as pie', () => {
-  for (const chart of ['bar', 'pie']) {
-    for (const lv of ['goals', 'criteria']) {
-      const c = rec2({ recordChart: chart });
-      c.recNav({ recLevel: lv, recGoal: 'reliability', chosenFacts: ['cost', 'ops'] });
-      assert.deepEqual(unresolved(c.renderVals()), [], `${chart} ${lv}`);
+
+test('blank lines in a description survive a round trip', () => {
+  const nodes = [{ id: 'p0', parent: null, title: 'R', x: null, y: null, tags: [], note: 'para1\n\npara2\n   \nend', refs: [] }];
+  assert.equal(parseMap(serializeMap({ meta: DEFAULT_META, nodes })).nodes[0].note, 'para1\n\npara2\n   \nend');
+});
+
+test('Windows line endings open', () => {
+  const m = parseMap('---\r\ntheme: night\r\n---\r\n# Root\r\n- child {x:0.5}\r\n  @ https://a.org/m.md\r\n');
+  assert.equal(m.meta.theme, 'night');
+  assert.equal(m.nodes[1].title, 'child');
+  assert.deepEqual(m.nodes[1].refs, ['https://a.org/m.md']);
+});
+
+test('a ref to the map opened from a URL never fetches, and opening another map forgets that URL', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': REFMAP });
+  await c.openUrl('https://a.org/theirs.md');
+  const before = c.fetches.length;
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, before);
+  c.openText(REFMAP, 'file.md', { force: true });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, before + 1);
+});
+
+test('compare of a map with itself shows no differences, even with a ref open', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs {x:0.3}\n- T1\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  c.setState({ layout: 'compare' });
+  c.renderVals().cmp.useCurrent();
+  assert.equal(c.renderVals().cmp.summary, '0 changed · 0 only in A · 0 only in B');
+});
+
+test('opening another map first saves a named map\'s pending edits', async () => {
+  const c = boot(SMALL);
+  c.store = fakeStore();
+  await c.saveAs('Plan');
+  c.patchNode(c.state.nodes[1].id, { title: 'Just typed' });
+  c.componentDidUpdate();
+  c.openText(FULL, 'other', { force: true });
+  await new Promise((r) => setTimeout(r, 0));
+  assert.match(c.store.db.get('Plan').text, /- Just typed/);
+  clearTimeout(c.autosaveTimer);
+});
+
+test('a share link leaves the address bar once its map is open', async () => {
+  const c = boot();
+  c.store = fakeStore();
+  location.hash = '#m=' + await app.encodeShare('# Shared\n');
+  location.search = '?view=tree';
+  replaced.length = 0;
+  await c.start();
+  location.hash = ''; location.search = '';
+  assert.equal(c.state.nodes[0].title, 'Shared');
+  assert.deepEqual(replaced, ['/?view=tree']);
+});
+
+// ---------------------------------------------------------------- drawer position
+test('the drawer sits on the right by default, can move to the bottom, and is remembered in this browser', () => {
+  storage.clear();
+  const c = boot(SMALL);
+  assert.equal(c.state.drawer, 'right');
+  c.setState({ settingsOpen: true, settingsTab: 'theme' });
+  c.renderVals().drawerOpts.find((o) => o.value === 'bottom').pick();
+  assert.equal(c.state.drawer, 'bottom');
+  assert.equal(storage.get('tree.drawer'), 'bottom');
+  assert.equal(boot(SMALL).state.drawer, 'bottom');
+  assert.equal(c.state.history.past.length, 0);
+  storage.clear();
+});
+
+test('a hidden right drawer leaves a thin column that opens it again, in map and focus views', () => {
+  for (const layout of ['radial', 'tree', 'questionnaire', 'pie']) {
+    const c = boot(Q3);
+    c.setState({ drawer: 'right', layout });
+    assert.equal(c.renderVals().canHidePanel, true, layout);
+    c.renderVals().togglePanel();
+    const v = c.renderVals();
+    assert.equal(v.panelVisible, false, layout);
+    assert.equal(v.panelRail, true, layout);
+    assert.equal(v.panelPill, false, layout);
+    assert.deepEqual(unresolved(v, c), [], layout);
+    v.togglePanel();
+    assert.equal(c.renderVals().panelVisible, true, layout);
+  }
+});
+
+test('a hidden bottom drawer keeps the pill on the map, and the focus views keep their bottom panel', () => {
+  const c = boot(Q3);
+  c.setState({ drawer: 'bottom', layout: 'radial', panelOpen: false });
+  assert.equal(c.renderVals().panelPill, true);
+  assert.equal(c.renderVals().panelRail, false);
+  c.setState({ layout: 'questionnaire' });
+  assert.equal(c.renderVals().panelVisible, true);
+  assert.equal(c.renderVals().canHidePanel, false);
+  c.setState({ layout: 'directory' });
+  assert.equal(c.renderVals().panelVisible, true);
+});
+
+test('every view renders with the drawer in either place', () => {
+  for (const drawer of ['bottom', 'right']) {
+    for (const layout of ['radial', 'tree', 'directory', 'questionnaire', 'pie']) {
+      const c = boot(Q3);
+      c.setState({ drawer, layout });
+      const v = c.renderVals();
+      assert.deepEqual(unresolved(v, c), [], drawer + ' ' + layout);
+      if (layout !== 'directory') assert.equal(v.panelBox.includes('flex: 0 0 400px'), drawer === 'right', drawer + ' ' + layout);
     }
   }
 });
 
-// ---------------------------------------------------------------- revision 2: options and reasons levels
-test('editing one option: a slider and a short reason per criterion, and Reasons opens the next level', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'postgres', optMode: 'edit' });
-  const ol = () => c.renderVals().optionsLevel;
-  assert.deepEqual(ol().rows.map((r) => [r.title, r.score]), [['Durability', 8], ['Ops', 6]]);
-  ol().rows[1].onScore({ target: { value: '9' } });
-  ol().rows[1].onSummary({ target: { value: 'Well understood' } });
-  assert.equal(Component.recordModel(c.state.map).goals[0].scores.postgres.ops, 9);
-  assert.equal(Component.recordModel(c.state.map).goals[0].summaries.postgres.ops, 'Well understood');
-  ol().rows[0].openReasons();
-  assert.equal(c.renderVals().isRecLevel.reasons, true);
-  assert.deepEqual(c.renderVals().reasonsLevel.reasons.map((r) => r.text), ['Runbooks exist']);
-});
-test('compare all: the grid, and a cell edits that option', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'postgres', optMode: 'compare' });
-  const g = c.renderVals().optionsLevel.grid;
-  assert.deepEqual(g.rows.map((r) => r.option), ['postgres', 'dynamodb']);
-  g.rows[1].cells[0].pick();
-  assert.equal(c.state.optMode, 'edit');
-  assert.equal(c.state.recOption, 'dynamodb');
-  assert.deepEqual(unresolved(c.renderVals()), []);
+test('the demo pair shows every kind of difference Compare has', () => {
+  const read = (f) => graphOf(fs.readFileSync(f, 'utf8'));
+  const meta = parseMap(fs.readFileSync('examples/demo/sam.md', 'utf8')).meta;
+  const rows = app.compareMaps(read('examples/demo/sam.md'), read('examples/demo/priya.md'), meta);
+  const kinds = new Set(rows.map((r) => (r.only ? 'only ' + r.only : r.flipped ? 'flipped' : r.changed ? 'changed' : 'same')));
+  assert.deepEqual([...kinds].sort(), ['changed', 'flipped', 'only a', 'only b', 'same']);
+  assert.ok(rows.some((r) => r.only === 'a' && r.path.split(' / ').length === 3), 'a nested node only in A');
 });
 
-
-// ---------------------------------------------------------------- revision 2 review fixes
-test('r2 review: the open option gone falls back to the goal; compare with no options too', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'gone', optMode: 'edit', recCrit: 'durability' });
-  assert.equal(c.renderVals().isRecLevel.criteria, true);
-  assert.equal(c.renderVals().recSteps[3].ready, false, 'Reasons waits for an option');
-  const d = rec2();
-  d.setSummary('bill', 'dynamodb', 'x'); // keep Cost's only option
-  d.recNav({ recLevel: 'options', recGoal: 'cost', optMode: 'compare' });
-  assert.equal(d.renderVals().isRecLevel.options, true);
-  const e = boot(REC.replace(/### Bill[\s\S]*$/, '### Bill\nslug: bill\nweight: 1\n'));
-  e.setState({ view: 'record' });
-  e.recNav({ recLevel: 'options', recGoal: 'cost', optMode: 'compare' });
-  assert.equal(e.renderVals().isRecLevel.criteria, true);
-});
-test('r2 review: Compare all is titled and crumbed All options', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: null, optMode: 'compare' });
-  assert.equal(c.renderVals().optionsLevel.title, 'All options');
-  assert.equal(c.renderVals().recSteps[2].detail, 'All options');
-});
-test('r2 review: record bar segments have no padding of their own, so drags track the pointer', () => {
-  const seg = template.slice(template.indexOf('<sc-for list="{{w.segments}}"'), template.indexOf('<sc-if value="{{g.hasDivider}}"'));
-  assert.ok(!/flex: \{\{g\.flex\}\} 1 0;[^"]*padding: 8px/.test(seg));
-});
-test('r2 review: a record with no goals still offers + on All goals', () => {
-  const c = boot(REC.replace(/\n## Reliability[\s\S]*$/, '\n'));
-  c.setState({ view: 'record', recLevel: 'goals' });
-  assert.equal(c.renderVals().goalsLevel.weights.hasAdd, true);
-  c.renderVals().goalsLevel.weights.add();
-  assert.equal(Component.recordModel(c.state.map).goals.length, 1);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-test('r2 review: a zero-weight chosen column doesn\'t freeze its side', () => {
-  assert.deepEqual(Component.borderResize([0, 50, 50], 1, -0.1, [0, 1]), [0, 40, 60]);
-});
-test('r2 review: status text describes the per-side rule, and Compare says Overview', () => {
-  const c = boot(MAP3);
-  colOf(c, 'a').down(ev({ metaKey: true }));
-  assert.ok(!/beside the one you resize/.test(chartOf(c).chosenText));
-  assert.ok(!template.includes('save a snapshot in Overall') && !html.includes('save a snapshot in Overall'));
-  const r = rec2({ recLevel: 'goals' });
-  r.renderVals().goalsLevel.weights.segments[0].down(ev({ metaKey: true }));
-  assert.ok(!/only those$/.test(r.renderVals().goalsLevel.weights.status));
+// ---------------------------------------------------------------- Ctrl+arrow: move by what's on screen
+test('spatialStep picks the nearest node in that direction, preferring ones straight ahead', () => {
+  const pos = { c: { x: 0, y: 0 }, left: { x: -100, y: 10 }, farLeft: { x: -300, y: 0 }, upLeft: { x: -60, y: -90 }, right: { x: 120, y: 0 }, down: { x: 5, y: 150 } };
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowLeft'), 'left');
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowRight'), 'right');
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowDown'), 'down');
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowUp'), 'upLeft');
+  assert.equal(app.spatialStep(pos, 'right', 'ArrowRight'), null);
 });
 
+const key2 = (props) => ({ ctrlKey: true, metaKey: false, shiftKey: false, altKey: false, preventDefault() { this.prevented = true; }, target: { value: 'x', selectionStart: 0, selectionEnd: 0 }, ...props });
 
-// ---------------------------------------------------------------- the step rail
-test('a new decision record opens on the Goals step', () => {
-  const c = boot(MAP3);
-  c.renderVals().nm.pickRecord();
-  c.renderVals().nm.onTitle({ target: { value: 'Pick a store' } });
-  c.renderVals().nm.create();
-  assert.equal(c.renderVals().isRecLevel.goals, true);
-  assert.equal(c.renderVals().hasRail, true);
-});
-test('the Overview and Record tabs: Record returns to the step you were on', () => {
-  const c = rec2();
-  const tab = (label) => c.renderVals().tabs.find((t) => t.label === label);
-  tab('Record').pick();
-  assert.equal(c.renderVals().isRecLevel.goals, true);
-  c.recNav({ recLevel: 'options', recGoal: 'reliability', recOption: 'postgres' });
-  tab('Overview').pick();
-  assert.equal(c.renderVals().isRecLevel.overview, true);
-  assert.equal(tab('Overview').pressed, 'true');
-  tab('Record').pick();
-  assert.equal(c.renderVals().isRecLevel.options, true);
-  assert.equal(tab('Record').pressed, 'true');
-});
-test('a step with nothing chosen yet picks the first goal, option and criterion', () => {
-  const c = rec2({ recLevel: 'goals' });
-  const st = () => c.renderVals().recSteps;
-  assert.equal(st()[1].ready, false);
-  assert.match(st()[1].detail, /Choose a goal/);
-  st()[3].go();
-  assert.equal(c.renderVals().isRecLevel.reasons, true);
-  assert.deepEqual([c.state.recGoal, c.state.recOption, c.state.recCrit], ['reliability', 'postgres', 'durability']);
-  assert.deepEqual(unresolved(c.renderVals()), []);
+test('Ctrl+arrow in Radial goes to the node on that side of the screen, whatever its place in the tree', () => {
+  const c = boot('# R\n- A\n- B\n'); // radial puts A to the right of the root and B to the left
+  c.setState({ layout: 'radial', currentId: c.state.nodes[0].id });
+  const pos = c.positions();
+  assert.ok(pos[idOf(c, 'A')].x > 0 && pos[idOf(c, 'B')].x < 0, 'layout as expected');
+  const press = (k) => { const e = key2({ key: k }); c.handleKey(e, byIdC(c)); return e; };
+  assert.ok(press('ArrowLeft').prevented);
+  assert.equal(c.state.currentId, idOf(c, 'B')); // left from the root is a child
+  press('ArrowLeft');
+  assert.equal(c.state.currentId, idOf(c, 'B')); // nothing further left
+  press('ArrowRight');
+  assert.equal(c.state.currentId, c.state.nodes[0].id); // right from B is back to its parent
+  press('ArrowRight');
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  press('ArrowLeft');
+  assert.equal(c.state.currentId, c.state.nodes[0].id); // and left from A is its parent: the same key, the other way in the tree
 });
 
-
-// ---------------------------------------------------------------- focus the title of what you select or create
-test('selecting or adding a goal focuses its title', () => {
-  const c = rec2({ recLevel: 'goals' });
-  c.renderVals().goalsLevel.weights.segments[1].pick();
-  assert.equal(c.lastFocus, 'rec-goal-title');
-  c.lastFocus = null;
-  c.renderVals().goalsLevel.weights.add();
-  assert.equal(c.lastFocus, 'rec-goal-title');
-  assert.equal(c.renderVals().goalsLevel.detail.title, 'New goal');
-});
-test('selecting or adding a criterion selects it and focuses its title', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'reliability' });
-  c.renderVals().criteriaLevel.weights.segments[1].pick();
-  assert.equal(c.lastFocus, 'rec-crit-title');
-  c.lastFocus = null;
-  c.renderVals().criteriaLevel.weights.add();
-  assert.equal(c.lastFocus, 'rec-crit-title');
-  assert.equal(c.renderVals().criteriaLevel.detail.title, 'New criterion');
-});
-test('selecting or adding an option selects it and focuses its title, which renames it everywhere', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'reliability' });
-  c.renderVals().criteriaLevel.options[1].open();
-  assert.equal(c.lastFocus, 'rec-option-title');
-  c.lastFocus = null;
-  c.renderVals().criteriaLevel.onNewOption({ target: { value: 'Kafka' } });
-  c.renderVals().criteriaLevel.addNewOption();
-  assert.equal(c.state.recOption, 'kafka');
-  assert.equal(c.lastFocus, 'rec-option-title');
-  c.recNav({ recOption: 'dynamodb' });
-  c.renderVals().optionsLevel.onTitle({ target: { value: 'Amazon DynamoDB' } });
-  const m = Component.recordModel(c.state.map);
-  assert.equal(m.options.get('dynamodb'), 'Amazon DynamoDB');
-  assert.deepEqual(Component.parse(c.state.src).errors, [], 'every score heading was renamed');
-  c.renderVals().optionsLevel.onTitle({ target: { value: '  ' } });
-  assert.equal(Component.recordModel(c.state.map).options.get('dynamodb'), 'Amazon DynamoDB');
-});
-test('the three title fields carry the ids that focus looks for', () => {
-  for (const id of ['rec-goal-title', 'rec-crit-title', 'rec-option-title']) assert.ok(template.includes(`id="${id}"`), id);
+test('Ctrl+arrow works with the caret anywhere in the title, and does nothing where there is no node', () => {
+  const c = boot('# R\n- A\n');
+  c.setState({ layout: 'tree', currentId: c.state.nodes[0].id });
+  const e = key2({ key: 'ArrowRight', target: { value: 'Root', selectionStart: 2, selectionEnd: 2 } });
+  c.handleKey(e, byIdC(c));
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  const f = key2({ key: 'ArrowRight' });
+  c.handleKey(f, byIdC(c));
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  assert.ok(f.prevented, 'still keeps the caret from moving');
 });
 
-
-// ---------------------------------------------------------------- deleting, and criterion colours
-test('a goal deletes in one click, clears the selection, says how to undo, and undo brings it back', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'cost', recOption: 'dynamodb' });
-  c.renderVals().goalsLevel.detail.remove();
-  assert.equal(Component.findPath(c.state.map.root, 'cost'), null);
-  assert.equal(c.renderVals().isRecLevel.criteria, false);
-  assert.match(c.state.notice, /Deleted “Cost”.*undo/i);
-  c.undo();
-  assert.ok(Component.findPath(c.state.map.root, 'cost'));
-});
-test('a criterion deletes in one click, but a goal keeps at least one', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recCrit: 'ops' });
-  assert.equal(c.renderVals().criteriaLevel.detail.canRemove, true);
-  c.renderVals().criteriaLevel.detail.remove();
-  assert.equal(Component.findPath(c.state.map.root, 'ops'), null);
-  assert.equal(c.state.recCrit, null);
-  c.recNav({ recCrit: 'durability' });
-  assert.equal(c.renderVals().criteriaLevel.detail.canRemove, false);
-});
-test('an option deletes from its goal in one click', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recOption: 'dynamodb', optMode: 'edit' });
-  c.renderVals().optionsLevel.remove();
-  assert.deepEqual(Component.recordModel(c.state.map).goals[0].options, ['postgres']);
-  assert.equal(c.state.recOption, null);
-  assert.match(c.state.notice, /Deleted “DynamoDB” from Reliability/);
-});
-test('criteria get distinct auto-colours, from the same palette as goals', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'reliability' });
-  for (let k = 0; k < 4; k++) c.addCriterion('reliability');
-  const crit = c.renderVals().criteriaLevel.weights.segments.map((x) => x.fill);
-  const goals = c.renderVals().goalsLevel.weights.segments.map((x) => x.fill);
-  assert.equal(new Set(crit).size, crit.length);
-  assert.deepEqual(goals, crit.slice(0, goals.length));
+test('arrows reach the selected node when nothing has focus, as right after a map loads', () => {
+  const c = boot('# R\n- A\n- B\n');
+  c.setState({ layout: 'radial' });
+  const body = { tagName: 'BODY' };
+  const press = (key, extra = {}) => { const e = { key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, target: body, preventDefault() { this.prevented = true; }, ...extra }; c.onGlobalKey(e); return e; };
+  assert.ok(press('ArrowRight').prevented);
+  assert.equal(c.state.currentId, idOf(c, 'A')); // plain → from the root goes into its first child
+  press('ArrowLeft');
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+  press('ArrowLeft', { ctrlKey: true });
+  assert.equal(c.state.currentId, idOf(c, 'B')); // Ctrl+← goes to the node on the left
+  const slider = press('ArrowRight', { target: { tagName: 'INPUT', type: 'range' } });
+  assert.equal(slider.prevented, undefined); // a focused slider keeps its arrows
+  assert.equal(c.state.currentId, idOf(c, 'B'));
+  c.setState({ layout: 'directory' });
+  assert.equal(press('ArrowRight').prevented, undefined); // Directory has its own keys
 });
 
+// ---------------------------------------------------------------- map layout: no overlaps, no needless distance
+const overlaps = (c) => {
+  const pos = c.positions();
+  const box = c.layoutBoxes();
+  const ids = Object.keys(pos);
+  const out = [];
+  ids.forEach((a, i) => ids.slice(i + 1).forEach((b) => {
+    if (Math.abs(pos[a].x - pos[b].x) < box[a].hw + box[b].hw && Math.abs(pos[a].y - pos[b].y) < box[a].hh + box[b].hh) out.push(a + '/' + b);
+  }));
+  return out;
+};
+const BUSY = '# What are you deciding?\n- A {x:0.2}\n- B {x:1}\n- C\n- D {x:1}\n- Dave\n- New idea\n- Next {x:1}\n- Ide\n- Meh\n- Somewhere with a much longer title than the rest {x:1}\n  - next\n  - Whatever {x:0.9}\n  - x\n';
 
-// ---------------------------------------------------------------- a title can be emptied while typing
-test('a title field can be emptied while typing; the file keeps the old title until a new one is typed', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recCrit: 'ops' });
-  const crit = () => c.renderVals().criteriaLevel.detail;
-  crit().onTitle({ target: { value: '' } });
-  assert.equal(crit().title, '', 'the field shows empty');
-  assert.equal(nodeOf(c, 'ops').text, 'Ops', 'the file is unchanged');
-  assert.equal(c.state.notice, null);
-  crit().onTitle({ target: { value: 'R' } });
-  assert.equal(nodeOf(c, 'ops').text, 'R');
-  crit().onTitle({ target: { value: '' } });
-  crit().onBlur();
-  assert.equal(crit().title, 'R', 'leaving it empty puts the title back');
-  assert.deepEqual(Component.parse(c.state.src).errors, []);
-});
-test('the same holds for goal, option and map point titles', () => {
-  const c = rec2();
-  c.recNav({ recLevel: 'goals', recGoal: 'reliability', recOption: 'postgres', optMode: 'edit' });
-  c.renderVals().goalsLevel.detail.onTitle({ target: { value: '' } });
-  assert.equal(c.renderVals().goalsLevel.detail.title, '');
-  c.renderVals().optionsLevel.onTitle({ target: { value: '' } });
-  assert.equal(c.renderVals().optionsLevel.title, '');
-  assert.equal(Component.recordModel(c.state.map).options.get('postgres'), 'Postgres');
-  const m = boot(MAP3);
-  m.setFocus('a');
-  m.renderVals().pn.onText({ target: { value: '' } });
-  assert.equal(m.renderVals().pn.text, '');
-  assert.equal(nodeOf(m, 'a').text, 'A');
+test('Radial and Tree: no two nodes overlap, with sizes scaled and any node selected', () => {
+  for (const layout of ['radial', 'tree']) {
+    const c = boot(BUSY);
+    c.setState({ layout, colorDim: 'y', sizeOn: true });
+    for (const n of c.state.nodes) {
+      c.setState({ currentId: n.id });
+      assert.deepEqual(overlaps(c).map((x) => x.split('/').map((id) => c.state.nodes.find((m) => m.id === id).title).join(' × ')), [], layout + ' with ' + n.title + ' selected');
+    }
+    c.setState({ sizeMax: 2.4 });
+    assert.deepEqual(overlaps(c), [], layout + ' at the largest size range');
+  }
 });
 
-
-// ---------------------------------------------------------------- the map bar: short, pinnable, and impact recalculated from points
-test('the bar is short in Width only, and tall in the other chart views', () => {
-  const c = boot(MAP3);
-  assert.equal(chartOf(c).compact, true);
-  assert.equal(chartOf(c).height, '120px');
-  c.setState({ chartView: 'tall' });
-  assert.equal(chartOf(c).compact, false);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-test('pinning the bar keeps it on the pinned point while a clicked column shows its details', () => {
-  const c = boot(NESTED);
-  c.setState({ view: 'map' });
-  assert.equal(c.renderVals().pie.pinPressed, 'false');
-  c.renderVals().pie.togglePin();
-  colOf(c, 'a').click(ev());
-  assert.equal(c.state.focus, 'a');
-  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['a', 'b']);
-  assert.equal(colOf(c, 'a').isSelected, true);
-  assert.equal(c.renderVals().pn.text, 'A');
-  assert.equal(c.renderVals().health.has, true, 'the health bar is for the point whose details show');
-  c.renderVals().add.right();
-  assert.equal(c.state.adding.parent, 'r', 'the + beside the pinned bar adds to the pinned point');
-  c.setState({ adding: null });
-  c.renderVals().pie.togglePin();
-  assert.deepEqual(chartOf(c).cols.map((x) => x.slug), ['kid']);
-  assert.deepEqual(unresolved(c.renderVals()), []);
-});
-test('Recalculate sets a point\'s impact from its points, and undo puts it back', () => {
-  const c = boot(NESTED);
-  c.setState({ view: 'map' });
-  c.setFocus('a');
-  assert.equal(c.renderVals().health.canRecalc, true);
-  c.renderVals().health.recalc();
-  assert.equal(nodeOf(c, 'a').impact, 1);
-  c.undo();
-  assert.equal(nodeOf(c, 'a').impact, -0.5);
-  c.setFocus('kid');
-  assert.equal(c.renderVals().health.canRecalc, false, 'a point with no points under it');
-  c.setFocus('r');
-  assert.equal(c.renderVals().health.canRecalc, false, 'the root has no impact of its own');
+test('Radial: a few short children sit close to the root, not on a fixed far ring', () => {
+  const c = boot('# Root\n- A\n- B\n- C\n');
+  c.setState({ layout: 'radial' });
+  const pos = c.positions();
+  const far = Math.max(...c.state.nodes.slice(1).map((n) => Math.hypot(pos[n.id].x, pos[n.id].y)));
+  assert.ok(far < 160, 'furthest child is ' + far.toFixed(0) + 'px out');
+  assert.deepEqual(overlaps(c), []);
 });
 
-
-// ---------------------------------------------------------------- the record's step page is a fixed frame
-test('on the Record step page only the main column scrolls; elsewhere the page scrolls', () => {
-  const c = rec2({ recLevel: 'goals' });
-  assert.deepEqual(c.renderVals().shell, { height: '100vh', overflow: 'hidden', innerHeight: '100%', padBottom: '16px', wrapFlex: '1 1 0', align: 'stretch', mainOverflow: 'auto', railHeight: 'auto', railPosition: 'static' });
-  const o = rec2();
-  assert.equal(o.renderVals().shell.overflow, 'visible', 'the Overview scrolls as a page');
-  assert.equal(boot(MAP3).renderVals().shell.height, 'auto');
-  for (const name of ['shell.height', 'shell.mainOverflow', 'shell.railPosition']) assert.ok(template.includes(`{{${name}}}`), name);
+// ---------------------------------------------------------------- a new map starts ready to type over
+const tick = () => new Promise((r) => setTimeout(r, 5));
+test('a new map is titled root, with the title selected so typing replaces it', async () => {
+  assert.equal(parseMap(newMapText()).root.title, 'root');
+  const c = boot();
+  c.store = fakeStore();
+  titleField.focused = 0; titleField.selected = 0;
+  await c.start();
+  await tick();
+  assert.equal(c.state.nodes[0].title, 'root');
+  assert.equal(titleField.focused, 1);
+  assert.equal(titleField.selected, 1);
 });
 
-Promise.all(pending).then(() => {
+test('File → New selects the new title too', async () => {
+  const c = boot(SMALL);
+  titleField.focused = 0; titleField.selected = 0;
+  c.renderVals().onNew();
+  await tick();
+  assert.equal(c.state.nodes[0].title, 'root');
+  assert.equal(titleField.selected, 1);
+});
+
+test('a saved map that opens on start is not selected, so a stray key cannot wipe its title', async () => {
+  const c = boot();
+  c.store = fakeStore([{ name: 'Mine', text: '# Mine\n', updated: 1 }]);
+  titleField.focused = 0; titleField.selected = 0;
+  await c.start();
+  await tick();
+  assert.equal(c.state.nodes[0].title, 'Mine');
+  assert.equal(titleField.selected, 0);
+});
+
+test('Radial: every child sits further from the centre than its parent, even under a long chain', () => {
+  const deep = '# Hello\n- Next\n- Foo\n- Bar\n- Fiz\n- Buzz\n' +
+    [1, 2, 3, 4, 5, 6].map((d) => '  '.repeat(d) + '- New idea\n').join('') +
+    ['zeta', 'delta', 'tamma', 'pbeta', 'Alopha', 'New idea'].map((t) => '  '.repeat(7) + '- ' + t + '\n').join('');
+  const c = boot(deep);
+  c.setState({ layout: 'radial' });
+  const pos = c.positions();
+  const dist = (id) => Math.hypot(pos[id].x, pos[id].y);
+  const inward = c.state.nodes.filter((n) => n.parent !== null && dist(n.id) <= dist(n.parent)).map((n) => n.title);
+  assert.deepEqual(inward, []);
+  assert.deepEqual(overlaps(c), []);
+  const longest = Math.max(...c.state.nodes.filter((n) => n.parent !== null).map((n) => Math.hypot(pos[n.id].x - pos[n.parent].x, pos[n.id].y - pos[n.parent].y)));
+  assert.ok(longest < 260, 'children fan out around their parent, not across the map: longest line ' + longest.toFixed(0) + 'px');
+});
+
+test('Fit shows every node whole, scaled ones included', () => {
+  for (const layout of ['radial', 'tree']) {
+    const c = boot(fs.readFileSync('examples/demo/sam.md', 'utf8'));
+    c.setState({ layout, follow: false, vw: 900, vh: 700, panelOpen: false });
+    c.fit();
+    const pos = c.positions();
+    const box = c.layoutBoxes();
+    const view = c.visible();
+    const { zoom, pan } = c.state;
+    const out = Object.keys(pos).filter((id) => Math.abs(pos[id].x * zoom + pan.x) + box[id].hw * zoom > view.w / 2 + 1 || Math.abs(pos[id].y * zoom + pan.y) + box[id].hh * zoom > view.h / 2 + 1);
+    assert.deepEqual(out.map((id) => c.state.nodes.find((n) => n.id === id).title), [], layout);
+  }
+});
+
+test('opening a map fits it to the canvas, and Fit never zooms in past 100%', () => {
+  const c = boot('# R\n');
+  c.setState({ layout: 'radial', follow: false, vw: 1000, vh: 839 });
+  c.didInitialFit = true; // what the canvas's ResizeObserver sets once it has measured the canvas
+  c.fit();
+  assert.equal(c.state.zoom, 1); // one small node would otherwise fill the screen at 300%
+  c.openText(fs.readFileSync('examples/demo/sam.md', 'utf8'), 'sam.md', { force: true });
+  const pos = c.positions();
+  const box = c.layoutBoxes();
+  const view = c.visible();
+  const { zoom, pan } = c.state;
+  assert.ok(zoom < 1);
+  const out = Object.keys(pos).filter((id) => Math.abs(pos[id].x * zoom + pan.x) + box[id].hw * zoom > view.w / 2 + 1 || Math.abs(pos[id].y * zoom + pan.y) + box[id].hh * zoom > view.h / 2 + 1);
+  assert.deepEqual(out, []);
+});
+
+(async () => {
+  for (const { name, fn } of queue) {
+    try { await fn(); passed++; } catch (e) { failed++; console.error(`FAIL ${name}\n  ${e.message}`); }
+  }
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
-});
+})();

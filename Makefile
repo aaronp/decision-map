@@ -6,5 +6,5 @@ check:
 
 dev:
 	@echo "Example: http://localhost:$(PORT)/?src=examples/votes-at-16/map.md"
-	@echo "Diff:    http://localhost:$(PORT)/?ours=examples/votes-at-16/map.md&theirs=examples/votes-at-16/obi.md"
+	@echo "Compare: http://localhost:$(PORT)/?src=examples/demo/sam.md&theirs=examples/demo/priya.md&view=compare"
 	@PORT=$(PORT) bun dev.js
