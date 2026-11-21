@@ -31,6 +31,15 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
 @keyframes am-born{from{opacity:0;box-shadow:inset 0 0 0 3px var(--ink)}}
 @media (prefers-reduced-motion:reduce){.am-col[data-born="true"]{animation:none}}
 .am-col[data-can="true"]:hover::after{content:'↕';position:absolute;top:6px;right:8px;z-index:2;font-size:14px;color:var(--ink);pointer-events:none}
+.am-ctl circle{fill:var(--ink);stroke:var(--card);stroke-width:2}
+.am-ctl path{stroke:var(--card);stroke-width:2.5;stroke-linecap:round;fill:none}
+.am-ctl:hover circle{fill:#2A4BD7}
+.am-move{cursor:grab;touch-action:none}
+.am-move:active{cursor:grabbing}
+.am-move circle{fill:var(--card);stroke:var(--ink)}
+.am-move path{stroke:var(--ink)}
+.am-move:hover circle,.am-move:focus-visible circle{fill:#2A4BD7;stroke:var(--card)}
+.am-move:hover path,.am-move:focus-visible path{stroke:var(--card)}
 </style>
 </helmet>
 <div style="height: 100vh; min-height: 640px; display: flex; flex-direction: column; background: var(--bg); {{themeVars}}">
@@ -52,6 +61,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <option value="tree">Tree</option>
           <option value="directory">Directory</option>
           <option value="questionnaire">Questionnaire</option>
+          <option value="pie">Pie</option>
         </select>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A4D55" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: 11px; pointer-events: none"><path d="m6 9 6 6 6-6"></path></svg>
       </span>
@@ -226,8 +236,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         </div>
       </nav>
     </sc-if>
-    <sc-if value="{{isQuestion}}" hint-placeholder-val="{{ false }}">
-      <main aria-label="Questionnaire" style="flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 18px 28px 40px; display: flex; flex-direction: column; gap: 16px">
+    <sc-if value="{{isFocusPage}}" hint-placeholder-val="{{ false }}">
+      <main aria-label="{{focusPageLabel}}" style="flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 18px 28px 40px; display: flex; flex-direction: column; gap: 16px">
         <nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 2px; min-height: 30px; font-size: 13px; color: var(--ink2)">
           <sc-for list="{{crumbs}}" as="c" hint-placeholder-count="2">
             <button class="ghost" title="{{c.label}}" onClick="{{c.go}}" style="max-width: 28ch; border: 0; border-radius: 6px; padding: 4px 6px; background: transparent; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.label}}</button>
@@ -248,15 +258,26 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <sc-if value="{{health.canRecalc}}" hint-placeholder-val="{{ false }}"><button class="ghost" onClick="{{health.recalc}}" title="{{health.recalcTitle}}" style="height: 30px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 12px">Recalculate</button></sc-if>
         </div>
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+          <sc-if value="{{isQuestion}}" hint-placeholder-val="{{ true }}">
           <div role="group" aria-label="Chart" style="display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px">
             <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
               <button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="border: 0; border-radius: 6px; padding: 0 10px; height: 28px; font-size: 12px; {{t.style}}">{{t.label}}</button>
             </sc-for>
           </div>
+          </sc-if>
+          <sc-if value="{{isPie}}" hint-placeholder-val="{{ false }}">
+            <sc-if value="{{pie.canEdit}}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{pie.toggleEdit}}" aria-pressed="{{pie.editPressed}}" title="{{pie.editLabel}}" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 500; {{pie.editStyle}}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Edit
+              </button>
+            </sc-if>
+            <span></span>
+          </sc-if>
           <button onClick="{{pin.toggle}}" aria-pressed="{{pin.pressed}}" title="{{pin.label}}" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 500; {{pin.style}}">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5M9 3h6l-1 6 4 4H6l4-4z"></path></svg>{{pin.text}}
           </button>
         </div>
+        <sc-if value="{{isQuestion}}" hint-placeholder-val="{{ true }}">
         <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
         <div style="display: flex; gap: 8px; min-width: 0">
           <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
@@ -315,6 +336,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
             </sc-for>
           </div>
           </sc-if>
+        </sc-if>
         <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
           <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 26px; font-size: 12px; color: var(--ink2)">
             <sc-if value="{{chart.hasChosen}}" hint-placeholder-val="{{ false }}">
@@ -331,6 +353,57 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         </sc-if>
         <sc-if value="{{chart.emptyReadOnly}}" hint-placeholder-val="{{ false }}">
           <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
+        </sc-if>
+        </sc-if>
+        <sc-if value="{{isPie}}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{pie.has}}" hint-placeholder-val="{{ true }}">
+          <div style="width: 100%; min-width: 0; height: min(68vh, 640px); min-height: 280px; box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 8px; display: flex; justify-content: center; position: relative">
+            <div data-pie="1" style="position: relative; height: 100%; max-width: 100%; aspect-ratio: 1 / 1; user-select: none; -webkit-user-select: none">
+              <svg aria-hidden="true" style="position: absolute; width: 0; height: 0"><defs><pattern id="am-lock-hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="8" style="fill: var(--ink); opacity: 0.25"></rect></pattern></defs></svg>
+              <sc-for list="{{pie.slices}}" as="s" hint-placeholder-count="6">
+                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible">
+                  <path d="{{s.d}}" role="button" tabIndex="0" aria-label="{{s.info}}" stroke-width="{{s.sw}}" onContextMenu="{{s.menu}}" onPointerDown="{{s.down}}" onClick="{{s.pick}}" onKeyDown="{{s.key}}" onMouseEnter="{{s.enter}}" onMouseLeave="{{s.leave}}" onFocus="{{s.enter}}" onBlur="{{s.leave}}" style="pointer-events: auto; cursor: pointer; opacity: {{s.op}}; fill: {{s.fill}}; fill-opacity: {{s.fillOpacity}}; stroke: {{s.stroke}}; stroke-dasharray: {{s.dash}}"><title>{{s.info}}</title></path>
+                </svg>
+                <sc-for list="{{s.ctls}}" as="k" hint-placeholder-count="3">
+                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; overflow: visible">
+                  <g class="am-ctl" role="button" tabIndex="0" aria-label="{{k.label}}" transform="translate({{k.x}} {{k.y}})" onClick="{{k.add}}" onKeyDown="{{k.key}}" onMouseEnter="{{pie.keep}}" onMouseLeave="{{pie.leave}}" onFocus="{{pie.keep}}" onBlur="{{pie.leave}}" style="pointer-events: auto; cursor: pointer">
+                    <title>{{k.label}}</title>
+                    <circle r="13"></circle>
+                    <path d="M-6 0H6M0-6V6"></path>
+                  </g>
+                </svg>
+              </sc-for>
+                <sc-for list="{{s.moves}}" as="m" hint-placeholder-count="2">
+                <svg viewBox="0 0 520 520" style="position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; pointer-events: none; overflow: visible">
+                  <g class="am-ctl am-move" role="slider" tabIndex="0" aria-label="{{m.label}}" aria-valuenow="{{m.pct}}" aria-valuemin="0" aria-valuemax="100" transform="translate({{m.x}} {{m.y}})" onPointerDown="{{m.down}}" onPointerMove="{{m.move}}" onPointerUp="{{m.up}}" onPointerCancel="{{m.up}}" onKeyDown="{{m.key}}" onMouseEnter="{{pie.keep}}" onMouseLeave="{{pie.leave}}" onFocus="{{pie.keep}}" onBlur="{{pie.leave}}" style="pointer-events: auto">
+                    <title>Drag to resize</title>
+                    <circle r="13"></circle>
+                    <path d="M-6 0H6M-6 0l3-3M-6 0l3 3M6 0l-3-3M6 0l-3 3" transform="rotate({{m.rot}})" style="stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round"></path>
+                  </g>
+                </svg>
+              </sc-for>
+              </sc-for>
+              <sc-for list="{{pie.hatches}}" as="h" hint-placeholder-count="1">
+                <svg viewBox="0 0 520 520" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible"><path d="{{h.d}}" style="fill: url(#am-lock-hatch); pointer-events: none"></path></svg>
+              </sc-for>
+              <sc-for list="{{pie.labels}}" as="l" hint-placeholder-count="4">
+                <span aria-hidden="true" style="position: absolute; left: {{l.x}}%; top: {{l.y}}%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 600; color: var(--ink); pointer-events: none; font-variant-numeric: tabular-nums; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 0 3px">{{l.text}}</span>
+              </sc-for>
+              <sc-if value="{{pie.has}}" hint-placeholder-val="{{ true }}">
+                <span style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 500; pointer-events: none">{{pie.center}}</span>
+              </sc-if>
+            </div>
+          </div>
+            <p style="margin: 0; font-size: 12px; color: var(--ink2)">{{pie.hint}}</p>
+          </sc-if>
+          <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{add.wide}}" class="am-plus" style="height: 220px; border: 1.5px dashed var(--rule); border-radius: 12px; background: transparent; color: var(--ink2); font-size: 16px; font-weight: 500">
+              <span aria-hidden="true" style="display: block; font-size: 44px; font-weight: 300; line-height: 1.1">+</span>Add the first point
+            </button>
+          </sc-if>
+          <sc-if value="{{chart.emptyReadOnly}}" hint-placeholder-val="{{ false }}">
+            <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
+          </sc-if>
         </sc-if>
       </main>
       <sc-if value="{{add.adding}}" hint-placeholder-val="{{ false }}">
@@ -875,8 +948,8 @@ function download(name, text) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
-const LAYOUT_IDS = ['radial', 'tree', 'directory', 'questionnaire'];
-const FOCUS_LAYOUTS = ['questionnaire'];
+const LAYOUT_IDS = ['radial', 'tree', 'directory', 'questionnaire', 'pie'];
+const FOCUS_LAYOUTS = ['questionnaire', 'pie'];
 /* State keys that undo covers: the nodes and every setting saved in front matter. */
 const HISTORY_KEYS = ['nodes', 'dims', 'colorDim', 'colorMode', 'colorLeft', 'colorRight', 'reverse', 'theme', 'tagStyles'];
 function historyEntry(s) { return Object.fromEntries(HISTORY_KEYS.map((k) => [k, s[k]])); }
@@ -1223,6 +1296,34 @@ function fitSizes(vals) {
   const top = Math.max(...vals);
   return vals.map((v) => Math.round((top > 1 ? v / top : v) * 1000) / 1000);
 }
+// Layout size among siblings. A share of 0 still gets a sliver so it stays clickable.
+function partition(node, values) {
+  const out = [];
+  const walk = (n, depth, x0, x1) => {
+    out.push({ node: n, depth, x0, x1 });
+    if (n.children.length === 0) return;
+    const kids = factRows(n, values).map((r) => r.node);
+    const ew = kids.map((c) => Math.max(values.get(c.slug).share, 0.01));
+    const total = ew.reduce((a, b) => a + b, 0);
+    let x = x0;
+    kids.forEach((c, k) => { const w = (x1 - x0) * ew[k] / total; walk(c, depth + 1, x, x + w); x += w; });
+  };
+  walk(node, 0, 0, 1);
+  return out;
+}
+function arc(cx, cy, r0, r1, a0, a1) {
+  const b1 = a1 - a0 >= Math.PI * 2 - 1e-6 ? a0 + Math.PI * 2 - 1e-4 : a1;
+  const pt = (r, a) => (cx + r * Math.sin(a)).toFixed(2) + ' ' + (cy - r * Math.cos(a)).toFixed(2);
+  const large = b1 - a0 > Math.PI ? 1 : 0;
+  return 'M ' + pt(r1, a0) + ' A ' + r1 + ' ' + r1 + ' 0 ' + large + ' 1 ' + pt(r1, b1) + ' L ' + pt(r0, b1) + ' A ' + r0 + ' ' + r0 + ' 0 ' + large + ' 0 ' + pt(r0, a0) + ' Z';
+}
+// Signed change between two angles, the short way around.
+function angleDelta(prev, now) {
+  let d = now - prev;
+  if (d > Math.PI) d -= 2 * Math.PI;
+  if (d < -Math.PI) d += 2 * Math.PI;
+  return d;
+}
 /* True when url is already open at or above nodeId: the map a node came from, or the page's own ?src= map for own nodes. */
 function refCycle(graph, nodeId, url, rootSource = null) {
   let n = byId(graph, nodeId);
@@ -1454,6 +1555,8 @@ class Component extends DCLogic {
     chosen: [],
     frozenOrder: null,
     thermoId: null,
+    pieEdit: false,
+    hover: null,
     adding: null,
     bornId: null,
     draftText: '',
@@ -2017,6 +2120,148 @@ class Component extends DCLogic {
     this.edit((st) => ({ nodes: [...st.nodes, node], seq: st.seq + 1, adding: null, draftText: '', draftNote: '', bornId: id }));
   }
   recalculate(id, mean) { this.setColour(id, mean); }
+  // span: the fraction of the circle these sibling slices share, so the edge follows the pointer on any ring.
+  startPieEdge(i, rows, span, e) {
+    if (e.pointerType === 'touch' || e.button) return;
+    const box = e.currentTarget.closest('[data-pie]');
+    if (!box) throw new Error('bug: slice edge is not inside the pie');
+    const r = box.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    this.drag = {
+      type: 'pieEdge', pointerId: e.pointerId, cx, cy, prev: Math.atan2(e.clientX - cx, cy - e.clientY), turned: 0,
+      ids: rows.map((x) => x.node.slug), raws: rows.map((x) => x.importance), i, chosen: this.chosenIndices(rows), span, step: 'drag:' + (++this.stepSerial)
+    };
+    e.preventDefault();
+  }
+  movePieEdge(e) {
+    const d = this.drag;
+    if (d === null || d.type !== 'pieEdge' || e.pointerId !== d.pointerId) return;
+    const now = Math.atan2(e.clientX - d.cx, d.cy - e.clientY);
+    d.turned += angleDelta(d.prev, now);
+    d.prev = now;
+    this.setSizes(d.ids, d.raws, borderResize(d.raws, d.i, d.turned / (2 * Math.PI * d.span), d.chosen), d.step);
+  }
+  endPieEdge(e) {
+    if (this.drag !== null && this.drag.type === 'pieEdge' && e.pointerId === this.drag.pointerId) { this.drag = null; this.endStep(); }
+  }
+  pieHoverTimer = null;
+  pieEnter(id) {
+    clearTimeout(this.pieHoverTimer);
+    if (this.drag === null) this.setState({ hover: id });
+  }
+  // A short delay, so the pointer can get from a slice to one of its buttons.
+  pieLeave() {
+    clearTimeout(this.pieHoverTimer);
+    if (this.drag !== null) return;
+    this.pieHoverTimer = setTimeout(() => this.setState({ hover: null }), 180);
+  }
+  /* The pie: the same tree as the bar, one ring per level around the open (or pinned) node. */
+  pieVals(tree, values, meta, m, pinnedOk, cur, editable) {
+    const s = this.state;
+    const val = (v) => v.toFixed(2);
+    const colorName = dimName(s.dims, s.colorDim);
+    const sizeName = dimName(s.dims, otherDim(s.colorDim));
+    const parts = partition(tree, values).filter((p) => p.depth >= 1);
+    const nRings = Math.max(1, ...parts.map((p) => p.depth));
+    const PIE_C = 260;
+    const PIE_INNER = 72;
+    const PIE_OUTER = 228; // room for a leaf's "+" outside the outer ring
+    const ringW = (PIE_OUTER - PIE_INNER) / nRings;
+    const ringOf = (depth) => [PIE_INNER + (depth - 1) * ringW + (depth === 1 ? 0 : 1.5), PIE_INNER + depth * ringW - (depth === nRings ? 0 : 1.5)];
+    const piePoint = (r, a) => ({ x: (PIE_C + r * Math.sin(a)).toFixed(2), y: (PIE_C - r * Math.cos(a)).toFixed(2) });
+    const parentOf = new Map();
+    const index = (n) => n.children.forEach((c) => { parentOf.set(c.slug, n); index(c); });
+    index(tree);
+    const hoverPart = parts.find((p) => p.node.slug === s.hover) ?? null;
+    const hoverCtls = [];
+    const hoverMoves = [];
+    if (hoverPart !== null && s.pieEdit && !hoverPart.node.readOnly) {
+      const [r0, r1] = ringOf(hoverPart.depth);
+      const a0 = hoverPart.x0 * 2 * Math.PI;
+      const a1 = hoverPart.x1 * 2 * Math.PI;
+      const rm = (r0 + r1) / 2;
+      const gap = (a1 - a0) * rm;
+      const pad = gap < 31 ? (31 - gap) / 2 / rm : 0; // keep the two buttons apart on a thin slice
+      const full = a1 - a0 > 6; // a whole ring's two edges meet, so nudge the buttons apart
+      const hn = hoverPart.node;
+      const hParent = parentOf.get(hn.slug);
+      const ctl = (p, label, onAdd) => ({
+        x: p.x, y: p.y, label, add: onAdd,
+        key: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAdd(); } }
+      });
+      // Inner slices that share an edge get a move handle there: the "+" sits inward and the handle outward along that edge.
+      const sibRows = factRows(hParent, values);
+      const k = sibRows.findIndex((r) => r.node.slug === hn.slug);
+      const movesAt = { start: k > 0, end: k >= 0 && k < sibRows.length - 1 };
+      const parentPart = partition(tree, values).find((p) => p.node.slug === hParent.slug);
+      const span = parentPart ? parentPart.x1 - parentPart.x0 : 1;
+      const step = (d) => Math.round(Math.max(0, Math.min(1, hn.v + d)) * 1000) / 1000;
+      const sibling = (angle, label, d, moves) => ctl(piePoint(moves ? rm - 15 : rm, angle), label, () => this.openAdd(hParent.slug, step(d)));
+      hoverCtls.push(sibling(full ? a0 + 0.2 : a0 - pad, 'Add a point beside this, with lower ' + colorName, -0.125, movesAt.start));
+      hoverCtls.push(sibling(full ? a1 - 0.2 : a1 + pad, 'Add a point beside this, with higher ' + colorName, 0.125, movesAt.end));
+      if (hn.children.length === 0) hoverCtls.push(ctl(piePoint(r1 + 18, (a0 + a1) / 2), 'Add a point under: ' + hn.text, () => this.openAdd(hn.slug, null)));
+      const handle = (i, angle) => {
+        const at = piePoint(rm + 15, angle);
+        return {
+          x: at.x, y: at.y, rot: (angle * 180 / Math.PI).toFixed(1), pct: Math.round(values.get(hn.slug).share * 100),
+          label: 'Resize “' + hn.text + '” from its ' + (i === k ? 'clockwise' : 'counter-clockwise') + ' edge. Use the left and right arrow keys.',
+          down: (e) => this.startPieEdge(i, sibRows, span, e),
+          move: (e) => this.movePieEdge(e), up: (e) => this.endPieEdge(e),
+          key: (e) => this.onDividerKey(i, sibRows, e)
+        };
+      };
+      if (movesAt.start) hoverMoves.push(handle(k - 1, a0 - pad));
+      if (movesAt.end) hoverMoves.push(handle(k, a1 + pad));
+    }
+    const slices = parts.map((p) => {
+      const n = p.node;
+      const [r0, r1] = ringOf(p.depth);
+      const isChosen = s.chosen.includes(n.slug);
+      const isSelected = pinnedOk && n.slug === cur.id;
+      const v = values.get(n.slug);
+      const info = (n.text || 'New idea') + ': ' + Math.round(v.share * 100) + '% of ' + sizeName + ', ' + colorName + ' ' + val(v.v);
+      const hovered = s.hover === n.slug;
+      return {
+        slug: n.slug, text: n.text, depth: p.depth, span: p.x1 - p.x0, isChosen, isSelected, info,
+        ctls: hovered ? hoverCtls : [], moves: hovered ? hoverMoves : [],
+        d: arc(PIE_C, PIE_C, r0, r1, p.x0 * 2 * Math.PI, p.x1 * 2 * Math.PI),
+        fill: colorFor(v.v, meta), fillOpacity: isChosen ? 0.65 : 1,
+        stroke: isSelected || hovered ? 'var(--ink)' : isChosen ? 'var(--ink2)' : 'var(--card)',
+        sw: isSelected ? 3.5 : hovered || isChosen ? 2 : 1.5, dash: isChosen ? '6 4' : 'none',
+        op: fadeFor(m, n.slug),
+        menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
+        down: (e) => { this.suppressClick = !!(e.ctrlKey || e.metaKey || e.shiftKey); if (this.suppressClick && !n.readOnly) this.toggleChosen(n.slug); },
+        pick: () => this.onColumnClick(n.n),
+        key: (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.openColumn(n.n); }
+          if ((e.key === 'l' || e.key === 'L') && !n.readOnly) { e.preventDefault(); this.toggleChosen(n.slug); }
+        },
+        enter: () => this.pieEnter(n.slug), leave: () => this.pieLeave()
+      };
+    });
+    return {
+      slices, has: slices.length > 0,
+      hatches: slices.filter((x) => x.isChosen).map((x) => ({ d: x.d })),
+      // A label only where its text fits along the slice.
+      labels: parts.filter((p) => (p.x1 - p.x0) * 2 * Math.PI * ((ringOf(p.depth)[0] + ringOf(p.depth)[1]) / 2) >= 36).map((p) => {
+        const [r0, r1] = ringOf(p.depth);
+        const at = piePoint((r0 + r1) / 2, (p.x0 + p.x1) * Math.PI);
+        return { x: (Number(at.x) / 520 * 100).toFixed(2), y: (Number(at.y) / 520 * 100).toFixed(2), text: val(values.get(p.node.slug).v) };
+      }),
+      center: val(tree.v),
+      keep: () => clearTimeout(this.pieHoverTimer), leave: () => this.pieLeave(),
+      canEdit: editable, editPressed: String(s.pieEdit),
+      editStyle: s.pieEdit ? 'border-color: #2A4BD7; background: #F4F6FE; color: #1C3399' : 'border-color: var(--rule); background: var(--card); color: var(--ink)',
+      editLabel: s.pieEdit ? 'Stop editing: hide the add and resize buttons' : 'Edit: hover a slice to add beside it or resize it',
+      toggleEdit: () => this.setState({ pieEdit: !s.pieEdit }),
+      hint: hoverPart !== null ? slices.find((x) => x.slug === hoverPart.node.slug).info
+        : !editable ? 'Click a slice to open it'
+          : !s.pieEdit ? (pinnedOk ? 'Pinned · click a slice to see its details' : 'Click a slice to open it') + ' · Edit to add and resize'
+            : 'Hover a slice: + adds beside it, ⇔ drags to resize · Ctrl or ⌘-click to choose what a resize changes'
+    };
+  }
   /* The Questionnaire page: the open node's title, its health, and its children as a bar with every level below. */
   focusVals(nodes, cur, meta, m) {
     const s = this.state;
@@ -2103,6 +2348,7 @@ class Component extends DCLogic {
         style: pinnedOk ? 'border-color: #2A4BD7; background: #F4F6FE; color: #1C3399' : 'border-color: var(--rule); background: var(--card); color: var(--ink)',
         toggle: () => this.setState({ pinned: pinnedOk ? null : cur.id })
       },
+      pie: this.pieVals(tree, values, meta, m, pinnedOk, cur, editable),
       add: {
         canOpen: editable, adding: s.adding !== null,
         left: () => this.openAdd(rootId, 0.25), right: () => this.openAdd(rootId, 0.75), wide: () => this.openAdd(rootId, null),
@@ -2469,6 +2715,9 @@ class Component extends DCLogic {
       isMap: !noCanvas,
       isDirectory: isDir,
       isQuestion: s.layout === 'questionnaire',
+      isPie: s.layout === 'pie',
+      isFocusPage: isFocus,
+      focusPageLabel: s.layout === 'pie' ? 'Pie' : 'Questionnaire',
       ...(isFocus ? this.focusVals(nodes, cur, meta, m) : {}),
       panelVisible: noCanvas || s.panelOpen,
       panelPill: !noCanvas && !s.panelOpen,

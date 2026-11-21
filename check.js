@@ -82,6 +82,17 @@ function unresolved(vals, c = {}) {
   return [...out];
 }
 
+// ---------------------------------------------------------------- the template
+test('every sc-if and sc-for in the template is closed', () => {
+  const stack = [];
+  for (const t of template.matchAll(/<(\/?)(sc-if|sc-for)\b[^>]*>/g)) {
+    if (t[1] === '') stack.push(t[2]);
+    else assert.equal(stack.pop(), t[2]);
+  }
+  assert.deepEqual(stack, []);
+  assert.equal((template.match(/<div\b/g) || []).length, (template.match(/<\/div>/g) || []).length, 'every <div> is closed');
+});
+
 // ---------------------------------------------------------------- boot and layouts
 const SMALL = '# Root\n- A {x:0.5 y:0.7}\n  - A1\n- B #core\n';
 
@@ -778,6 +789,97 @@ test('ref columns cannot be dragged, chosen or added to', async () => {
   assert.equal(c.state.nodes, before);
   assert.equal(colOf(c, 'T1').isChosen, false);
   assert.equal(c.renderVals().health.canRecalc, false);
+});
+
+// ---------------------------------------------------------------- pie
+const pBoot = (text = Q3) => { const c = boot(text); c.setState({ layout: 'pie' }); return c; };
+const sliceOf = (c, t) => c.renderVals().pie.slices.find((x) => x.text === t);
+const pieBox = { closest: () => ({ getBoundingClientRect: () => ({ left: 0, top: 0, width: 520, height: 520 }) }), setPointerCapture() {}, blur() {} };
+
+test('rings by depth, with angles as shares of size', () => {
+  const c = pBoot();
+  const sl = c.renderVals().pie.slices;
+  assert.deepEqual(sl.map((x) => [x.text, x.depth]), [['B', 1], ['C', 1], ['A', 1], ['A1', 2], ['A2', 2]]);
+  near(sliceOf(c, 'A').span, 0.1);
+  near(sliceOf(c, 'A1').span, 0.05);
+});
+
+test('pie renders with no unresolved bindings, in and out of edit mode', () => {
+  const c = pBoot();
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'C').enter();
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+  assert.deepEqual(unresolved(pBoot('# Alone\n').renderVals(), c), []);
+});
+
+test('edit mode off: hovering shows details but no + or handles', () => {
+  const c = pBoot();
+  sliceOf(c, 'C').enter();
+  assert.equal(sliceOf(c, 'C').ctls.length, 0);
+  assert.equal(sliceOf(c, 'C').moves.length, 0);
+  assert.match(c.renderVals().pie.hint, /^C: /);
+  c.renderVals().pie.toggleEdit();
+  assert.equal(sliceOf(c, 'C').ctls.length, 3); // + either side and + outside a leaf
+  assert.equal(sliceOf(c, 'C').moves.length, 2);
+});
+
+test('an edge drag resizes against siblings, as one undo step', () => {
+  const c = pBoot();
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'B').enter();
+  const m = sliceOf(c, 'B').moves[0];
+  m.down({ ...ev(), currentTarget: pieBox, clientX: 260, clientY: 160 });
+  m.move({ ...ev(), currentTarget: pieBox, clientX: 360, clientY: 260 }); // a quarter turn clockwise
+  m.up({ ...ev(), currentTarget: pieBox });
+  assert.deepEqual(xs(c), [0.1, 0.55, 0.35]);
+  c.undo();
+  assert.deepEqual(xs(c), [0.1, 0.3, 0.6]);
+});
+
+test('the handles take the arrow keys', () => {
+  const c = pBoot();
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'B').enter();
+  sliceOf(c, 'B').moves[0].key(ev({ key: 'ArrowRight' }));
+  assert.deepEqual(xs(c), [0.1, 0.32, 0.58]);
+});
+
+test('the + beside a slice adds a sibling a step either side of it, and outside a leaf adds a child', () => {
+  const c = pBoot();
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'C').enter();
+  const [before, after, under] = sliceOf(c, 'C').ctls;
+  before.add();
+  assert.deepEqual(c.state.adding, { parent: c.state.nodes[0].id, v: 0.375 });
+  after.add();
+  assert.deepEqual(c.state.adding, { parent: c.state.nodes[0].id, v: 0.625 });
+  under.add();
+  assert.deepEqual(c.state.adding, { parent: idOf(c, 'C'), v: null });
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+});
+
+test('clicking a slice opens it; a choose gesture chooses it instead', () => {
+  const c = pBoot();
+  sliceOf(c, 'A').down(ev({ metaKey: true }));
+  sliceOf(c, 'A').pick();
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+  assert.ok(sliceOf(c, 'A').isChosen);
+  sliceOf(c, 'A1').pick();
+  assert.equal(c.state.currentId, idOf(c, 'A1'));
+});
+
+test('ref slices are read-only', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  c.setState({ layout: 'pie' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  c.setState({ currentId: childId(c) });
+  c.renderVals().pie.toggleEdit();
+  sliceOf(c, 'T1').enter();
+  assert.equal(sliceOf(c, 'T1').ctls.length, 0);
+  assert.equal(sliceOf(c, 'T1').moves.length, 0);
+  sliceOf(c, 'T1').down(ev({ metaKey: true }));
+  assert.equal(sliceOf(c, 'T1').isChosen, false);
 });
 
 Promise.all(pending).then(() => {
