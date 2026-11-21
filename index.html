@@ -947,6 +947,7 @@ details[open]>summary{border-color:#2A4BD7!important}
           <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">Enter</b> add sibling</span>
           <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">↑ ↓</b> siblings · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">←</b> parent · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">→</b> child</span>
           <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">⌫</b> on an empty title removes it</span>
+          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">Ctrl + arrows</b> go to the node on that side</span>
         </div>
         </sc-if>
       </section>
@@ -1628,6 +1629,28 @@ function effective(nodes, id, key) {
   if (vals.length === 0) return { v: null, derived: false };
   return { v: vals.reduce((a, b) => a + b, 0) / vals.length, derived: true };
 }
+/* Ctrl+arrow: the node that is on that side of the screen, not a step in the tree. Candidates sit within 60° of the
+   arrow's direction; the nearest wins, with sideways distance counting double so nodes straight ahead come first. */
+const ARROW_DIRS = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+function spatialStep(pos, fromId, key) {
+  const dir = ARROW_DIRS[key];
+  if (!dir) throw new Error('bug: not an arrow key ' + key);
+  const from = pos[fromId];
+  if (!from) throw new Error('bug: no position for ' + fromId);
+  let best = null;
+  let bestScore = Infinity;
+  Object.keys(pos).forEach((id) => {
+    if (id === fromId) return;
+    const dx = pos[id].x - from.x;
+    const dy = pos[id].y - from.y;
+    const along = dx * dir[0] + dy * dir[1];
+    const side = Math.abs(dx * dir[1] - dy * dir[0]);
+    if (along <= 0 || side > along * Math.sqrt(3)) return;
+    const score = along + 2 * side;
+    if (score < bestScore) { bestScore = score; best = id; }
+  });
+  return best;
+}
 function layoutRadial(nodes) {
   const pos = {};
   const place = (id, depth, a0, a1) => {
@@ -2263,6 +2286,13 @@ class Component extends DCLogic {
     if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); this.addChild(n.id); return; }
     if (e.key === 'Backspace' && n.title === '' && !isRoot) { e.preventDefault(); this.remove(n.id); return; }
     if (e.key === 'Escape') { el.blur(); return; }
+    // Ctrl+arrow moves by what's on screen, so in Radial "left" is whatever is to the left, wherever it sits in the tree.
+    if (e.ctrlKey && !e.metaKey && !e.altKey && e.key in ARROW_DIRS) {
+      e.preventDefault();
+      const target = spatialStep(this.positions(), n.id, e.key);
+      if (target !== null) this.setState({ currentId: target });
+      return;
+    }
 
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       if (isRoot) return;

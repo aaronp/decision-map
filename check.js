@@ -18,7 +18,7 @@ const window = { localStorage: { getItem: (k) => storage.get(k) ?? null, setItem
 const location = { search: '', hash: '', href: 'http://x/', origin: 'http://x', pathname: '/' };
 // Every top-level name the checks use; a name not defined yet comes back undefined so its tests fail, not the load.
 const NAMES = ['Component', 'parseMap', 'serializeMap', 'DEFAULT_META', 'newMapText', 'colorFor', 'THEMES', 'encodeShare', 'decodeShare',
-  'sharePayload', 'nextName', 'composeGraph', 'refCycle', 'titlePath', 'compareMaps', 'questionRows', 'sizeOf', 'depthCells', 'borderResize'];
+  'sharePayload', 'nextName', 'composeGraph', 'refCycle', 'titlePath', 'compareMaps', 'spatialStep', 'questionRows', 'sizeOf', 'depthCells', 'borderResize'];
 const app = new Function('DCLogic', 'location', 'window', m[1] + '\n;return Object.fromEntries(' + JSON.stringify(NAMES) +
   '.map((n) => { try { return [n, eval(n)]; } catch (e) { return [n, undefined]; } }));')(DCLogic, location, window);
 const { Component, parseMap, serializeMap, DEFAULT_META, newMapText } = app;
@@ -528,6 +528,7 @@ test('the share link of a ref is decoded, not fetched', async () => {
 // ---------------------------------------------------------------- questionnaire: the bar
 const Q3 = '# R\n- A {x:0.1 y:0.9}\n  - A1 {x:0.5 y:0.2}\n  - A2 {x:0.5 y:0.8}\n- B {x:0.3 y:0.1}\n- C {x:0.6 y:0.5}\n';
 const qBoot = (text = Q3) => { const c = boot(text); c.setState({ layout: 'questionnaire' }); return c; };
+const byIdC = (c) => c.graph().find((n) => n.id === c.state.currentId);
 const idOf = (c, title) => c.state.nodes.find((n) => n.title === title).id;
 const cols = (c) => c.renderVals().chart.cols;
 
@@ -1076,6 +1077,48 @@ test('the demo pair shows every kind of difference Compare has', () => {
   const kinds = new Set(rows.map((r) => (r.only ? 'only ' + r.only : r.flipped ? 'flipped' : r.changed ? 'changed' : 'same')));
   assert.deepEqual([...kinds].sort(), ['changed', 'flipped', 'only a', 'only b', 'same']);
   assert.ok(rows.some((r) => r.only === 'a' && r.path.split(' / ').length === 3), 'a nested node only in A');
+});
+
+// ---------------------------------------------------------------- Ctrl+arrow: move by what's on screen
+test('spatialStep picks the nearest node in that direction, preferring ones straight ahead', () => {
+  const pos = { c: { x: 0, y: 0 }, left: { x: -100, y: 10 }, farLeft: { x: -300, y: 0 }, upLeft: { x: -60, y: -90 }, right: { x: 120, y: 0 }, down: { x: 5, y: 150 } };
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowLeft'), 'left');
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowRight'), 'right');
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowDown'), 'down');
+  assert.equal(app.spatialStep(pos, 'c', 'ArrowUp'), 'upLeft');
+  assert.equal(app.spatialStep(pos, 'right', 'ArrowRight'), null);
+});
+
+const key2 = (props) => ({ ctrlKey: true, metaKey: false, shiftKey: false, altKey: false, preventDefault() { this.prevented = true; }, target: { value: 'x', selectionStart: 0, selectionEnd: 0 }, ...props });
+
+test('Ctrl+arrow in Radial goes to the node on that side of the screen, whatever its place in the tree', () => {
+  const c = boot('# R\n- A\n- B\n'); // radial puts A to the right of the root and B to the left
+  c.setState({ layout: 'radial', currentId: c.state.nodes[0].id });
+  const pos = c.positions();
+  assert.ok(pos[idOf(c, 'A')].x > 0 && pos[idOf(c, 'B')].x < 0, 'layout as expected');
+  const press = (k) => { const e = key2({ key: k }); c.handleKey(e, byIdC(c)); return e; };
+  assert.ok(press('ArrowLeft').prevented);
+  assert.equal(c.state.currentId, idOf(c, 'B')); // left from the root is a child
+  press('ArrowLeft');
+  assert.equal(c.state.currentId, idOf(c, 'B')); // nothing further left
+  press('ArrowRight');
+  assert.equal(c.state.currentId, c.state.nodes[0].id); // right from B is back to its parent
+  press('ArrowRight');
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  press('ArrowLeft');
+  assert.equal(c.state.currentId, c.state.nodes[0].id); // and left from A is its parent: the same key, the other way in the tree
+});
+
+test('Ctrl+arrow works with the caret anywhere in the title, and does nothing where there is no node', () => {
+  const c = boot('# R\n- A\n');
+  c.setState({ layout: 'tree', currentId: c.state.nodes[0].id });
+  const e = key2({ key: 'ArrowRight', target: { value: 'Root', selectionStart: 2, selectionEnd: 2 } });
+  c.handleKey(e, byIdC(c));
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  const f = key2({ key: 'ArrowRight' });
+  c.handleKey(f, byIdC(c));
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  assert.ok(f.prevented, 'still keeps the caret from moving');
 });
 
 (async () => {

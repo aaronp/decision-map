@@ -53,7 +53,7 @@ Free text under a node is its description.
 
 The **View** menu in the header:
 
-- **Radial** and **Tree**: the map as a mind map. **Follow** keeps the node you're editing centred, and **Fisheye** fits the whole map, magnified around the selected node.
+- **Radial** and **Tree**: the map as a mind map. **Follow** keeps the node you're editing centred, and **Fisheye** fits the whole map, magnified around the selected node. The arrow keys move through the tree (← parent, → child, ↑ ↓ siblings) when the cursor is at the start or end of the title. **Ctrl + arrow** goes to the node on that side of the screen instead, wherever it sits in the tree: in Radial, ← from the root reaches a child on the left, and ← from a child on the right goes back to the root.
 - **Directory**: the tree as an outline, with the node's details beside it.
 - **Questionnaire**: one node at a time, as a question to answer. Breadcrumbs lead back up, and the title and description are editable. The health bar shows the node's colour value, filled in from its children when it has none of its own. Its children are drawn as a bar, with every level below in rows underneath.
   - Width is the size value. Colour, and the order from left to right, follow the colour value.
