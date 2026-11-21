@@ -199,7 +199,7 @@ details[open]>summary{border-color:#2A4BD7!important}
     </div>
   </sc-if>
 
-  <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex">
+  <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: {{mainDir}}">
     <sc-if value="{{isDirectory}}" hint-placeholder-val="{{ false }}">
       <nav aria-label="Directory" style="flex: 0 0 400px; max-width: 48%; min-width: 260px; display: flex; flex-direction: column; min-height: 0; background: var(--bg); border-right: 1px solid var(--rule)">
         <div style="display: flex; align-items: center; gap: 6px; padding: 12px 10px 10px 16px; border-bottom: 1px solid var(--rule)">
@@ -690,6 +690,15 @@ details[open]>summary{border-color:#2A4BD7!important}
                 <span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 6px; {{t.swatch}}"></span>{{t.label}}
               </button>
             </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px">
+            <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Node panel</span>
+            <div role="group" aria-label="Node panel position" style="align-self: flex-start; display: flex; gap: 2px; padding: 2px; background: var(--rule); border-radius: 8px">
+              <sc-for list="{{drawerOpts}}" as="o" hint-placeholder-count="2">
+                <button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="border: 0; border-radius: 6px; padding: 0 12px; height: 28px; font-size: 12px; {{o.style}}">{{o.label}}</button>
+              </sc-for>
+            </div>
+            <span style="font-size: 12px; color: var(--ink2)">Kept in this browser, not in the map.</span>
           </div>
           <sc-if value="{{hasThemeNote}}" hint-placeholder-val="{{ false }}">
             <span style="font-size: 12px; color: var(--ink2)">{{themeNote}}</span>
@@ -1791,6 +1800,7 @@ class Component extends DCLogic {
     mapName: null,
     savedName: null,
     openPanel: false,
+    drawer: (() => { try { return window.localStorage.getItem('tree.drawer') === 'right' ? 'right' : 'bottom'; } catch (e) { return 'bottom'; } })(),
     saved: [],
     openUrl: '',
     chartView: 'width',
@@ -1944,7 +1954,7 @@ class Component extends DCLogic {
   componentWillUnmount() { if (this.observer) this.observer.disconnect(); window.removeEventListener('keydown', this.keyHandler); }
 
   segs(options, current, pick) {
-    return options.map((o) => ({ label: o.label, pressed: o.value === current, style: segStyle(o.value === current), pick: () => pick(o.value) }));
+    return options.map((o) => ({ value: o.value, label: o.label, pressed: o.value === current, style: segStyle(o.value === current), pick: () => pick(o.value) }));
   }
   graph() { return composeGraph(this.state.nodes, this.state.refLoads); }
   ask(message) { return window.confirm(message); }
@@ -2022,10 +2032,12 @@ class Component extends DCLogic {
     if (!fn) throw new Error('bug: unknown layout ' + this.state.layout);
     return fn(this.visibleGraph());
   }
-  offsetY() { return this.state.panelOpen ? -PANEL_H / 2 : 0; }
+  // The panel floats over the map only at the bottom; on the right it takes its own column, so the canvas is already narrower.
+  panelOver() { return this.state.panelOpen && this.state.drawer === 'bottom'; }
+  offsetY() { return this.panelOver() ? -PANEL_H / 2 : 0; }
   visible() {
     const s = this.state;
-    return { w: Math.max(200, s.vw - 2 * MARGIN), h: Math.max(160, s.vh - 2 * MARGIN - (s.panelOpen ? PANEL_H : 0)) };
+    return { w: Math.max(200, s.vw - 2 * MARGIN), h: Math.max(160, s.vh - 2 * MARGIN - (this.panelOver() ? PANEL_H : 0)) };
   }
   followPan(pos) {
     const p = pos[this.state.currentId];
@@ -3082,8 +3094,11 @@ class Component extends DCLogic {
       ...(isFocus ? this.focusVals(nodes, cur, meta, m) : {}),
       panelVisible: !isCompare && (noCanvas || s.panelOpen),
       panelPill: !noCanvas && !s.panelOpen,
-      panelBox: isFocus
+      mainDir: isFocus && s.drawer === 'bottom' ? 'column' : 'row',
+      panelBox: !isDir && s.drawer === 'right'
         ? 'position: relative; flex: 0 0 400px; max-width: 42%; min-width: 300px; border-left: 1px solid var(--rule); padding: 20px 22px; gap: 16px'
+        : isFocus
+        ? 'position: relative; flex: 0 0 auto; max-height: 42%; border-top: 1px solid var(--rule); padding: 16px 28px; gap: 14px'
         : isDir
         ? 'position: relative; flex: 1 1 auto; min-width: 0; padding: 28px 40px 32px; gap: 18px'
         : 'position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(860px, calc(100% - 32px)); max-height: calc(100% - 96px); border: 1px solid var(--rule); border-radius: 16px; box-shadow: 0 10px 30px rgba(23,24,28,0.08); padding: 14px 16px 12px; gap: 14px',
@@ -3224,6 +3239,10 @@ class Component extends DCLogic {
       tabTags: s.settingsTab === 'tags',
       tabTheme: s.settingsTab === 'theme',
       themeVars: '--bg: ' + theme.bg + '; --card: ' + theme.card + '; --ink: ' + theme.ink + '; --rule: ' + theme.rule + '; --ink2: ' + theme.ink2 + '; color: var(--ink)',
+      drawerOpts: this.segs([{ value: 'bottom', label: 'Bottom' }, { value: 'right', label: 'Right' }], s.drawer, (v) => {
+        try { window.localStorage.setItem('tree.drawer', v); } catch (e) { /* private mode: the choice lasts this visit */ }
+        this.setState({ drawer: v }, () => { if (s.layout in LAYOUTS) this.fit(); });
+      }),
       themeOpts: THEMES.map((t) => ({
         label: t.label, pressed: t.id === s.theme, pick: () => this.setState({ theme: t.id }),
         style: 'background: ' + t.bg + '; color: ' + t.ink + '; border: ' + (t.id === s.theme ? '2px solid #2A4BD7' : '1px solid ' + t.rule),

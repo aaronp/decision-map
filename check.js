@@ -13,7 +13,8 @@ class DCLogic {
   }
 }
 const replaced = [];
-const window = { history: { replaceState: (a, b, url) => replaced.push(url) } };
+const storage = new Map();
+const window = { localStorage: { getItem: (k) => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, String(v)) }, history: { replaceState: (a, b, url) => replaced.push(url) } };
 const location = { search: '', hash: '', href: 'http://x/', origin: 'http://x', pathname: '/' };
 // Every top-level name the checks use; a name not defined yet comes back undefined so its tests fail, not the load.
 const NAMES = ['Component', 'parseMap', 'serializeMap', 'DEFAULT_META', 'newMapText', 'colorFor', 'THEMES', 'encodeShare', 'decodeShare',
@@ -1040,6 +1041,32 @@ test('a share link leaves the address bar once its map is open', async () => {
   location.hash = ''; location.search = '';
   assert.equal(c.state.nodes[0].title, 'Shared');
   assert.deepEqual(replaced, ['/?view=tree']);
+});
+
+// ---------------------------------------------------------------- drawer position
+test('the drawer can sit at the bottom or on the right, remembered in this browser', () => {
+  storage.clear();
+  const c = boot(SMALL);
+  assert.equal(c.state.drawer, 'bottom');
+  c.setState({ settingsOpen: true, settingsTab: 'theme' });
+  c.renderVals().drawerOpts.find((o) => o.value === 'right').pick();
+  assert.equal(c.state.drawer, 'right');
+  assert.equal(storage.get('tree.drawer'), 'right');
+  assert.equal(boot(SMALL).state.drawer, 'right');
+  assert.equal(c.state.history.past.length, 0);
+  storage.clear();
+});
+
+test('every view renders with the drawer in either place', () => {
+  for (const drawer of ['bottom', 'right']) {
+    for (const layout of ['radial', 'tree', 'directory', 'questionnaire', 'pie']) {
+      const c = boot(Q3);
+      c.setState({ drawer, layout });
+      const v = c.renderVals();
+      assert.deepEqual(unresolved(v, c), [], drawer + ' ' + layout);
+      if (layout !== 'directory') assert.equal(v.panelBox.includes('flex: 0 0 400px'), drawer === 'right', drawer + ' ' + layout);
+    }
+  }
 });
 
 (async () => {

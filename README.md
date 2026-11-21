@@ -69,7 +69,7 @@ The **View** menu in the header:
   - **Structure**: both maps as one tree.
   - **Sankey**: each side split by size, meeting in the middle.
 
-The node panel edits the selected node's title, values, tags, refs and description.
+The node panel edits the selected node's title, values, tags, refs and description. Settings → Theme → **Node panel** puts it at the bottom or on the right; that choice is kept in this browser, not in the map.
 
 ## Colour
 
