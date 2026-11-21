@@ -829,9 +829,9 @@ details[open]>summary{border-color:#2A4BD7!important}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>{{removeLabel}}
             </button>
           </sc-if>
-          <sc-if value="{{isMap}}" hint-placeholder-val="{{ true }}">
-            <button class="ghost" onClick="{{togglePanel}}" aria-label="Hide node panel" style="width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; display: inline-flex; align-items: center; justify-content: center">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>
+          <sc-if value="{{canHidePanel}}" hint-placeholder-val="{{ true }}">
+            <button class="ghost" onClick="{{togglePanel}}" aria-label="Hide node panel" title="Hide node panel" style="width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; display: inline-flex; align-items: center; justify-content: center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{hideIcon}}"></path></svg>
             </button>
           </sc-if>
         </div>
@@ -951,6 +951,12 @@ details[open]>summary{border-color:#2A4BD7!important}
         </div>
         </sc-if>
       </section>
+    </sc-if>
+    <sc-if value="{{panelRail}}" hint-placeholder-val="{{ false }}">
+      <button class="ghost" onClick="{{togglePanel}}" aria-label="Show node panel" title="Show node panel" style="flex: 0 0 40px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 0; border: 0; border-left: 1px solid var(--rule); background: var(--card); color: var(--ink); overflow: hidden">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto"><path d="m15 6-6 6 6 6"></path></svg>
+        <span style="writing-mode: vertical-rl; font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%">{{curLabel}}</span>
+      </button>
     </sc-if>
     <sc-if value="{{panelPill}}" hint-placeholder-val="{{ false }}">
       <button onClick="{{togglePanel}}" style="position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); box-shadow: 0 6px 18px rgba(23,24,28,0.08); font-size: 13px">
@@ -1823,7 +1829,7 @@ class Component extends DCLogic {
     mapName: null,
     savedName: null,
     openPanel: false,
-    drawer: (() => { try { return window.localStorage.getItem('tree.drawer') === 'right' ? 'right' : 'bottom'; } catch (e) { return 'bottom'; } })(),
+    drawer: (() => { try { return window.localStorage.getItem('tree.drawer') === 'bottom' ? 'bottom' : 'right'; } catch (e) { return 'right'; } })(),
     saved: [],
     openUrl: '',
     chartView: 'width',
@@ -3122,8 +3128,12 @@ class Component extends DCLogic {
       cmp: isCompare ? this.compareVals(nodes, meta) : {},
       focusPageLabel: s.layout === 'pie' ? 'Pie' : 'Questionnaire',
       ...(isFocus ? this.focusVals(nodes, cur, meta, m) : {}),
-      panelVisible: !isCompare && (noCanvas || s.panelOpen),
-      panelPill: !noCanvas && !s.panelOpen,
+      // The panel can be hidden on the map, and in every view but Directory when it sits on the right.
+      canHidePanel: !isDir && !isCompare && (!noCanvas || s.drawer === 'right'),
+      panelVisible: !isCompare && (isDir || (isFocus && s.drawer === 'bottom') || s.panelOpen),
+      panelPill: !noCanvas && !s.panelOpen && s.drawer === 'bottom',
+      panelRail: !isDir && !isCompare && !s.panelOpen && s.drawer === 'right',
+      hideIcon: s.drawer === 'right' ? 'm9 6 6 6-6 6' : 'm6 9 6 6 6-6',
       mainDir: isFocus && s.drawer === 'bottom' ? 'column' : 'row',
       panelBox: !isDir && s.drawer === 'right'
         ? 'position: relative; flex: 0 0 400px; max-width: 42%; min-width: 300px; border-left: 1px solid var(--rule); padding: 20px 22px; gap: 16px'

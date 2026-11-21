@@ -1045,17 +1045,45 @@ test('a share link leaves the address bar once its map is open', async () => {
 });
 
 // ---------------------------------------------------------------- drawer position
-test('the drawer can sit at the bottom or on the right, remembered in this browser', () => {
+test('the drawer sits on the right by default, can move to the bottom, and is remembered in this browser', () => {
   storage.clear();
   const c = boot(SMALL);
-  assert.equal(c.state.drawer, 'bottom');
-  c.setState({ settingsOpen: true, settingsTab: 'theme' });
-  c.renderVals().drawerOpts.find((o) => o.value === 'right').pick();
   assert.equal(c.state.drawer, 'right');
-  assert.equal(storage.get('tree.drawer'), 'right');
-  assert.equal(boot(SMALL).state.drawer, 'right');
+  c.setState({ settingsOpen: true, settingsTab: 'theme' });
+  c.renderVals().drawerOpts.find((o) => o.value === 'bottom').pick();
+  assert.equal(c.state.drawer, 'bottom');
+  assert.equal(storage.get('tree.drawer'), 'bottom');
+  assert.equal(boot(SMALL).state.drawer, 'bottom');
   assert.equal(c.state.history.past.length, 0);
   storage.clear();
+});
+
+test('a hidden right drawer leaves a thin column that opens it again, in map and focus views', () => {
+  for (const layout of ['radial', 'tree', 'questionnaire', 'pie']) {
+    const c = boot(Q3);
+    c.setState({ drawer: 'right', layout });
+    assert.equal(c.renderVals().canHidePanel, true, layout);
+    c.renderVals().togglePanel();
+    const v = c.renderVals();
+    assert.equal(v.panelVisible, false, layout);
+    assert.equal(v.panelRail, true, layout);
+    assert.equal(v.panelPill, false, layout);
+    assert.deepEqual(unresolved(v, c), [], layout);
+    v.togglePanel();
+    assert.equal(c.renderVals().panelVisible, true, layout);
+  }
+});
+
+test('a hidden bottom drawer keeps the pill on the map, and the focus views keep their bottom panel', () => {
+  const c = boot(Q3);
+  c.setState({ drawer: 'bottom', layout: 'radial', panelOpen: false });
+  assert.equal(c.renderVals().panelPill, true);
+  assert.equal(c.renderVals().panelRail, false);
+  c.setState({ layout: 'questionnaire' });
+  assert.equal(c.renderVals().panelVisible, true);
+  assert.equal(c.renderVals().canHidePanel, false);
+  c.setState({ layout: 'directory' });
+  assert.equal(c.renderVals().panelVisible, true);
 });
 
 test('every view renders with the drawer in either place', () => {
