@@ -597,18 +597,18 @@ function schemeById(id) {
   if (!sc) throw new Error('bug: unknown colour scheme ' + id);
   return sc;
 }
-const DEFAULT_TAG_STYLES = { evidence: { fill: '#E3F1F6', border: null, borderStyle: 'solid', opacity: 1 } };
 function newMapText() {
   return '# What are you deciding?\n';
 }
+/* The map settings kept in state, as written to front matter. */
+function applyMeta(meta) {
+  return { dims: meta.dims, colorDim: meta.colorDim, colorMode: meta.colorMode, colorLeft: meta.colorLeft, colorRight: meta.colorRight,
+    reverse: meta.reverse, theme: meta.theme, tagStyles: meta.tagStyles };
+}
 /* The map the page starts on: window.TREE_START (set by the loader or by checks), else a new map. */
 function startState() {
-  const text = window.TREE_START ? window.TREE_START.text : newMapText();
-  const { root, nodes } = parseMap(text);
-  const all = [root, ...nodes];
-  const tagStyles = { ...DEFAULT_TAG_STYLES };
-  all.forEach((n) => n.tags.forEach((t) => { if (!(t in tagStyles)) tagStyles[t] = { ...NEW_TAG_STYLE }; }));
-  return { nodes: all, currentId: root.id, dirOpen: { [root.id]: true }, tagStyles, selectedTag: Object.keys(tagStyles)[0] };
+  const { meta, root, nodes } = parseMap(window.TREE_START ? window.TREE_START.text : newMapText());
+  return { ...applyMeta(meta), nodes, currentId: root.id, dirOpen: { [root.id]: true }, selectedTag: Object.keys(meta.tagStyles)[0] ?? null };
 }
 
 /* Stand-in for the network: the prototype resolves only these addresses. In the real app
@@ -644,11 +644,12 @@ const SAMPLE_REFS = Object.keys(REF_LIBRARY);
 class MapParseError extends Error {
   constructor(line, message) { super('Line ' + line + ': ' + message); this.line = line; }
 }
+/* A title escapes "{" and a "#" after a space with a backslash, so "Issue \#12" stays a title and isn't read as a tag. */
 function parseTitle(text, ln) {
   let rest = text.trim();
   let x = null;
   let y = null;
-  const attr = /\s*\{([^}]*)\}$/.exec(rest);
+  const attr = /\s*(?<!\\)\{([^}]*)\}$/.exec(rest);
   if (attr) {
     rest = rest.slice(0, attr.index);
     attr[1].trim().split(/\s+/).forEach((pair) => {
@@ -663,18 +664,93 @@ function parseTitle(text, ln) {
   let tm = /\s+#([a-z0-9][a-z0-9-]*)$/i.exec(rest);
   while (tm) { tags.unshift(tm[1].toLowerCase()); rest = rest.slice(0, tm.index); tm = /\s+#([a-z0-9][a-z0-9-]*)$/i.exec(rest); }
   if (!rest.trim()) throw new MapParseError(ln, 'a node needs a title');
-  return { title: rest.trim(), x, y, tags };
+  return { title: rest.trim().replace(/\\([#{])/g, '$1'), x, y, tags };
+}
+/* ponytail: a title with a literal backslash right before "#" or "{" loses that backslash; escape "\" too if it ever matters. */
+function titleText(n) {
+  const t = n.title.replace(/\{/g, '\\{').replace(/(\s)#/g, '$1\\#');
+  const vals = ['x', 'y'].filter((k) => n[k] !== null).map((k) => k + ':' + String(Math.round(n[k] * 1000) / 1000));
+  return t + n.tags.map((g) => ' #' + g).join('') + (vals.length ? ' {' + vals.join(' ') + '}' : '');
+}
+const THEMES = Object.freeze([
+  { id: 'paper', label: 'Paper', bg: '#F5F4F0', card: '#FFFFFF', ink: '#1B1D22', rule: '#DEDBD2' },
+  { id: 'slate', label: 'Slate', bg: '#EDF0F4', card: '#FFFFFF', ink: '#152030', rule: '#D3DAE3' },
+  { id: 'night', label: 'Night', bg: '#101216', card: '#1A1D23', ink: '#ECEDEF', rule: '#2D3139' },
+  { id: 'contrast', label: 'High contrast', bg: '#FFFFFF', card: '#FFFFFF', ink: '#000000', rule: '#000000' }
+]);
+const DEFAULT_META = Object.freeze({
+  dims: { x: 'Importance', y: 'Support' },
+  colorDim: 'y',
+  colorMode: 'scale',
+  colorLeft: '#C0392B',
+  colorRight: '#1E8449',
+  reverse: false,
+  theme: 'paper',
+  tagStyles: { evidence: { fill: '#E3F1F6', border: null, borderStyle: 'solid', opacity: 1 } }
+});
+const HEX = /^#[0-9a-f]{6}$/i;
+function parseTagStyle(v, ln) {
+  const m = /^fill (#[0-9a-f]{6}|none); border (#[0-9a-f]{6}|none) (solid|dashed|dotted); opacity (\d*\.?\d+)$/i.exec(v);
+  if (!m || Number(m[4]) > 1) throw new MapParseError(ln, 'a tag style reads "fill #hex|none; border #hex|none solid|dashed|dotted; opacity 0–1"');
+  const c = (x) => (x.toLowerCase() === 'none' ? null : x.toUpperCase());
+  return { fill: c(m[1]), border: c(m[2]), borderStyle: m[3].toLowerCase(), opacity: Number(m[4]) };
+}
+function tagStyleText(st) {
+  return 'fill ' + (st.fill ?? 'none') + '; border ' + (st.border ?? 'none') + ' ' + st.borderStyle + '; opacity ' + st.opacity;
+}
+/* Front matter is one "key: value" per line; every key is known, and an unknown one is an error with its line. */
+function parseFrontMatter(lines) {
+  const meta = { ...DEFAULT_META, dims: { ...DEFAULT_META.dims }, tagStyles: { ...DEFAULT_META.tagStyles } };
+  if (lines[0] === undefined || lines[0].trim() !== '---') return { meta, next: 0 };
+  let i = 1;
+  const seenTags = {};
+  for (; i < lines.length && lines[i].trim() !== '---'; i += 1) {
+    const ln = i + 1;
+    if (lines[i].trim() === '') continue;
+    const kv = /^([A-Za-z][\w.-]*):\s*(.*?)\s*$/.exec(lines[i]);
+    if (!kv) throw new MapParseError(ln, 'front matter lines read "key: value"');
+    const [, k, v] = kv;
+    const oneOf = (opts) => { if (!opts.includes(v)) throw new MapParseError(ln, k + ' must be one of ' + opts.join(', ')); return v; };
+    const hex = () => { if (!HEX.test(v)) throw new MapParseError(ln, k + ' must be a colour like #1E8449'); return v.toUpperCase(); };
+    if (k === 'x' || k === 'y') meta.dims[k] = v;
+    else if (k === 'color') meta.colorDim = oneOf(['x', 'y']);
+    else if (k === 'colorMode') meta.colorMode = oneOf(['scale', 'split']);
+    else if (k === 'colorLeft') meta.colorLeft = hex();
+    else if (k === 'colorRight') meta.colorRight = hex();
+    else if (k === 'reverse') meta.reverse = oneOf(['true', 'false']) === 'true';
+    else if (k === 'theme') meta.theme = oneOf(THEMES.map((t) => t.id));
+    else if (k.startsWith('tag.')) {
+      const name = k.slice(4).toLowerCase();
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(name)) throw new MapParseError(ln, '"' + name + '" is not a tag name');
+      if (!seenTags.any) { meta.tagStyles = {}; seenTags.any = true; }
+      meta.tagStyles[name] = parseTagStyle(v, ln);
+    } else throw new MapParseError(ln, 'unknown setting "' + k + '"');
+  }
+  if (i >= lines.length) throw new MapParseError(1, 'front matter is never closed with ---');
+  return { meta, next: i + 1 };
+}
+/* Writes a map back out so that parseMap gives the same map. Description lines that would read as structure get a leading "\". */
+function serializeMap({ meta, nodes }) {
+  const out = ['---', 'x: ' + meta.dims.x, 'y: ' + meta.dims.y, 'color: ' + meta.colorDim, 'colorMode: ' + meta.colorMode,
+    'colorLeft: ' + meta.colorLeft, 'colorRight: ' + meta.colorRight, 'reverse: ' + meta.reverse, 'theme: ' + meta.theme];
+  Object.keys(meta.tagStyles).forEach((t) => out.push('tag.' + t + ': ' + tagStyleText(meta.tagStyles[t])));
+  out.push('---', '');
+  const write = (n, depth) => {
+    out.push(depth === 0 ? '# ' + titleText(n) : '  '.repeat(depth - 1) + '- ' + titleText(n));
+    const pad = '  '.repeat(depth);
+    if (n.note !== '') n.note.split('\n').filter((l) => l.trim() !== '').forEach((l) => out.push(pad + (/^(- |@ |# |\\|\s)/.test(l) ? '\\' : '') + l));
+    n.refs.forEach((r) => out.push(pad + '@ ' + r));
+    childrenOf(nodes, n.id).forEach((k) => write(k, depth + 1));
+  };
+  write(rootOf(nodes), 0);
+  return out.join('\n') + '\n';
 }
 /* Pure and strict: every line is placed or the whole map is rejected with its line number. */
 function parseMap(text) {
   const lines = text.split('\n');
-  let i = 0;
-  if (lines[0] !== undefined && lines[0].trim() === '---') {
-    i = 1;
-    while (i < lines.length && lines[i].trim() !== '---') i += 1;
-    if (i >= lines.length) throw new MapParseError(1, 'front matter is never closed with ---');
-    i += 1;
-  }
+  const fm = parseFrontMatter(lines);
+  const meta = fm.meta;
+  let i = fm.next;
   let root = null;
   const nodes = [];
   const stack = [];
@@ -712,10 +788,13 @@ function parseMap(text) {
     if (raw.slice(0, indent).trim() !== '' || /^\s/.test(body)) throw new MapParseError(ln, 'cannot place this line; notes sit ' + indent + ' spaces in, under their node');
     const ref = /^@ (\S+)$/.exec(body);
     if (ref) { last.refs.push(checkRefUrl(ref[1], ln)); continue; }
-    last.note = last.note ? last.note + ' ' + body.trim() : body.trim();
+    const line = body.startsWith('\\') ? body.slice(1) : body;
+    last.note = last.note ? last.note + '\n' + line : line;
   }
   if (root === null) throw new MapParseError(lines.length, 'no # heading found');
-  return { root, nodes };
+  nodes.unshift(root);
+  nodes.forEach((n) => n.tags.forEach((t) => { if (!(t in meta.tagStyles)) meta.tagStyles[t] = { ...NEW_TAG_STYLE }; }));
+  return { meta, root, nodes };
 }
 function checkRefUrl(raw, ln) {
   let u;
@@ -785,7 +864,7 @@ function composeGraph(nodes, refLoads) {
       tags: tree ? tree.root.tags : [], note: tree ? tree.root.note : '', refs: [],
       readOnly: true, kind: 'refRoot', source: url, loadStatus: load === null ? 'idle' : load.status
     });
-    if (tree) tree.nodes.forEach((m) => out.push({
+    if (tree) tree.nodes.filter((m) => m !== tree.root).forEach((m) => out.push({
       ...m, id: rid + '/' + m.id, parent: m.parent === tree.root.id ? rid : rid + '/' + m.parent,
       refs: [], readOnly: true, kind: 'refNode', source: url, loadStatus: null
     }));
@@ -958,9 +1037,7 @@ function clamp(lo, hi, v) { return Math.min(hi, Math.max(lo, v)); }
 class Component extends DCLogic {
   state = {
     seq: 1,
-    dims: { x: 'Confidence', y: 'Impact' },
     layout: 'radial',
-    colorDim: 'x',
     colorOn: true,
     sizeOn: true,
     follow: true,
@@ -1016,6 +1093,11 @@ class Component extends DCLogic {
     return options.map((o) => ({ label: o.label, pressed: o.value === current, style: segStyle(o.value === current), pick: () => pick(o.value) }));
   }
   graph() { return composeGraph(this.state.nodes, this.state.refLoads); }
+  metaOf() {
+    const s = this.state;
+    return { dims: s.dims, colorDim: s.colorDim, colorMode: s.colorMode, colorLeft: s.colorLeft, colorRight: s.colorRight,
+      reverse: s.reverse, theme: s.theme, tagStyles: s.tagStyles };
+  }
   /* The map views hide everything below a collapsed node; values still roll up from the full graph. */
   visibleGraph() {
     const g = this.graph();
@@ -1136,7 +1218,7 @@ class Component extends DCLogic {
         catch (err) { if (!(err instanceof MapParseError)) throw err; next = { status: 'error', error: err.message }; }
       }
       const tagStyles = { ...this.state.tagStyles };
-      if (next.status === 'loaded') [next.tree.root, ...next.tree.nodes].forEach((m) => m.tags.forEach((t) => { if (!(t in tagStyles)) tagStyles[t] = NEW_TAG_STYLE; }));
+      if (next.status === 'loaded') next.tree.nodes.forEach((m) => m.tags.forEach((t) => { if (!(t in tagStyles)) tagStyles[t] = NEW_TAG_STYLE; }));
       this.setState({ refLoads: { ...this.state.refLoads, [key]: next }, tagStyles });
     }, 450);
   }
