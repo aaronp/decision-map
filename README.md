@@ -89,8 +89,9 @@ A ref is a URL to another map, either a `.md` file or a share link. It shows as 
 
 - **Save as…** keeps the map in this browser (IndexedDB) under a name. After that, edits save themselves 1.5 s after you stop. An asterisk after the name means unsaved changes. The page opens on the most recently saved map.
 - **Open…** lists saved maps, with rename and delete, and takes a dropped file, a chosen file, a URL or a share link.
+- **Save** (⌘S) writes the map back to the file it came from. It shows only when the map was opened through the `decision-map` CLI (below), whose server takes the file back.
 - **Download** saves a `.md` copy. **New** starts a blank map.
-- **Share** copies a link that holds the whole map, compressed after `#m=`. No server is involved. Refs stay as URLs inside it. Links over 8,000 characters still work, but some apps cut them short.
+- **File → Copy link** copies a link that holds the whole map, deflated and base64url-encoded after `#data=` (links made with the old `#m=` still open). No server is involved. Refs stay as URLs inside it. Links over 8,000 characters still work, but some apps cut them short.
 - **Undo and redo** (⌘Z and ⌘⇧Z, or ↶ ↷) cover every edit to the map and its settings. A drag is one step.
 
 ## Themes
@@ -101,7 +102,7 @@ Paper, Slate, Night and High contrast, under Settings → Theme. The theme is sa
 
 | Query | Effect |
 |---|---|
-| `#m=…` | The map inside a share link |
+| `#data=…` | The map inside a share link (old `#m=…` links still work) |
 | `?src=<url>` | Opens that markdown file |
 | `?theirs=<url>` | Opens a second map as B and starts on Compare |
 | `?view=radial\|tree\|directory\|questionnaire\|pie\|compare` | The view |
@@ -116,7 +117,11 @@ Try `?src=examples/votes-at-16/map.md&theirs=examples/votes-at-16/obi.md`. For a
 ```sh
 make dev          # http://localhost:8000 (needs bun)
 make check        # logic checks, no browser needed (needs bun)
+make bump-patch   # or bump-minor / bump-major: bumps package.json, commits and tags
+make publish      # checks, then publishes @pritzlaff/decision-map to npm
 ```
+
+To edit a map file on disk, run `npx @pritzlaff/decision-map docs/map/map.md` (or `node bin/decision-map.mjs <map.md>` in this repo). It serves the page and that one file on localhost, opens your browser, and **File → Save** writes back to the file. A missing file is created as a new map. `PORT=` picks the port; `NO_OPEN=1` skips the browser.
 
 Opening `index.html` from disk won't work: browsers block the scripts over `file://`.
 

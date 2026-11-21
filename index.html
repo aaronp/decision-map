@@ -111,13 +111,14 @@ details[open]>summary{border-color:#2A4BD7!important}
       <div role="menu" style="position: absolute; right: 0; top: 40px; z-index: 40; display: flex; flex-direction: column; min-width: 180px; padding: 6px; background: var(--card); border: 1px solid var(--rule); border-radius: 10px; box-shadow: 0 10px 30px rgba(23,24,28,0.12)">
         <button role="menuitem" class="ghost" onClick="{{onNew}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">New</button>
         <button role="menuitem" class="ghost" onClick="{{toggleOpen}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Open…</button>
+        <sc-if value="{{canSaveFile}}" hint-placeholder-val="{{ false }}">
+          <button role="menuitem" class="ghost" onClick="{{onSaveFile}}" title="{{saveFileTitle}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Save</button>
+        </sc-if>
         <button role="menuitem" class="ghost" onClick="{{onSaveAs}}" title="Keep this map in this browser, under a name" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Save as…</button>
         <button role="menuitem" class="ghost" onClick="{{onDownload}}" title="Download the map as a .md file" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Download</button>
+        <button role="menuitem" class="ghost" onClick="{{onShare}}" title="Copy a link that carries this whole map, so it opens without a server" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Copy link</button>
       </div>
     </details>
-    <button class="ghost" onClick="{{onShare}}" title="Copy a link that holds this whole map" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 500">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>Share
-    </button>
     <div style="display: flex; align-items: center; gap: 2px">
       <button class="ghost" onClick="{{onUndo}}" disabled="{{noUndo}}" aria-label="Undo" title="Undo (⌘Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: var(--ink2); opacity: {{undoOpacity}}">↶</button>
       <button class="ghost" onClick="{{onRedo}}" disabled="{{noRedo}}" aria-label="Redo" title="Redo (⌘⇧Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: var(--ink2); opacity: {{redoOpacity}}">↷</button>
@@ -986,7 +987,7 @@ function schemeById(id) {
 function newMapText() {
   return '# root\n';
 }
-/* Share links: the map's markdown, deflated and base64url-encoded after #m=. Refs stay URLs inside it. */
+/* Share links: the map's markdown, deflated and base64url-encoded after #data= (like the other tools; old #m= links still open). Refs stay URLs inside it. */
 const SHARE_WARN = 8000;
 async function encodeShare(text) {
   const stream = new Blob([new TextEncoder().encode(text)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
@@ -1002,7 +1003,7 @@ async function decodeShare(payload) {
   return new TextDecoder().decode(await new Response(stream).arrayBuffer());
 }
 function sharePayload(url) {
-  const m = /#m=([A-Za-z0-9_-]+)$/.exec(url.trim());
+  const m = /#(?:data|m)=([A-Za-z0-9_-]+)$/.exec(url.trim());
   return m ? m[1] : null;
 }
 /* Saved maps: one IndexedDB store of { name, text, updated }, keyed by name. Kept only in this browser. */
@@ -1882,6 +1883,7 @@ class Component extends DCLogic {
     notice: null,
     mapName: null,
     savedName: null,
+    fileUrl: null,
     openPanel: false,
     drawer: (() => { try { return window.localStorage.getItem('tree.drawer') === 'bottom' ? 'bottom' : 'right'; } catch (e) { return 'right'; } })(),
     saved: [],
@@ -1933,7 +1935,7 @@ class Component extends DCLogic {
     const src = new URLSearchParams(location.search).get('src');
     try {
       if (payload !== null) {
-        // The map now lives in the page; keeping #m= would reopen the shared copy on reload instead of the saved one.
+        // The map now lives in the page; keeping #data= would reopen the shared copy on reload instead of the saved one.
         if (this.openText(await decodeShare(payload), 'Shared map', { force: true })) window.history.replaceState(null, '', location.pathname + location.search);
         return;
       }
@@ -1958,13 +1960,25 @@ class Component extends DCLogic {
     }
   }
   srcUrl = null;
+  /* URLs that take a PUT back (the `decision-map` CLI marks the map it serves with x-decision-map-writable). */
+  writableUrls = new Set();
   /* Reads a map from a URL: a share link is decoded here, anything else is fetched. */
   async fetchMapText(url) {
     const payload = sharePayload(url);
     if (payload !== null) return decodeShare(payload);
     const res = await fetch(url);
     if (!res.ok) throw new Error(url + ': HTTP ' + res.status);
+    if (res.headers.get('x-decision-map-writable') === '1') this.writableUrls.add(url);
     return res.text();
+  }
+  /* Writes the map back to the file it was opened from (only offered when that server takes a PUT). */
+  async saveFile() {
+    const url = this.state.fileUrl;
+    if (url === null) return;
+    const text = this.currentText();
+    const res = await fetch(url, { method: 'PUT', body: text, headers: { 'content-type': 'text/markdown; charset=utf-8' } });
+    if (!res.ok) throw new Error(('HTTP ' + res.status + ' ' + res.statusText).trim());
+    super.setState((s) => ({ dirty: s.dirty && this.currentText() !== text, notice: 'Saved ' + shortUrl(url) }));
   }
   currentText() { return serializeMap({ meta: this.metaOf(), nodes: this.state.nodes }); }
   async saveAs(name) {
@@ -2062,7 +2076,8 @@ class Component extends DCLogic {
     super.setState({
       ...applyMeta(parsed.meta), nodes: parsed.nodes, currentId: parsed.root.id, dirOpen: { [parsed.root.id]: true },
       selectedTag: Object.keys(parsed.meta.tagStyles)[0] ?? null, mapCollapsed: {}, refLoads: {}, filterTags: [], lastChild: {},
-      history: { past: [], future: [], step: null }, dirty: false, loadError: null, mapName: name, savedName
+      history: { past: [], future: [], step: null }, dirty: false, loadError: null, mapName: name, savedName,
+      fileUrl: url !== null && this.writableUrls.has(url) ? url : null
     }, () => { if (this.state.layout in LAYOUTS && this.didInitialFit) this.fit(); });
     return true;
   }
@@ -2075,7 +2090,7 @@ class Component extends DCLogic {
     }, 0);
   }
   async shareLink() {
-    return location.origin + location.pathname + '#m=' + await encodeShare(serializeMap({ meta: this.metaOf(), nodes: this.state.nodes }));
+    return location.origin + location.pathname + '#data=' + await encodeShare(serializeMap({ meta: this.metaOf(), nodes: this.state.nodes }));
   }
   async share() {
     const link = await this.shareLink();
@@ -2231,6 +2246,11 @@ class Component extends DCLogic {
       const n = byId(this.graph(), this.state.currentId);
       this.handleKey({ key: e.key, ctrlKey: e.ctrlKey, metaKey: false, altKey: false, shiftKey: e.shiftKey, preventDefault: () => e.preventDefault(),
         target: { value: n.title, selectionStart: 0, selectionEnd: n.title.length, blur() {} } }, n);
+      return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's' && this.state.fileUrl !== null) {
+      e.preventDefault();
+      this.saveFile().catch((err) => this.setState({ notice: 'Save failed: ' + (err.message || err) }));
       return;
     }
     if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
@@ -3158,6 +3178,9 @@ class Component extends DCLogic {
       nodeCount: String(s.nodes.length),
       dims: s.dims,
       fileLabel: (s.savedName ?? s.mapName ?? 'Unsaved map') + (s.dirty ? '*' : ''),
+      canSaveFile: s.fileUrl !== null,
+      saveFileTitle: s.fileUrl === null ? '' : 'Write the map back to ' + shortUrl(s.fileUrl),
+      onSaveFile: () => { this.saveFile().catch((err) => this.setState({ notice: 'Save failed: ' + (err.message || err) })); },
       onShare: () => { this.share().catch(() => this.setState({ notice: 'Couldn\'t copy the link. Your browser blocked the clipboard.' })); },
       hasNotice: s.notice !== null,
       notice: s.notice ?? '',

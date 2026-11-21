@@ -308,7 +308,8 @@ test('share round trip, including non-ASCII text', async () => {
 });
 
 test('sharePayload', () => {
-  assert.equal(app.sharePayload('https://a.org/x#m=abc'), 'abc');
+  assert.equal(app.sharePayload('https://a.org/x#data=abc'), 'abc');
+  assert.equal(app.sharePayload('https://a.org/x#m=abc'), 'abc'); // links made before #data=
   assert.equal(app.sharePayload('https://a.org/x.md'), null);
   assert.equal(app.sharePayload('not a url'), null);
 });
@@ -351,7 +352,7 @@ test('the share link warns when long', async () => {
   let copied = null;
   c.copy = async (t) => { copied = t; };
   await c.share();
-  assert.ok(copied.startsWith('http://x/#m='));
+  assert.ok(copied.startsWith('http://x/#data='));
   assert.equal(c.state.notice, 'Link copied');
   const big = '# R\n' + Array.from({ length: 2000 }, (_, i) => '- ' + Math.random().toString(36).repeat(3) + i).join('\n') + '\n';
   c.openText(big, 'big', { force: true });
@@ -422,7 +423,7 @@ test('startup prefers a share link over ?src= and saved maps', async () => {
   const c = boot();
   c.store = fakeStore([{ name: 'Saved', text: '# Saved\n', updated: 1 }]);
   c.fetchMapText = async () => '# From src\n';
-  location.hash = '#m=' + await app.encodeShare('# Shared\n');
+  location.hash = '#data=' + await app.encodeShare('# Shared\n');
   location.search = '?src=https://a.org/m.md';
   await c.start();
   assert.equal(c.state.nodes[0].title, 'Shared');
@@ -430,6 +431,32 @@ test('startup prefers a share link over ?src= and saved maps', async () => {
   await c.start();
   assert.equal(c.state.nodes[0].title, 'From src');
   location.search = '';
+});
+
+test('Save writes back only to a map its server marked writable', async () => {
+  const realFetch = globalThis.fetch;
+  const puts = [];
+  globalThis.fetch = async (url, opts = {}) => {
+    if (opts.method === 'PUT') { puts.push([url, opts.body]); return { ok: true }; }
+    const writable = url.endsWith('/mine.md');
+    return { ok: true, text: async () => '# Mine\n', headers: { get: (h) => (writable && h === 'x-decision-map-writable' ? '1' : null) } };
+  };
+  try {
+    const c = boot();
+    c.store = fakeStore();
+    await c.openUrl('http://x/theirs.md');
+    assert.equal(c.state.fileUrl, null);
+    assert.equal(c.renderVals().canSaveFile, false);
+    await c.openUrl('http://x/mine.md');
+    assert.equal(c.state.fileUrl, 'http://x/mine.md');
+    assert.equal(c.renderVals().canSaveFile, true);
+    c.setState({ dirty: true });
+    await c.saveFile();
+    assert.deepEqual(puts, [['http://x/mine.md', c.currentText()]]);
+    assert.equal(c.state.dirty, false);
+    c.openText('# Other\n', 'other', { force: true });
+    assert.equal(c.state.fileUrl, null);
+  } finally { globalThis.fetch = realFetch; }
 });
 
 test('?view= picks the starting view', () => {
@@ -526,7 +553,7 @@ test('expanding an unloaded ref on the map loads it', async () => {
 
 test('the share link of a ref is decoded, not fetched', async () => {
   const c = boot(SMALL);
-  const link = 'https://elsewhere.org/app/#m=' + await app.encodeShare('# Shared\n');
+  const link = 'https://elsewhere.org/app/#data=' + await app.encodeShare('# Shared\n');
   assert.equal(await c.fetchMapText(link), '# Shared\n');
 });
 
@@ -1040,7 +1067,7 @@ test('opening another map first saves a named map\'s pending edits', async () =>
 test('a share link leaves the address bar once its map is open', async () => {
   const c = boot();
   c.store = fakeStore();
-  location.hash = '#m=' + await app.encodeShare('# Shared\n');
+  location.hash = '#data=' + await app.encodeShare('# Shared\n');
   location.search = '?view=tree';
   replaced.length = 0;
   await c.start();

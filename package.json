@@ -1,0 +1,23 @@
+{
+  "name": "@pritzlaff/decision-map",
+  "version": "0.1.0",
+  "description": "Decision map: a tree of ideas as markdown, drawn as a mind map. Static page (index.html); no build step. `decision-map <map.md>` opens a map on disk.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aaronp/decision-map.git"
+  },
+  "homepage": "https://aaronp.github.io/decision-map/",
+  "type": "module",
+  "bin": {
+    "decision-map": "bin/decision-map.mjs"
+  },
+  "files": [
+    "bin",
+    "index.html",
+    "support.js",
+    "vendor"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
