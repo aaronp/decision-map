@@ -13,33 +13,33 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <style>
-body{margin:0;background:#F7F7F4;font-family:'Inter',system-ui,sans-serif;color:#17181C;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--bg);font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
 a{color:#2A4BD7}a:hover{color:#1C3399}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offset:2px}
-.ghost:hover{background:#EFEFEA}
+.ghost:hover{background:var(--rule)}
 .node-btn:hover{filter:brightness(0.97)}
-.map-pill:hover{background:#FBFBF9}
+.map-pill:hover{background:var(--bg)}
 .dim:hover{border-color:#CFCFC8}
 .dim:focus{outline:none;border-color:#2A4BD7;box-shadow:0 0 0 3px rgba(42,75,215,.15)}
 </style>
 </helmet>
-<div style="height: 100vh; min-height: 640px; display: flex; flex-direction: column; background: #F7F7F4">
+<div style="height: 100vh; min-height: 640px; display: flex; flex-direction: column; background: var(--bg); {{themeVars}}">
 
-  <header style="flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 12px 20px; background: #FFFFFF; border-bottom: 1px solid #E4E4DF; position: relative; z-index: 5">
+  <header style="flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--rule); position: relative; z-index: 5">
     <div style="display: flex; align-items: center; gap: 10px; margin-right: 6px">
       <svg width="28" height="28" viewBox="0 0 30 30" fill="none" stroke="#17181C" stroke-width="1.6" aria-hidden="true"><circle cx="15" cy="15" r="4.5"></circle><circle cx="15" cy="4" r="2.5"></circle><circle cx="25" cy="21" r="2.5"></circle><circle cx="5" cy="21" r="2.5"></circle><path d="M15 10.5V6.5M19 17.5l3.8 2.2M11 17.5l-3.8 2.2"></path></svg>
       <div style="display: flex; flex-direction: column">
         <span style="font-weight: 600; font-size: 14px">{{rootTitle}}</span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #5C5F66">guidelines.md · {{nodeCount}} nodes</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--ink2)">guidelines.md · {{nodeCount}} nodes</span>
       </div>
     </div>
 
     <label style="display: flex; align-items: center; gap: 8px">
-      <span style="font-size: 12px; font-weight: 600; color: #5C5F66">View</span>
+      <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">View</span>
       <span style="position: relative; display: inline-flex; align-items: center">
-        <select value="{{layout}}" onChange="{{onLayout}}" style="appearance: none; -webkit-appearance: none; height: 34px; padding: 0 34px 0 12px; border: 1px solid #DADAD3; border-radius: 8px; background: #FFFFFF; font-size: 13px; font-weight: 500; color: #17181C; cursor: pointer">
+        <select value="{{layout}}" onChange="{{onLayout}}" style="appearance: none; -webkit-appearance: none; height: 34px; padding: 0 34px 0 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 13px; font-weight: 500; color: var(--ink); cursor: pointer">
           <option value="radial">Radial</option>
           <option value="tree">Tree</option>
           <option value="directory">Directory</option>
@@ -63,18 +63,18 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
 
     <div style="display: flex; align-items: center; gap: 6px">
       <sc-if value="{{searchClosed}}" hint-placeholder-val="{{ true }}">
-        <button class="ghost" onClick="{{openSearch}}" aria-label="Search nodes" title="Search" style="display: inline-flex; align-items: center; justify-content: center; height: 36px; border-radius: 999px; border: 1px solid #DADAD3; width: 36px; background: #FFFFFF; color: #3F4148">
+        <button class="ghost" onClick="{{openSearch}}" aria-label="Search nodes" title="Search" style="display: inline-flex; align-items: center; justify-content: center; height: 36px; border-radius: 999px; border: 1px solid var(--rule); width: 36px; background: var(--card); color: var(--ink2)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
         </button>
       </sc-if>
       <sc-if value="{{searchOpen}}" hint-placeholder-val="{{ false }}">
-        <div role="search" style="display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 4px 0 12px; border: 1px solid #2A4BD7; border-radius: 999px; background: #FFFFFF; box-shadow: 0 0 0 3px rgba(42,75,215,0.12)">
+        <div role="search" style="display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 4px 0 12px; border: 1px solid #2A4BD7; border-radius: 999px; background: var(--card); box-shadow: 0 0 0 3px rgba(42,75,215,0.12)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4A4D55" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
           <input type="text" autoFocus="{{true}}" value="{{q}}" onChange="{{onQ}}" onKeyDown="{{onQKey}}" placeholder="Search titles &amp; descriptions" aria-label="Search nodes" style="width: 210px; height: 30px; border: 0; outline: none; background: transparent; font-size: 13px; padding: 0 4px">
-          <span aria-live="polite" style="min-width: 44px; text-align: right; font-size: 12px; color: #5C5F66; font-variant-numeric: tabular-nums; white-space: nowrap">{{matchLabel}}</span>
-          <button class="ghost" onClick="{{prevMatch}}" disabled="{{noMatches}}" aria-label="Previous match" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: #3F4148"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg></button>
-          <button class="ghost" onClick="{{nextMatch}}" disabled="{{noMatches}}" aria-label="Next match" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: #3F4148"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
-          <button class="ghost" onClick="{{closeSearch}}" aria-label="Close search" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: #3F4148"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+          <span aria-live="polite" style="min-width: 44px; text-align: right; font-size: 12px; color: var(--ink2); font-variant-numeric: tabular-nums; white-space: nowrap">{{matchLabel}}</span>
+          <button class="ghost" onClick="{{prevMatch}}" disabled="{{noMatches}}" aria-label="Previous match" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: var(--ink2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg></button>
+          <button class="ghost" onClick="{{nextMatch}}" disabled="{{noMatches}}" aria-label="Next match" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: var(--ink2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+          <button class="ghost" onClick="{{closeSearch}}" aria-label="Close search" style="width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: var(--ink2)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
         </div>
       </sc-if>
       <button onClick="{{toggleFilter}}" aria-expanded="{{filterOpen}}" aria-label="Filter by tag" title="Filter by tag" style="display: inline-flex; align-items: center; justify-content: center; height: 36px; border-radius: 999px; border: 1px solid; gap: 6px; padding: 0 11px; {{filterBtnStyle}}">
@@ -86,8 +86,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
     </div>
 
     <div style="display: flex; align-items: center; gap: 2px">
-      <button class="ghost" onClick="{{onUndo}}" disabled="{{noUndo}}" aria-label="Undo" title="Undo (⌘Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: #3F4148; opacity: {{undoOpacity}}">↶</button>
-      <button class="ghost" onClick="{{onRedo}}" disabled="{{noRedo}}" aria-label="Redo" title="Redo (⌘⇧Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: #3F4148; opacity: {{redoOpacity}}">↷</button>
+      <button class="ghost" onClick="{{onUndo}}" disabled="{{noUndo}}" aria-label="Undo" title="Undo (⌘Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: var(--ink2); opacity: {{undoOpacity}}">↶</button>
+      <button class="ghost" onClick="{{onRedo}}" disabled="{{noRedo}}" aria-label="Redo" title="Redo (⌘⇧Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: var(--ink2); opacity: {{redoOpacity}}">↷</button>
     </div>
 
     <button onClick="{{toggleSettings}}" aria-expanded="{{settingsOpen}}" style="display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid; border-radius: 999px; font-size: 13px; font-weight: 500; {{settingsBtnStyle}}">
@@ -96,8 +96,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
   </header>
 
   <sc-if value="{{filterOpen}}" hint-placeholder-val="{{ false }}">
-    <div role="region" aria-label="Tag filter" style="flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 20px; background: #FBFBF9; border-bottom: 1px solid #E4E4DF; position: relative; z-index: 4">
-      <span style="font-size: 12px; font-weight: 600; color: #5C5F66; margin-right: 2px">Show nodes tagged</span>
+    <div role="region" aria-label="Tag filter" style="flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 20px; background: var(--bg); border-bottom: 1px solid var(--rule); position: relative; z-index: 4">
+      <span style="font-size: 12px; font-weight: 600; color: var(--ink2); margin-right: 2px">Show nodes tagged</span>
       <sc-for list="{{filterChips}}" as="c" hint-placeholder-count="3">
         <button onClick="{{c.toggle}}" aria-pressed="{{c.pressed}}" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 500; {{c.style}}">
           <sc-if value="{{c.pressed}}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5L20 7"></path></svg></sc-if>
@@ -105,7 +105,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         </button>
       </sc-for>
       <sc-if value="{{noTags}}" hint-placeholder-val="{{ false }}">
-        <span style="font-size: 13px; color: #5C5F66">No tags yet. Add them to nodes in the panel.</span>
+        <span style="font-size: 13px; color: var(--ink2)">No tags yet. Add them to nodes in the panel.</span>
       </sc-if>
       <div role="group" aria-label="Tag match mode" style="display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px; margin-left: 6px">
         <sc-for list="{{filterModeOpts}}" as="o" hint-placeholder-count="2">
@@ -113,7 +113,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         </sc-for>
       </div>
       <div style="flex: 1 1 0"></div>
-      <span aria-live="polite" style="font-size: 12px; color: #4A4D55">{{filterSummary}}</span>
+      <span aria-live="polite" style="font-size: 12px; color: var(--ink2)">{{filterSummary}}</span>
       <sc-if value="{{filtersOn}}" hint-placeholder-val="{{ false }}">
         <button class="ghost" onClick="{{clearFilters}}" style="height: 30px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; font-weight: 500; color: #2A4BD7">Clear filters</button>
       </sc-if>
@@ -122,21 +122,21 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
 
   <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex">
     <sc-if value="{{isDirectory}}" hint-placeholder-val="{{ false }}">
-      <nav aria-label="Directory" style="flex: 0 0 400px; max-width: 48%; min-width: 260px; display: flex; flex-direction: column; min-height: 0; background: #FBFBF9; border-right: 1px solid #E4E4DF">
-        <div style="display: flex; align-items: center; gap: 6px; padding: 12px 10px 10px 16px; border-bottom: 1px solid #EFEFEA">
-          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #4A4D55">guidelines.md</span>
+      <nav aria-label="Directory" style="flex: 0 0 400px; max-width: 48%; min-width: 260px; display: flex; flex-direction: column; min-height: 0; background: var(--bg); border-right: 1px solid var(--rule)">
+        <div style="display: flex; align-items: center; gap: 6px; padding: 12px 10px 10px 16px; border-bottom: 1px solid var(--rule)">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink2)">guidelines.md</span>
           <div style="flex: 1 1 0"></div>
-          <button class="ghost" onClick="{{expandAll}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: #3F4148">Expand all</button>
-          <button class="ghost" onClick="{{collapseAll}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: #3F4148">Collapse</button>
+          <button class="ghost" onClick="{{expandAll}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: var(--ink2)">Expand all</button>
+          <button class="ghost" onClick="{{collapseAll}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: var(--ink2)">Collapse</button>
         </div>
         <div role="tree" aria-label="{{rootTitle}}" onKeyDown="{{onDirKey}}" style="flex: 1 1 auto; overflow-y: auto; padding: 6px 6px 24px">
           <sc-for list="{{dirRows}}" as="d" hint-placeholder-count="12">
             <div role="treeitem" aria-level="{{d.level}}" aria-expanded="{{d.ariaExpanded}}" aria-selected="{{d.selected}}" style="position: relative; display: flex; align-items: center; height: 34px; border-radius: 7px; padding-left: {{d.indent}}; {{d.rowStyle}}">
               <sc-for list="{{d.guides}}" as="gl" hint-placeholder-count="0">
-                <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: {{gl.left}}; border-left: 1px solid #E4E4DF"></span>
+                <span aria-hidden="true" style="position: absolute; top: 0; bottom: 0; left: {{gl.left}}; border-left: 1px solid var(--rule)"></span>
               </sc-for>
               <sc-if value="{{d.hasKids}}" hint-placeholder-val="{{ true }}">
-                <button class="ghost" onClick="{{d.toggle}}" aria-label="{{d.toggleAria}}" tabIndex="-1" style="flex: 0 0 22px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: #5C5F66; position: relative">
+                <button class="ghost" onClick="{{d.toggle}}" aria-label="{{d.toggleAria}}" tabIndex="-1" style="flex: 0 0 22px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: transparent; display: inline-flex; align-items: center; justify-content: center; color: var(--ink2); position: relative">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{d.chevron}}"><path d="m9 6 6 6-6 6"></path></svg>
                 </button>
               </sc-if>
@@ -154,8 +154,8 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
                   </span>
                 </sc-if>
                 <span style="flex: 1 1 auto"></span>
-                <span style="flex: 0 0 auto; font-size: 11px; color: #5C5F66; font-variant-numeric: tabular-nums">{{d.count}}</span>
-                <span title="{{d.valuesTitle}}" style="flex: 0 0 auto; min-width: 74px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #5C5F66">{{d.values}}</span>
+                <span style="flex: 0 0 auto; font-size: 11px; color: var(--ink2); font-variant-numeric: tabular-nums">{{d.count}}</span>
+                <span title="{{d.valuesTitle}}" style="flex: 0 0 auto; min-width: 74px; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink2)">{{d.values}}</span>
               </button>
             </div>
           </sc-for>
@@ -189,33 +189,33 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       </sc-for>
     </div>
 
-    <div style="position: absolute; right: 16px; top: 16px; display: flex; align-items: center; gap: 2px; padding: 3px; background: #FFFFFF; border: 1px solid #E4E4DF; border-radius: 10px; box-shadow: 0 2px 8px rgba(23,24,28,0.05)">
+    <div style="position: absolute; right: 16px; top: 16px; display: flex; align-items: center; gap: 2px; padding: 3px; background: var(--card); border: 1px solid var(--rule); border-radius: 10px; box-shadow: 0 2px 8px rgba(23,24,28,0.05)">
       <button class="ghost" onClick="{{zoomOut}}" aria-label="{{zoomOutAria}}" style="width: 36px; height: 36px; border: 0; border-radius: 7px; background: transparent; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
-      <span style="min-width: 64px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; color: #3F4148">{{zoomLabel}}</span>
+      <span style="min-width: 64px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink2)">{{zoomLabel}}</span>
       <button class="ghost" onClick="{{zoomIn}}" aria-label="{{zoomInAria}}" style="width: 36px; height: 36px; border: 0; border-radius: 7px; background: transparent; display: inline-flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
-      <div aria-hidden="true" style="width: 1px; height: 20px; background: #E4E4DF; margin: 0 2px"></div>
+      <div aria-hidden="true" style="width: 1px; height: 20px; background: var(--rule); margin: 0 2px"></div>
       <button class="ghost" onClick="{{fit}}" title="Fit the whole map on screen" style="display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent; font-size: 12px; font-weight: 500">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg>Fit
       </button>
     </div>
 
     <sc-if value="{{legendHidden}}" hint-placeholder-val="{{ false }}">
-      <button class="ghost" onClick="{{toggleLegend}}" style="position: absolute; left: 16px; top: 16px; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid #E4E4DF; border-radius: 10px; background: #FFFFFF; font-size: 12px; font-weight: 500; box-shadow: 0 2px 8px rgba(23,24,28,0.05)">
+      <button class="ghost" onClick="{{toggleLegend}}" style="position: absolute; left: 16px; top: 16px; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); font-size: 12px; font-weight: 500; box-shadow: 0 2px 8px rgba(23,24,28,0.05)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>Legend
       </button>
     </sc-if>
     <sc-if value="{{legendShown}}" hint-placeholder-val="{{ true }}">
-      <div style="position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 10px; padding: 12px 40px 12px 14px; background: rgba(255,255,255,0.94); border: 1px solid #E4E4DF; border-radius: 12px; max-width: 240px">
-        <button class="ghost" onClick="{{toggleLegend}}" aria-label="Close legend" style="position: absolute; right: 4px; top: 4px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #4A4D55">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 10px; padding: 12px 40px 12px 14px; background: rgba(255,255,255,0.94); border: 1px solid var(--rule); border-radius: 12px; max-width: 240px">
+        <button class="ghost" onClick="{{toggleLegend}}" aria-label="Close legend" style="position: absolute; right: 4px; top: 4px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--ink2)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
         </button>
         <sc-if value="{{colorOn}}" hint-placeholder-val="{{ true }}">
           <div style="display: flex; flex-direction: column; gap: 6px">
             <span style="font-size: 12px; font-weight: 600">Color · {{colorName}}</span>
             <div style="display: flex; align-items: center; gap: 8px">
-              <span style="font-size: 11px; color: #5C5F66">0</span>
-              <span aria-hidden="true" style="width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #EEF2FD, #16307F)"></span>
-              <span style="font-size: 11px; color: #5C5F66">1</span>
+              <span style="font-size: 11px; color: var(--ink2)">0</span>
+              <span aria-hidden="true" style="width: 120px; height: 8px; border-radius: 4px; {{legendGradient}}"></span>
+              <span style="font-size: 11px; color: var(--ink2)">1</span>
             </div>
           </div>
         </sc-if>
@@ -223,19 +223,19 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <div style="display: flex; flex-direction: column; gap: 6px">
             <span style="font-size: 12px; font-weight: 600">Size · {{sizeName}}</span>
             <div style="display: flex; align-items: center; gap: 8px">
-              <span style="font-size: 11px; color: #5C5F66">0</span>
-              <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #17181C"></span>
-              <span aria-hidden="true" style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid #17181C"></span>
-              <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #17181C"></span>
-              <span style="font-size: 11px; color: #5C5F66">1</span>
+              <span style="font-size: 11px; color: var(--ink2)">0</span>
+              <span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--ink)"></span>
+              <span aria-hidden="true" style="width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--ink)"></span>
+              <span aria-hidden="true" style="width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--ink)"></span>
+              <span style="font-size: 11px; color: var(--ink2)">1</span>
             </div>
           </div>
         </sc-if>
         <sc-if value="{{anyMapping}}" hint-placeholder-val="{{ true }}">
-          <span style="font-size: 11.5px; line-height: 1.45; color: #4A4D55">Dashed outline: no own value, rolled up from children. Grey: no value anywhere below.</span>
+          <span style="font-size: 11.5px; line-height: 1.45; color: var(--ink2)">Dashed outline: no own value, rolled up from children. Grey: no value anywhere below.</span>
         </sc-if>
         <sc-if value="{{fisheye}}" hint-placeholder-val="{{ false }}">
-          <span style="font-size: 11.5px; line-height: 1.45; color: #4A4D55">Fisheye: the whole map fits, magnified around the selected node. − / + change the magnification.</span>
+          <span style="font-size: 11.5px; line-height: 1.45; color: var(--ink2)">Fisheye: the whole map fits, magnified around the selected node. − / + change the magnification.</span>
         </sc-if>
       </div>
     </sc-if>
@@ -243,21 +243,21 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
   </div>
     </sc-if>
     <sc-if value="{{settingsOpen}}" hint-placeholder-val="{{ false }}">
-      <aside aria-label="Settings" style="position: absolute; top: 0; right: 0; bottom: 0; z-index: 30; width: min(780px, 100%); box-sizing: border-box; overflow: hidden; background: #FFFFFF; border-left: 1px solid #E4E4DF; box-shadow: -12px 0 32px rgba(23,24,28,0.08); display: flex; flex-direction: column">
-        <div style="position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 14px 24px; background: #FFFFFF; border-bottom: 1px solid #EFEFEA">
+      <aside aria-label="Settings" style="position: absolute; top: 0; right: 0; bottom: 0; z-index: 30; width: min(780px, 100%); box-sizing: border-box; overflow: hidden; background: var(--card); border-left: 1px solid var(--rule); box-shadow: -12px 0 32px rgba(23,24,28,0.08); display: flex; flex-direction: column">
+        <div style="position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 14px 24px; background: var(--card); border-bottom: 1px solid var(--rule)">
           <h2 style="margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -0.01em">Settings</h2>
-          <button class="ghost" onClick="{{toggleSettings}}" aria-label="Close settings" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: #4A4D55">
+          <button class="ghost" onClick="{{toggleSettings}}" aria-label="Close settings" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--ink2)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
           </button>
         </div>
 
         <div style="flex: 1 1 auto; min-height: 0; display: flex">
-          <div role="tablist" aria-orientation="vertical" aria-label="Settings sections" style="flex: 0 0 188px; display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; border-right: 1px solid #EFEFEA; background: #FBFBF9">
+          <div role="tablist" aria-orientation="vertical" aria-label="Settings sections" style="flex: 0 0 188px; display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; border-right: 1px solid var(--rule); background: var(--bg)">
             <sc-for list="{{settingsTabs}}" as="t" hint-placeholder-count="3">
               <button role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border: 0; border-radius: 8px; text-align: left; font-size: 13.5px; {{t.style}}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto"><path d="{{t.icon}}"></path></svg>
                 <span style="flex: 1 1 auto">{{t.label}}</span>
-                <span style="font-size: 11px; color: #5C5F66; font-variant-numeric: tabular-nums">{{t.meta}}</span>
+                <span style="font-size: 11px; color: var(--ink2); font-variant-numeric: tabular-nums">{{t.meta}}</span>
               </button>
             </sc-for>
           </div>
@@ -266,15 +266,15 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
             <sc-if value="{{tabDimensions}}" hint-placeholder-val="{{ true }}">
         <section style="display: flex; flex-direction: column; gap: 12px; padding: 22px 24px">
           <h3 style="margin: 0; font-size: 15px; font-weight: 600">Dimensions</h3>
-          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4A4D55">Two optional values, 0–1, that any node can carry. Name them for what this map is weighing.</p>
+          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink2)">Two optional values, 0–1, that any node can carry. Name them for what this map is weighing.</p>
           <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
-            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A4D55">
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink2)">
               <span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 500">x</span> · dimension name</span>
-              <input class="dim" value="{{dims.x}}" onChange="{{onDimX}}" placeholder="e.g. Confidence" style="height: 38px; padding: 0 12px; border: 1px solid #E4E4DF; border-radius: 8px; background: #FBFBF9; font-size: 14px; font-weight: 500; color: #17181C">
+              <input class="dim" value="{{dims.x}}" onChange="{{onDimX}}" placeholder="e.g. Confidence" style="height: 38px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); font-size: 14px; font-weight: 500; color: var(--ink)">
             </label>
-            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: #4A4D55">
+            <label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink2)">
               <span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 500">y</span> · dimension name</span>
-              <input class="dim" value="{{dims.y}}" onChange="{{onDimY}}" placeholder="e.g. Impact" style="height: 38px; padding: 0 12px; border: 1px solid #E4E4DF; border-radius: 8px; background: #FBFBF9; font-size: 14px; font-weight: 500; color: #17181C">
+              <input class="dim" value="{{dims.y}}" onChange="{{onDimY}}" placeholder="e.g. Impact" style="height: 38px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); font-size: 14px; font-weight: 500; color: var(--ink)">
             </label>
           </div>
         </section>
@@ -283,27 +283,44 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
             <sc-if value="{{tabEncoding}}" hint-placeholder-val="{{ false }}">
         <section style="display: flex; flex-direction: column; gap: 14px; padding: 22px 24px">
           <h3 style="margin: 0; font-size: 15px; font-weight: 600">Color &amp; size</h3>
-          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4A4D55">Choose which dimension drives each, or switch either off. ⇄ swaps them.</p>
+          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink2)">Choose which dimension drives each, or switch either off. ⇄ swaps them.</p>
     <div role="group" aria-label="Visual mappings" style="display: flex; align-items: center; gap: 2px; padding: 3px; background: #EDEDE8; border-radius: 10px; align-self: flex-start; flex-wrap: wrap">
-      <button class="map-pill" role="switch" aria-checked="{{colorOn}}" onClick="{{toggleColor}}" style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 8px; border: 0; border-radius: 7px; background: #FFFFFF">
-        <span aria-hidden="true" style="position: relative; width: 28px; height: 16px; border-radius: 8px; transition: background .15s ease; {{colorTrack}}"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(23,24,28,0.25); transition: transform .15s ease; {{colorKnob}}"></span></span>
-        <span style="font-size: 12px; font-weight: 600; color: #5C5F66">Color</span>
-        <span aria-hidden="true" style="width: 16px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #EEF2FD, #16307F); {{colorChip}}"></span>
+      <button class="map-pill" role="switch" aria-checked="{{colorOn}}" onClick="{{toggleColor}}" style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 8px; border: 0; border-radius: 7px; background: var(--card)">
+        <span aria-hidden="true" style="position: relative; width: 28px; height: 16px; border-radius: 8px; transition: background .15s ease; {{colorTrack}}"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgba(23,24,28,0.25); transition: transform .15s ease; {{colorKnob}}"></span></span>
+        <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Color</span>
+        <span aria-hidden="true" style="width: 16px; height: 8px; border-radius: 4px; {{legendGradient}}; {{colorChip}}"></span>
         <span style="font-size: 13px; font-weight: 500; {{colorText}}">{{colorName}}</span>
       </button>
-      <button class="ghost" onClick="{{swapMap}}" aria-label="Swap which dimension drives color and size" title="Swap" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 7px; background: transparent; color: #3F4148">
+      <button class="ghost" onClick="{{swapMap}}" aria-label="Swap which dimension drives color and size" title="Swap" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 7px; background: transparent; color: var(--ink2)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7"></path></svg>
       </button>
-      <button class="map-pill" role="switch" aria-checked="{{sizeOn}}" onClick="{{toggleSize}}" style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 8px; border: 0; border-radius: 7px; background: #FFFFFF">
-        <span aria-hidden="true" style="position: relative; width: 28px; height: 16px; border-radius: 8px; transition: background .15s ease; {{sizeTrack}}"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(23,24,28,0.25); transition: transform .15s ease; {{sizeKnob}}"></span></span>
-        <span style="font-size: 12px; font-weight: 600; color: #5C5F66">Size</span>
-        <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 2px; {{sizeChip}}"><span style="width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid #17181C"></span><span style="width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #17181C"></span></span>
+      <button class="map-pill" role="switch" aria-checked="{{sizeOn}}" onClick="{{toggleSize}}" style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 8px; border: 0; border-radius: 7px; background: var(--card)">
+        <span aria-hidden="true" style="position: relative; width: 28px; height: 16px; border-radius: 8px; transition: background .15s ease; {{sizeTrack}}"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgba(23,24,28,0.25); transition: transform .15s ease; {{sizeKnob}}"></span></span>
+        <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Size</span>
+        <span aria-hidden="true" style="display: inline-flex; align-items: center; gap: 2px; {{sizeChip}}"><span style="width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid var(--ink)"></span><span style="width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--ink)"></span></span>
         <span style="font-size: 13px; font-weight: 500; {{sizeText}}">{{sizeName}}</span>
       </button>
     </div>
 
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Colour</span>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+              <div role="group" aria-label="Colour mode" style="display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px">
+                <sc-for list="{{modeOpts}}" as="o" hint-placeholder-count="2">
+                  <button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="border: 0; border-radius: 6px; padding: 0 10px; height: 28px; font-size: 12px; {{o.style}}">{{o.label}}</button>
+                </sc-for>
+              </div>
+              <sc-if value="{{isSplit}}" hint-placeholder-val="{{ false }}">
+                <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px">Left <input type="color" value="{{colorLeft}}" onChange="{{onColorLeft}}" aria-label="Left colour" style="width: 32px; height: 26px; padding: 0; border: 1px solid var(--rule); border-radius: 6px"></label>
+                <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px">Right <input type="color" value="{{colorRight}}" onChange="{{onColorRight}}" aria-label="Right colour" style="width: 32px; height: 26px; padding: 0; border: 1px solid var(--rule); border-radius: 6px"></label>
+              </sc-if>
+              <button onClick="{{toggleReverse}}" aria-pressed="{{reverse}}" title="For values where higher is worse, like price" style="height: 30px; padding: 0 12px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 500; {{reverseStyle}}">Reverse</button>
+            </div>
+            <span aria-hidden="true" style="width: 220px; height: 10px; border-radius: 5px; {{legendGradient}}"></span>
+          </div>
+
           <div style="display: flex; flex-direction: column; gap: 10px; {{sizeRangeStyle}}">
-            <span style="font-size: 12px; font-weight: 600; color: #4A4D55">Size range</span>
+            <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Size range</span>
             <div style="display: flex; align-items: center; gap: 12px">
               <label for="size-min" style="flex: 0 0 120px; font-size: 13px">Smallest (value 0)</label>
               <input id="size-min" type="range" min="0.4" max="1" step="0.05" value="{{sizeMin}}" onChange="{{onSizeMin}}" style="flex: 1 1 auto; accent-color: #2A4BD7">
@@ -314,22 +331,38 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
               <input id="size-max" type="range" min="1" max="2.4" step="0.05" value="{{sizeMax}}" onChange="{{onSizeMax}}" style="flex: 1 1 auto; accent-color: #2A4BD7">
               <span style="flex: 0 0 44px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums">{{sizeMaxLabel}}</span>
             </div>
-            <div aria-hidden="true" style="display: flex; align-items: center; justify-content: center; gap: 14px; padding: 14px; border-radius: 10px; background: #F7F7F4">
-              <span style="padding: 7px 13px; border-radius: 999px; border: 1px solid #DADAD3; background: #FFFFFF; font-size: 14px; transform: scale({{sizeMin}})">0.0</span>
-              <span style="padding: 7px 13px; border-radius: 999px; border: 1px solid #DADAD3; background: #FFFFFF; font-size: 14px; transform: scale({{sizeMid}})">0.5</span>
-              <span style="padding: 7px 13px; border-radius: 999px; border: 1px solid #DADAD3; background: #FFFFFF; font-size: 14px; transform: scale({{sizeMax}})">1.0</span>
+            <div aria-hidden="true" style="display: flex; align-items: center; justify-content: center; gap: 14px; padding: 14px; border-radius: 10px; background: var(--bg)">
+              <span style="padding: 7px 13px; border-radius: 999px; border: 1px solid var(--rule); background: var(--card); font-size: 14px; transform: scale({{sizeMin}})">0.0</span>
+              <span style="padding: 7px 13px; border-radius: 999px; border: 1px solid var(--rule); background: var(--card); font-size: 14px; transform: scale({{sizeMid}})">0.5</span>
+              <span style="padding: 7px 13px; border-radius: 999px; border: 1px solid var(--rule); background: var(--card); font-size: 14px; transform: scale({{sizeMax}})">1.0</span>
             </div>
           </div>
         </section>
 
             </sc-if>
+            <sc-if value="{{tabTheme}}" hint-placeholder-val="{{ false }}">
+        <section style="display: flex; flex-direction: column; gap: 14px; padding: 22px 24px">
+          <h3 style="margin: 0; font-size: 15px; font-weight: 600">Theme</h3>
+          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink2)">Saved with the map, so it opens the same way for everyone.</p>
+          <div role="group" aria-label="Themes" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{themeOpts}}" as="t" hint-placeholder-count="4">
+              <button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 14px; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: left; {{t.style}}">
+                <span aria-hidden="true" style="width: 22px; height: 22px; border-radius: 6px; {{t.swatch}}"></span>{{t.label}}
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{hasThemeNote}}" hint-placeholder-val="{{ false }}">
+            <span style="font-size: 12px; color: var(--ink2)">{{themeNote}}</span>
+          </sc-if>
+        </section>
+            </sc-if>
             <sc-if value="{{tabTags}}" hint-placeholder-val="{{ false }}">
         <section style="display: flex; flex-direction: column; gap: 12px; padding: 22px 24px 32px">
           <h3 style="margin: 0; font-size: 15px; font-weight: 600">Tags</h3>
-          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4A4D55">Styles apply to every node with the tag. A tag's fill overrides the color mapping; with several tags, the first that sets a fill or border wins and opacities multiply.</p>
-        <div style="border: 1px solid #E4E4DF; border-radius: 10px; overflow: hidden">
-          <button class="ghost" onClick="{{toggleScheme}}" aria-expanded="{{schemeOpen}}" style="width: 100%; display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; border: 0; background: #FBFBF9; text-align: left">
-            <span style="font-size: 12px; font-weight: 600; color: #5C5F66">Color scheme</span>
+          <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink2)">Styles apply to every node with the tag. A tag's fill overrides the color mapping; with several tags, the first that sets a fill or border wins and opacities multiply.</p>
+        <div style="border: 1px solid var(--rule); border-radius: 10px; overflow: hidden">
+          <button class="ghost" onClick="{{toggleScheme}}" aria-expanded="{{schemeOpen}}" style="width: 100%; display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; border: 0; background: var(--bg); text-align: left">
+            <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Color scheme</span>
             <span style="font-size: 13px; font-weight: 500">{{schemeName}}</span>
             <span aria-hidden="true" style="display: flex; gap: 3px; margin-left: auto">
               <sc-for list="{{schemeStrip}}" as="c" hint-placeholder-count="8">
@@ -339,7 +372,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="{{schemeChevron}}"><path d="m6 9 6 6 6-6"></path></svg>
           </button>
           <sc-if value="{{schemeOpen}}" hint-placeholder-val="{{ false }}">
-            <div role="group" aria-label="Color schemes" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; border-top: 1px solid #E4E4DF">
+            <div role="group" aria-label="Color schemes" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; border-top: 1px solid var(--rule)">
               <sc-for list="{{schemeOpts}}" as="o" hint-placeholder-count="6">
                 <button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 8px 10px; border-radius: 8px; text-align: left; {{o.style}}">
                   <span style="font-size: 12px; font-weight: 600">{{o.label}}</span>
@@ -355,33 +388,33 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         </div>
 
         <sc-if value="{{noTags}}" hint-placeholder-val="{{ false }}">
-          <span style="font-size: 13px; color: #5C5F66; padding: 16px; border-top: 1px solid #EFEFEA">No tags yet. Add one to a node in the panel below.</span>
+          <span style="font-size: 13px; color: var(--ink2); padding: 16px; border-top: 1px solid var(--rule)">No tags yet. Add one to a node in the panel below.</span>
         </sc-if>
         <sc-if value="{{hasTags}}" hint-placeholder-val="{{ true }}">
-          <div style="display: flex; border-top: 1px solid #EFEFEA; min-height: 300px">
-            <div role="tablist" aria-orientation="vertical" aria-label="Tags" style="flex: 0 0 168px; display: flex; flex-direction: column; gap: 2px; padding: 8px; border-right: 1px solid #EFEFEA; background: #FBFBF9">
+          <div style="display: flex; border-top: 1px solid var(--rule); min-height: 300px">
+            <div role="tablist" aria-orientation="vertical" aria-label="Tags" style="flex: 0 0 168px; display: flex; flex-direction: column; gap: 2px; padding: 8px; border-right: 1px solid var(--rule); background: var(--bg)">
               <sc-for list="{{tagTabs}}" as="t" hint-placeholder-count="3">
                 <button role="tab" aria-selected="{{t.selected}}" onClick="{{t.pick}}" style="display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border: 0; border-radius: 8px; text-align: left; font-size: 13px; {{t.style}}">
                   <span aria-hidden="true" style="flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; {{t.dot}}"></span>
                   <span style="flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{t.label}}</span>
-                  <span style="font-size: 11px; color: #5C5F66; font-variant-numeric: tabular-nums">{{t.count}}</span>
+                  <span style="font-size: 11px; color: var(--ink2); font-variant-numeric: tabular-nums">{{t.count}}</span>
                 </button>
               </sc-for>
             </div>
 
             <div role="tabpanel" aria-label="{{sel.label}}" style="flex: 1 1 auto; min-width: 0; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 14px">
-              <div style="display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 10px; background-image: radial-gradient(#E1E1DB 1px, transparent 1px); background-size: 16px 16px; background-color: #F7F7F4; justify-content: center">
-                <span style="display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 500; background: #FFFFFF; {{sel.preview}}">{{sel.label}}</span>
+              <div style="display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 10px; background-image: radial-gradient(#E1E1DB 1px, transparent 1px); background-size: 16px 16px; background-color: var(--bg); justify-content: center">
+                <span style="display: inline-flex; align-items: center; height: 34px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 500; background: var(--card); {{sel.preview}}">{{sel.label}}</span>
               </div>
-              <span style="font-size: 12px; color: #5C5F66">{{sel.countLabel}}</span>
+              <span style="font-size: 12px; color: var(--ink2)">{{sel.countLabel}}</span>
 
               <div style="display: flex; flex-direction: column; gap: 6px">
-                <span style="font-size: 12px; font-weight: 600; color: #4A4D55">Fill</span>
+                <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Fill</span>
                 <div role="group" aria-label="Fill" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
                   <sc-for list="{{sel.fillOpts}}" as="c" hint-placeholder-count="9">
                     <button onClick="{{c.pick}}" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" style="width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(23,24,28,0.15); padding: 0; {{c.style}}"></button>
                   </sc-for>
-                  <label title="Custom fill" style="position: relative; display: inline-flex; width: 26px; height: 26px; border-radius: 50%; border: 1px dashed #9A9CA2; align-items: center; justify-content: center; color: #4A4D55; overflow: hidden">
+                  <label title="Custom fill" style="position: relative; display: inline-flex; width: 26px; height: 26px; border-radius: 50%; border: 1px dashed #9A9CA2; align-items: center; justify-content: center; color: var(--ink2); overflow: hidden">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
                     <input type="color" value="{{sel.fillHex}}" onChange="{{sel.onFillCustom}}" aria-label="Custom fill colour" style="position: absolute; inset: 0; opacity: 0; cursor: pointer">
                   </label>
@@ -389,12 +422,12 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
               </div>
 
               <div style="display: flex; flex-direction: column; gap: 6px">
-                <span style="font-size: 12px; font-weight: 600; color: #4A4D55">Border</span>
+                <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Border</span>
                 <div role="group" aria-label="Border colour" style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
                   <sc-for list="{{sel.borderOpts}}" as="c" hint-placeholder-count="9">
                     <button onClick="{{c.pick}}" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" style="width: 26px; height: 26px; border-radius: 50%; padding: 0; box-sizing: border-box; {{c.style}}"></button>
                   </sc-for>
-                  <label title="Custom border" style="position: relative; display: inline-flex; width: 26px; height: 26px; border-radius: 50%; border: 1px dashed #9A9CA2; align-items: center; justify-content: center; color: #4A4D55; overflow: hidden">
+                  <label title="Custom border" style="position: relative; display: inline-flex; width: 26px; height: 26px; border-radius: 50%; border: 1px dashed #9A9CA2; align-items: center; justify-content: center; color: var(--ink2); overflow: hidden">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
                     <input type="color" value="{{sel.borderHex}}" onChange="{{sel.onBorderCustom}}" aria-label="Custom border colour" style="position: absolute; inset: 0; opacity: 0; cursor: pointer">
                   </label>
@@ -407,12 +440,12 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
               </div>
 
               <div style="display: flex; align-items: center; gap: 10px">
-                <label for="tag-opacity" style="font-size: 12px; font-weight: 600; color: #4A4D55">Opacity</label>
+                <label for="tag-opacity" style="font-size: 12px; font-weight: 600; color: var(--ink2)">Opacity</label>
                 <input id="tag-opacity" type="range" min="0.15" max="1" step="0.05" value="{{sel.opacity}}" onChange="{{sel.onOpacity}}" style="flex: 1 1 auto; accent-color: #2A4BD7">
                 <span style="flex: 0 0 40px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums">{{sel.opacityLabel}}</span>
               </div>
 
-              <button class="ghost" onClick="{{sel.remove}}" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid #E4E4DF; border-radius: 8px; background: #FFFFFF; font-size: 12px; color: #A3271B">
+              <button class="ghost" onClick="{{sel.remove}}" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 12px; color: #A3271B">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Delete tag from every node
               </button>
             </div>
@@ -426,24 +459,24 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
     </sc-if>
 
     <sc-if value="{{panelVisible}}" hint-placeholder-val="{{ true }}">
-      <section aria-label="Selected node" style="overflow-y: auto; box-sizing: border-box; background: #FFFFFF; display: flex; flex-direction: column; {{panelBox}}">
+      <section aria-label="Selected node" style="overflow-y: auto; box-sizing: border-box; background: var(--card); display: flex; flex-direction: column; {{panelBox}}">
         <div style="display: flex; align-items: center; gap: 10px">
           <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column">
-            <span style="font-size: 11.5px; color: #5C5F66; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{curPath}}</span>
+            <span style="font-size: 11.5px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{curPath}}</span>
             <sc-if value="{{curEditable}}" hint-placeholder-val="{{ true }}">
-              <input class="dim" value="{{curTitle}}" onChange="{{onCurTitle}}" placeholder="New idea" aria-label="Node title" style="min-width: 0; margin: 0 -8px; padding: 2px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; letter-spacing: -0.01em; color: #17181C; {{panelTitleStyle}}">
+              <input class="dim" value="{{curTitle}}" onChange="{{onCurTitle}}" placeholder="New idea" aria-label="Node title" style="min-width: 0; margin: 0 -8px; padding: 2px 8px; border: 1px solid transparent; border-radius: 8px; background: transparent; letter-spacing: -0.01em; color: var(--ink); {{panelTitleStyle}}">
             </sc-if>
             <sc-if value="{{curIsRef}}" hint-placeholder-val="{{ false }}">
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; {{panelTitleStyle}}">{{curLabel}}</span>
             </sc-if>
           </div>
           <sc-if value="{{curEditable}}" hint-placeholder-val="{{ true }}">
-            <button class="ghost" onClick="{{addChildCur}}" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 1px solid #E4E4DF; border-radius: 8px; background: #FFFFFF; font-size: 13px">
+            <button class="ghost" onClick="{{addChildCur}}" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 13px">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Child
             </button>
           </sc-if>
           <sc-if value="{{curNotRoot}}" hint-placeholder-val="{{ true }}">
-            <button class="ghost" onClick="{{removeCur}}" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 1px solid #E4E4DF; border-radius: 8px; background: #FFFFFF; font-size: 13px; color: #A3271B">
+            <button class="ghost" onClick="{{removeCur}}" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 13px; color: #A3271B">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>{{removeLabel}}
             </button>
           </sc-if>
@@ -462,7 +495,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
             <div style="flex: 1 1 0"></div>
             <sc-if value="{{curIsRefRoot}}" hint-placeholder-val="{{ false }}">
               <span style="font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; {{curRefRoot.statusStyle}}">{{curRefRoot.statusLabel}}</span>
-              <button class="ghost" onClick="{{curRefRoot.primary}}" disabled="{{curRefRoot.busy}}" style="height: 30px; padding: 0 12px; border: 1px solid #C9D3F5; border-radius: 7px; background: #FFFFFF; font-size: 12px; font-weight: 500; color: #1C3399">{{curRefRoot.primaryLabel}}</button>
+              <button class="ghost" onClick="{{curRefRoot.primary}}" disabled="{{curRefRoot.busy}}" style="height: 30px; padding: 0 12px; border: 1px solid #C9D3F5; border-radius: 7px; background: var(--card); font-size: 12px; font-weight: 500; color: #1C3399">{{curRefRoot.primaryLabel}}</button>
             </sc-if>
           </div>
           <sc-if value="{{curRefRoot.hasError}}" hint-placeholder-val="{{ false }}">
@@ -484,7 +517,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
                   </sc-if>
                   <span title="{{d.valueTitle}}" style="flex: 0 0 36px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; {{d.valueStyle}}">{{d.valueLabel}}</span>
                   <sc-if value="{{d.editable}}" hint-placeholder-val="{{ true }}">
-                    <button class="ghost" onClick="{{d.clear}}" disabled="{{d.unset}}" aria-hidden="{{d.unset}}" tabIndex="{{d.clearTab}}" style="flex: 0 0 52px; height: 28px; border: 1px solid #E4E4DF; border-radius: 6px; background: #FFFFFF; font-size: 12px; color: #3F4148; {{d.clearVis}}">Clear</button>
+                    <button class="ghost" onClick="{{d.clear}}" disabled="{{d.unset}}" aria-hidden="{{d.unset}}" tabIndex="{{d.clearTab}}" style="flex: 0 0 52px; height: 28px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); font-size: 12px; color: var(--ink2); {{d.clearVis}}">Clear</button>
                   </sc-if>
                 </div>
               </sc-for>
@@ -513,15 +546,15 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
               <div style="display: flex; flex-direction: column; gap: 6px">
                 <div style="display: flex; align-items: baseline; gap: 8px">
                   <span style="font-size: 13px; font-weight: 500">References</span>
-                  <span style="font-size: 11.5px; color: #5C5F66">other maps, loaded in as read-only children</span>
+                  <span style="font-size: 11.5px; color: var(--ink2)">other maps, loaded in as read-only children</span>
                 </div>
                 <sc-for list="{{curRefs}}" as="r" hint-placeholder-count="1">
-                  <div style="display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 4px 0 10px; border: 1px solid #E4E4DF; border-radius: 8px">
+                  <div style="display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 4px 0 10px; border: 1px solid var(--rule); border-radius: 8px">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A4D55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: 0 0 auto"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>
                     <a href="{{r.url}}" target="_blank" rel="noopener" title="{{r.url}}" style="flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 12px">{{r.short}}</a>
                     <span style="flex: 0 0 auto; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px; {{r.statusStyle}}">{{r.statusLabel}}</span>
-                    <button class="ghost" onClick="{{r.primary}}" disabled="{{r.busy}}" style="flex: 0 0 auto; height: 28px; padding: 0 10px; border: 1px solid #E4E4DF; border-radius: 6px; background: #FFFFFF; font-size: 12px">{{r.primaryLabel}}</button>
-                    <button class="ghost" onClick="{{r.remove}}" aria-label="{{r.removeAria}}" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #5C5F66">
+                    <button class="ghost" onClick="{{r.primary}}" disabled="{{r.busy}}" style="flex: 0 0 auto; height: 28px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); font-size: 12px">{{r.primaryLabel}}</button>
+                    <button class="ghost" onClick="{{r.remove}}" aria-label="{{r.removeAria}}" style="flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: var(--ink2)">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
                     </button>
                   </div>
@@ -530,15 +563,15 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
                   </sc-if>
                 </sc-for>
                 <div style="display: flex; gap: 6px">
-                  <input class="dim" type="url" placeholder="https://…/map.md" value="{{refDraft}}" onChange="{{onRefDraft}}" onKeyDown="{{onRefKey}}" aria-label="Reference URL" style="flex: 1 1 auto; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid #E4E4DF; border-radius: 6px; background: #FBFBF9; font-family: 'JetBrains Mono', monospace; font-size: 12px">
-                  <button onClick="{{addRefCur}}" disabled="{{refDraftEmpty}}" style="height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: #17181C; color: #FFFFFF; font-size: 12px; font-weight: 500">Add</button>
+                  <input class="dim" type="url" placeholder="https://…/map.md" value="{{refDraft}}" onChange="{{onRefDraft}}" onKeyDown="{{onRefKey}}" aria-label="Reference URL" style="flex: 1 1 auto; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 12px">
+                  <button onClick="{{addRefCur}}" disabled="{{refDraftEmpty}}" style="height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--ink); color: #FFFFFF; font-size: 12px; font-weight: 500">Add</button>
                 </div>
                 <sc-if value="{{hasRefError}}" hint-placeholder-val="{{ false }}">
                   <span style="font-size: 12px; color: #A3271B">{{refError}}</span>
                 </sc-if>
                 <sc-if value="{{hasSampleRefs}}" hint-placeholder-val="{{ true }}">
                   <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
-                    <span style="font-size: 11.5px; color: #5C5F66">Sample maps:</span>
+                    <span style="font-size: 11.5px; color: var(--ink2)">Sample maps:</span>
                     <sc-for list="{{sampleRefs}}" as="m" hint-placeholder-count="2">
                       <button class="ghost" onClick="{{m.add}}" style="height: 26px; padding: 0 8px; border: 1px dashed #CFCFC8; border-radius: 999px; background: transparent; font-family: 'JetBrains Mono', monospace; font-size: 11px">+ {{m.short}}</button>
                     </sc-for>
@@ -551,34 +584,34 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
             <label for="node-note" style="font-size: 13px; font-weight: 500">Description</label>
             <sc-if value="{{curEditable}}" hint-placeholder-val="{{ true }}">
-              <textarea id="node-note" class="dim" rows="6" value="{{curNote}}" onChange="{{onNote}}" placeholder="Context, evidence, why this node matters…" style="flex: 1 1 auto; min-height: 120px; resize: vertical; padding: 10px 12px; border: 1px solid #E4E4DF; border-radius: 10px; background: #FBFBF9; font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.55; color: #17181C"></textarea>
+              <textarea id="node-note" class="dim" rows="6" value="{{curNote}}" onChange="{{onNote}}" placeholder="Context, evidence, why this node matters…" style="flex: 1 1 auto; min-height: 120px; resize: vertical; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--bg); font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.55; color: var(--ink)"></textarea>
             </sc-if>
             <sc-if value="{{curHasNote}}" hint-placeholder-val="{{ false }}">
-              <p id="node-note" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #F7F7F4; font-size: 13.5px; line-height: 1.55; color: #3F4148">{{curNote}}</p>
+              <p id="node-note" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: 13.5px; line-height: 1.55; color: var(--ink2)">{{curNote}}</p>
             </sc-if>
             <sc-if value="{{curNoNote}}" hint-placeholder-val="{{ false }}">
-              <p id="node-note" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: #F7F7F4; font-size: 13px; color: #5C5F66">No description in the linked map.</p>
+              <p id="node-note" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); font-size: 13px; color: var(--ink2)">No description in the linked map.</p>
             </sc-if>
           </div>
         </div>
 
         <sc-if value="{{isDirectory}}" hint-placeholder-val="{{ false }}">
-          <div style="display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: #5C5F66">
-            <span>In the directory: <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">↑ ↓</b> move · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">←</b> collapse or go to parent · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">→</b> expand or go to first child</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--ink2)">
+            <span>In the directory: <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">↑ ↓</b> move · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">←</b> collapse or go to parent · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">→</b> expand or go to first child</span>
           </div>
         </sc-if>
         <sc-if value="{{isMap}}" hint-placeholder-val="{{ true }}">
-        <div style="display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: #5C5F66">
-          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">Ctrl/⌘ Enter</b> or <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">Tab</b> add child</span>
-          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">Enter</b> add sibling</span>
-          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">↑ ↓</b> siblings · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">←</b> parent · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">→</b> child</span>
-          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: #17181C">⌫</b> on an empty title removes it</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11.5px; color: var(--ink2)">
+          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">Ctrl/⌘ Enter</b> or <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">Tab</b> add child</span>
+          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">Enter</b> add sibling</span>
+          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">↑ ↓</b> siblings · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">←</b> parent · <b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">→</b> child</span>
+          <span><b style="font-family: 'JetBrains Mono', monospace; font-weight: 500; color: var(--ink)">⌫</b> on an empty title removes it</span>
         </div>
         </sc-if>
       </section>
     </sc-if>
     <sc-if value="{{panelPill}}" hint-placeholder-val="{{ false }}">
-      <button onClick="{{togglePanel}}" style="position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid #E4E4DF; border-radius: 999px; background: #FFFFFF; box-shadow: 0 6px 18px rgba(23,24,28,0.08); font-size: 13px">
+      <button onClick="{{togglePanel}}" style="position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); box-shadow: 0 6px 18px rgba(23,24,28,0.08); font-size: 13px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg>{{curLabel}}
       </button>
     </sc-if>
@@ -681,10 +714,10 @@ function titleText(n) {
   return t + n.tags.map((g) => ' #' + g).join('') + (vals.length ? ' {' + vals.join(' ') + '}' : '');
 }
 const THEMES = Object.freeze([
-  { id: 'paper', label: 'Paper', bg: '#F5F4F0', card: '#FFFFFF', ink: '#1B1D22', rule: '#DEDBD2' },
-  { id: 'slate', label: 'Slate', bg: '#EDF0F4', card: '#FFFFFF', ink: '#152030', rule: '#D3DAE3' },
-  { id: 'night', label: 'Night', bg: '#101216', card: '#1A1D23', ink: '#ECEDEF', rule: '#2D3139' },
-  { id: 'contrast', label: 'High contrast', bg: '#FFFFFF', card: '#FFFFFF', ink: '#000000', rule: '#000000' }
+  { id: 'paper', label: 'Paper', bg: '#F5F4F0', card: '#FFFFFF', ink: '#1B1D22', rule: '#DEDBD2', ink2: '#5C5F66' },
+  { id: 'slate', label: 'Slate', bg: '#EDF0F4', card: '#FFFFFF', ink: '#152030', rule: '#D3DAE3', ink2: '#4A5566' },
+  { id: 'night', label: 'Night', bg: '#101216', card: '#1A1D23', ink: '#ECEDEF', rule: '#2D3139', ink2: '#A7ABB3' },
+  { id: 'contrast', label: 'High contrast', bg: '#FFFFFF', card: '#FFFFFF', ink: '#000000', rule: '#000000', ink2: '#000000' }
 ]);
 const DEFAULT_META = Object.freeze({
   dims: { x: 'Importance', y: 'Support' },
@@ -823,6 +856,7 @@ const ICON_LINK = 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0
 const SETTINGS_TABS = [
   { id: 'dimensions', label: 'Dimensions', icon: 'M4 20V4M4 20h16M8 16l4-5 3 3 5-7' },
   { id: 'encoding', label: 'Color & size', icon: 'M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.4-.7-2.2 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4c0-4.7-4-8.6-9-8.6zM7.5 11.5h.01M10.5 7.5h.01M15.5 8.5h.01' },
+  { id: 'theme', label: 'Theme', icon: 'M12 3a9 9 0 0 0 0 18zM12 3a9 9 0 0 1 0 18' },
   { id: 'tags', label: 'Tags', icon: 'M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM7.5 7.5h.01' }
 ];
 function settingsTabById(id) {
@@ -995,9 +1029,22 @@ function hexRgb(hex) {
   return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16));
 }
 function textOn(hex) { return luminance(hexRgb(hex)) > 0.2 ? '#17181C' : '#FFFFFF'; }
-function ramp(v) {
-  const c = RAMP_LO.map((lo, i) => Math.round(lo + (RAMP_HI[i] - lo) * v));
-  return { bg: 'rgb(' + c.join(',') + ')', fg: luminance(c) > 0.2 ? '#17181C' : '#FFFFFF' };
+function hexOf(rgb) { return '#' + rgb.map((c) => Math.round(c).toString(16).padStart(2, '0')).join('').toUpperCase(); }
+function mix(a, b, t) { return a.map((c, i) => c + (b[i] - c) * t); }
+const NEUTRAL = '#DADAD3';
+/* The one colour rule every view uses: a value from 0 to 1 (or null) under the map's colour mode and reverse setting. */
+function colorFor(v, meta) {
+  if (v === null) return NEUTRAL;
+  const t = meta.reverse ? 1 - v : v;
+  if (meta.colorMode === 'scale') return hexOf(mix(RAMP_LO, RAMP_HI, t));
+  if (meta.colorMode !== 'split') throw new Error('bug: unknown colour mode ' + meta.colorMode);
+  return t < 0.5 ? hexOf(mix(hexRgb(meta.colorLeft), hexRgb(NEUTRAL), t / 0.5)) : hexOf(mix(hexRgb(NEUTRAL), hexRgb(meta.colorRight), (t - 0.5) / 0.5));
+}
+function legendGradient(meta) { return 'linear-gradient(90deg, ' + [0, 0.25, 0.5, 0.75, 1].map((v) => colorFor(v, meta)).join(', ') + ')'; }
+function themeById(id) {
+  const t = THEMES.find((x) => x.id === id);
+  if (!t) throw new Error('bug: unknown theme ' + id);
+  return t;
 }
 function normaliseTag(raw) { return raw.trim().replace(/^#/, '').toLowerCase().replace(/\s+/g, '-'); }
 function tagStyleOf(tagStyles, name) {
@@ -1077,6 +1124,7 @@ class Component extends DCLogic {
     vh: 820,
     history: { past: [], future: [], step: null },
     dirty: false,
+    themeQ: (() => { const t = new URLSearchParams(location.search).get('theme'); return THEMES.some((x) => x.id === t) ? t : null; })(),
     ...startState()
   };
   drag = null;
@@ -1404,6 +1452,8 @@ class Component extends DCLogic {
 
   renderVals() {
     const s = this.state;
+    const meta = this.metaOf();
+    const theme = themeById(s.themeQ ?? s.theme);
     const nodes = this.graph();
     const root = rootOf(s.nodes);
     const cur = byId(nodes, s.currentId);
@@ -1452,13 +1502,13 @@ class Component extends DCLogic {
       let body;
       const base0 = 'padding: ' + (isRoot ? '12px 22px' : '8px 14px') + '; font-size: ' + (isRoot ? '18px' : '14px') + '; font-weight: ' + (isRoot ? '650' : (p.depth === 1 ? '600' : '500'));
       if (isRoot) {
-        body = base0 + '; background: #17181C; color: #FFFFFF; border: 1.5px solid #17181C';
+        body = base0 + '; background: #17181C; color: #FFFFFF; border: 1.5px solid #2D3139';
       } else if (colorKey !== null) {
         const e = effective(nodes, n.id, colorKey);
-        if (e.v === null) body = base0 + '; background: #F0F0EC; color: #4A4D55; border: 1.5px solid #DADAD3';
-        else { const c = ramp(e.v); body = base0 + '; background: ' + c.bg + '; color: ' + c.fg + '; border: 1.5px ' + (e.derived ? 'dashed #17181C' : 'solid rgba(23,24,28,0.08)'); }
+        if (e.v === null) body = base0 + '; background: #F0F0EC; color: var(--ink2); border: 1.5px solid var(--rule)';
+        else { const bg = colorFor(e.v, meta); body = base0 + '; background: ' + bg + '; color: ' + textOn(bg) + '; border: 1.5px ' + (e.derived ? 'dashed #17181C' : 'solid rgba(23,24,28,0.08)'); }
       } else {
-        body = base0 + '; background: #FFFFFF; color: #17181C; border: ' + (p.depth === 1 ? '1.5px solid #17181C' : '1px solid #DADAD3');
+        body = base0 + '; background: var(--card); color: var(--ink); border: ' + (p.depth === 1 ? '1.5px solid #17181C' : '1px solid #DADAD3');
       }
       const look = tagLook(n.tags, s.tagStyles);
       body = body + look.css;
@@ -1466,7 +1516,7 @@ class Component extends DCLogic {
       if (m.on && m.set.has(n.id) && !isCurrent) body = body + '; box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 5px #E0A800';
       const hiddenMatch = collapsed && descendants(nodes, n.id).some((d) => m.set.has(d));
       if (n.kind === 'refRoot') body = body + '; background: #F4F6FE; color: #1C3399; border: 1.5px dashed #2A4BD7';
-      if (!n.title && !isCurrent) body = body + '; font-style: italic; color: #5C5F66';
+      if (!n.title && !isCurrent) body = body + '; font-style: italic; color: var(--ink2)';
       const statusSuffix = n.loadStatus === 'loading' ? ' · loading…' : (n.loadStatus === 'error' ? ' · failed' : '');
       const label = n.kind === 'refRoot' ? '↗ ' + n.title + statusSuffix : (n.title || 'New idea');
 
@@ -1489,7 +1539,7 @@ class Component extends DCLogic {
         expanded: !collapsed,
         hiddenLabel: String(Math.min(99, descendants(nodes, n.id).length)),
         toggleAria: (collapsed ? 'Expand ' : 'Collapse ') + (n.title || 'New idea') + (collapsed ? ' (' + descendants(nodes, n.id).length + ' hidden)' : ''),
-        toggleStyle: hiddenMatch ? 'background: #E0A800; color: #17181C; border: 1.5px solid #E0A800' : (collapsed ? 'background: #17181C; color: #FFFFFF; border: 1.5px solid #17181C' : 'background: #FFFFFF; color: #3F4148; border: 1.5px solid #9A9CA2'),
+        toggleStyle: hiddenMatch ? 'background: #E0A800; color: var(--ink); border: 1.5px solid #E0A800' : (collapsed ? 'background: var(--ink); color: #FFFFFF; border: 1.5px solid var(--ink)' : 'background: var(--card); color: var(--ink2); border: 1.5px solid #9A9CA2'),
         toggle: () => this.toggleMapNode(n.id),
         select: () => this.setState({ currentId: n.id }),
         addVis: n.readOnly ? 'visibility: hidden' : 'visibility: visible',
@@ -1515,7 +1565,7 @@ class Component extends DCLogic {
         unset: own === null,
         v: own === null ? 0 : own,
         valueLabel: eff.v === null ? '—' : eff.v.toFixed(2),
-        valueStyle: own === null ? 'font-weight: 500; color: #8A8C92' : 'font-weight: 600; color: #17181C',
+        valueStyle: own === null ? 'font-weight: 500; color: #8A8C92' : 'font-weight: 600; color: var(--ink)',
         valueTitle: own === null ? (eff.derived ? 'Not set: rolled up from children' : 'Not set') : '',
         sliderStyle: own === null ? 'accent-color: #B5B7BC; opacity: 0.45' : 'accent-color: #2A4BD7; opacity: 1',
         sliderTitle: own === null ? 'Not set. Click or drag to set a value' : '',
@@ -1531,7 +1581,7 @@ class Component extends DCLogic {
       };
     });
     const refStatus = {
-      idle: { label: 'Not loaded', style: 'background: #F0F0EC; color: #4A4D55', action: 'Load' },
+      idle: { label: 'Not loaded', style: 'background: #F0F0EC; color: var(--ink2)', action: 'Load' },
       loading: { label: 'Loading…', style: 'background: #E3E8FB; color: #1C3399', action: 'Load' },
       loaded: { label: 'Loaded', style: 'background: #D8F0E6; color: #0B5E4D', action: 'Unload' },
       error: { label: 'Failed', style: 'background: #F6DADA; color: #8A1F15', action: 'Retry' }
@@ -1572,8 +1622,8 @@ class Component extends DCLogic {
         label: '#' + name,
         count: String(tagUse[name] || 0),
         selected,
-        style: selected ? 'background: #FFFFFF; color: #17181C; font-weight: 600; box-shadow: 0 1px 2px rgba(23,24,28,0.10)' : 'background: transparent; color: #3F4148',
-        dot: 'background: ' + (st.fill === null ? '#FFFFFF' : st.fill) + '; border: 2px ' + st.borderStyle + ' ' + (st.border === null ? '#DADAD3' : st.border) + '; opacity: ' + st.opacity,
+        style: selected ? 'background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(23,24,28,0.10)' : 'background: transparent; color: var(--ink2)',
+        dot: 'background: ' + (st.fill === null ? '#FFFFFF' : st.fill) + '; border: 2px ' + st.borderStyle + ' ' + (st.border === null ? 'var(--rule)' : st.border) + '; opacity: ' + st.opacity,
         pick: () => this.setState({ selectedTag: name })
       };
     });
@@ -1596,11 +1646,11 @@ class Component extends DCLogic {
       borderOpts: swatchesFor(selSt.border).map((c) => ({
         aria: 'Border ' + (c === null ? 'none' : c),
         pressed: selSt.border === c,
-        style: (c === null ? NONE_SWATCH + '; border: 1px solid rgba(23,24,28,0.15)' : 'background: #FFFFFF; border: 5px solid ' + c) + (selSt.border === c ? RING_ON : ''),
+        style: (c === null ? NONE_SWATCH + '; border: 1px solid rgba(23,24,28,0.15)' : 'background: var(--card); border: 5px solid ' + c) + (selSt.border === c ? RING_ON : ''),
         pick: () => updSel({ border: c })
       })),
       fillHex: selSt.fill === null ? '#FFFFFF' : selSt.fill,
-      borderHex: selSt.border === null ? '#17181C' : selSt.border,
+      borderHex: selSt.border === null ? 'var(--ink)' : selSt.border,
       onFillCustom: (e) => updSel({ fill: e.target.value.toUpperCase() }),
       onBorderCustom: (e) => updSel({ border: e.target.value.toUpperCase() }),
       styleOpts: this.segs([{ value: 'solid', label: 'Solid' }, { value: 'dashed', label: 'Dashed' }], selSt.borderStyle, (v) => updSel({ borderStyle: v })),
@@ -1626,7 +1676,7 @@ class Component extends DCLogic {
         const open = kids.length > 0 && isOpen(n.id);
         const selected = n.id === cur.id;
         let iconFill = '#EDEDE8';
-        if (colorKey !== null) { const e = effective(nodes, n.id, colorKey); if (e.v !== null) iconFill = ramp(e.v).bg; }
+        if (colorKey !== null) { const e = effective(nodes, n.id, colorKey); if (e.v !== null) iconFill = colorFor(e.v, meta); }
         const look = tagLook(n.tags, s.tagStyles);
         const vx = effective(nodes, n.id, 'x').v;
         const vy = effective(nodes, n.id, 'y').v;
@@ -1641,7 +1691,7 @@ class Component extends DCLogic {
           indent: (6 + depth * 18) + 'px',
           guides: Array.from({ length: depth }, (_, i) => ({ left: (6 + i * 18 + 11) + 'px' })),
           rowStyle: (selected ? 'background: #E9EDFB' : (m.on && m.set.has(n.id) ? 'background: #FFF6D6' : 'background: transparent')) + '; opacity: ' + (look.opacity * fadeFor(m, n.id)).toFixed(2),
-          textStyle: (selected ? 'font-weight: 600; color: #17181C' : 'color: #262830') + (n.readOnly ? '; font-style: italic; color: #1C3399' : '') + (n.title ? '' : '; color: #5C5F66'),
+          textStyle: (selected ? 'font-weight: 600; color: var(--ink)' : 'color: #262830') + (n.readOnly ? '; font-style: italic; color: #1C3399' : '') + (n.title ? '' : '; color: var(--ink2)'),
           chevron: open ? 'transform: rotate(90deg); transition: transform .15s ease' : 'transform: none; transition: transform .15s ease',
           toggleAria: (open ? 'Collapse ' : 'Expand ') + (n.title || 'New idea'),
           iconPath: n.kind === 'refRoot' ? ICON_LINK : (kids.length === 0 ? ICON_FILE : (open ? ICON_FOLDER_OPEN : ICON_FOLDER)),
@@ -1668,7 +1718,7 @@ class Component extends DCLogic {
 
     const switchTrack = (on) => 'background: ' + (on ? '#2A4BD7' : '#CFCFC8');
     const switchKnob = (on) => 'transform: translateX(' + (on ? '12px' : '0') + ')';
-    const mutedIf = (on) => (on ? 'color: #17181C' : 'color: #8A8C92');
+    const mutedIf = (on) => (on ? 'color: var(--ink)' : 'color: #8A8C92');
     const fadeIf = (on) => (on ? 'opacity: 1' : 'opacity: 0.35');
     const offY = this.offsetY();
 
@@ -1696,7 +1746,7 @@ class Component extends DCLogic {
       panelPill: !isDir && !s.panelOpen,
       panelBox: isDir
         ? 'position: relative; flex: 1 1 auto; min-width: 0; padding: 28px 40px 32px; gap: 18px'
-        : 'position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(860px, calc(100% - 32px)); max-height: calc(100% - 96px); border: 1px solid #E4E4DF; border-radius: 16px; box-shadow: 0 10px 30px rgba(23,24,28,0.08); padding: 14px 16px 12px; gap: 14px',
+        : 'position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(860px, calc(100% - 32px)); max-height: calc(100% - 96px); border: 1px solid var(--rule); border-radius: 16px; box-shadow: 0 10px 30px rgba(23,24,28,0.08); padding: 14px 16px 12px; gap: 14px',
       panelTitleStyle: isDir ? 'font-size: 26px; font-weight: 650' : 'font-size: 15px; font-weight: 600',
       curTitle: cur.title,
       onCurTitle: (e) => this.patchNode(cur.id, { title: e.target.value }, 'title:' + cur.id),
@@ -1804,7 +1854,7 @@ class Component extends DCLogic {
       prevMatch: () => this.goMatch(-1),
       filterOpen: s.filterOpen,
       toggleFilter: () => this.setState({ filterOpen: !s.filterOpen }),
-      filterBtnStyle: s.filterOpen ? 'background: #17181C; color: #FFFFFF; border-color: #17181C' : (s.filterTags.length ? 'background: #E9EDFB; color: #1C3399; border-color: #9DB0EA' : 'background: #FFFFFF; color: #3F4148; border-color: #DADAD3'),
+      filterBtnStyle: s.filterOpen ? 'background: var(--ink); color: #FFFFFF; border-color: var(--ink)' : (s.filterTags.length ? 'background: #E9EDFB; color: #1C3399; border-color: #9DB0EA' : 'background: var(--card); color: var(--ink2); border-color: var(--rule)'),
       hasTagFilter: s.filterTags.length > 0,
       filterCount: String(s.filterTags.length),
       filterChips: Object.keys(s.tagStyles).sort().map((t) => {
@@ -1813,7 +1863,7 @@ class Component extends DCLogic {
           label: '#' + t,
           count: String(nodes.filter((n) => n.tags.includes(t)).length),
           pressed: on,
-          style: chipStyle(tagStyleOf(s.tagStyles, t)) + '; opacity: 1' + (on ? '; box-shadow: 0 0 0 2px #FBFBF9, 0 0 0 4px #2A4BD7' : ''),
+          style: chipStyle(tagStyleOf(s.tagStyles, t)) + '; opacity: 1' + (on ? '; box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px #2A4BD7' : ''),
           toggle: () => this.setState({ filterTags: on ? s.filterTags.filter((x) => x !== t) : [...s.filterTags, t] })
         };
       }),
@@ -1827,13 +1877,32 @@ class Component extends DCLogic {
         icon: t.icon,
         meta: t.id === 'tags' ? String(tagNames.length) : '',
         selected: t.id === s.settingsTab,
-        style: t.id === s.settingsTab ? 'background: #FFFFFF; color: #17181C; font-weight: 600; box-shadow: 0 1px 2px rgba(23,24,28,0.10)' : 'background: transparent; color: #3F4148',
+        style: t.id === s.settingsTab ? 'background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(23,24,28,0.10)' : 'background: transparent; color: var(--ink2)',
         pick: () => this.setState({ settingsTab: t.id })
       })),
       settingsTabLabel: settingsTabById(s.settingsTab).label,
       tabDimensions: s.settingsTab === 'dimensions',
       tabEncoding: s.settingsTab === 'encoding',
       tabTags: s.settingsTab === 'tags',
+      tabTheme: s.settingsTab === 'theme',
+      themeVars: '--bg: ' + theme.bg + '; --card: ' + theme.card + '; --ink: ' + theme.ink + '; --rule: ' + theme.rule + '; --ink2: ' + theme.ink2 + '; color: var(--ink)',
+      themeOpts: THEMES.map((t) => ({
+        label: t.label, pressed: t.id === s.theme, pick: () => this.setState({ theme: t.id }),
+        style: 'background: ' + t.bg + '; color: ' + t.ink + '; border: ' + (t.id === s.theme ? '2px solid #2A4BD7' : '1px solid ' + t.rule),
+        swatch: 'background: ' + t.card + '; border: 1px solid ' + t.rule
+      })),
+      themeNote: s.themeQ !== null ? 'This link shows ' + themeById(s.themeQ).label + ' (?theme=); the map is saved with the theme chosen here.' : '',
+      hasThemeNote: s.themeQ !== null,
+      legendGradient: 'background: ' + legendGradient(meta),
+      modeOpts: this.segs([{ value: 'scale', label: 'Scale' }, { value: 'split', label: 'Left / right' }], s.colorMode, (v) => this.setState({ colorMode: v })),
+      isSplit: s.colorMode === 'split',
+      colorLeft: s.colorLeft,
+      colorRight: s.colorRight,
+      onColorLeft: (e) => this.setState({ colorLeft: e.target.value.toUpperCase() }),
+      onColorRight: (e) => this.setState({ colorRight: e.target.value.toUpperCase() }),
+      reverse: s.reverse,
+      toggleReverse: () => this.setState({ reverse: !s.reverse }),
+      reverseStyle: s.reverse ? 'border-color: #2A4BD7; background: #F4F6FE; color: #1C3399' : 'border-color: var(--rule); background: var(--card); color: var(--ink)',
       toggleSettings: () => this.setState({ settingsOpen: !s.settingsOpen }),
       settingsBtnStyle: pillStyle(s.settingsOpen),
       sizeMin: s.sizeMin,
@@ -1857,7 +1926,7 @@ class Component extends DCLogic {
       schemeOpts: SCHEMES.map((sc) => ({
         label: sc.label,
         pressed: sc.id === s.scheme,
-        style: sc.id === s.scheme ? 'border: 1.5px solid #2A4BD7; background: #F4F6FE' : 'border: 1px solid #E4E4DF; background: #FFFFFF',
+        style: sc.id === s.scheme ? 'border: 1.5px solid #2A4BD7; background: #F4F6FE' : 'border: 1px solid var(--rule); background: var(--card)',
         colors: sc.colors.map((c) => ({ style: 'background: ' + c })),
         pick: () => this.setState({ scheme: sc.id, schemeOpen: false })
       })),

@@ -247,6 +247,46 @@ test('⌘Z and ⌘⇧Z, but not in a text field', () => {
   assert.equal(c.state.nodes[1].title, 'X');
 });
 
+// ---------------------------------------------------------------- colour and themes
+test('colorFor', () => {
+  const { colorFor } = app;
+  const meta = (p) => ({ ...DEFAULT_META, ...p });
+  assert.equal(colorFor(0, meta({})), '#EEF2FD');
+  assert.equal(colorFor(1, meta({})), '#16307F');
+  assert.equal(colorFor(0, meta({ colorMode: 'split' })), '#C0392B');
+  assert.equal(colorFor(0.5, meta({ colorMode: 'split' })), '#DADAD3');
+  assert.equal(colorFor(1, meta({ colorMode: 'split' })), '#1E8449');
+  assert.equal(colorFor(0, meta({ colorMode: 'split', reverse: true })), '#1E8449');
+  assert.equal(colorFor(1, meta({ reverse: true })), '#EEF2FD');
+  assert.equal(colorFor(null, meta({})), '#DADAD3');
+});
+
+test('every theme renders, and sets the page colours', () => {
+  for (const t of app.THEMES) {
+    const c = boot(SMALL);
+    c.setState({ theme: t.id, settingsOpen: true, settingsTab: 'theme' });
+    const v = c.renderVals();
+    assert.deepEqual(unresolved(v, c), [], t.id);
+    assert.ok(v.themeVars.includes('--bg: ' + t.bg), t.id);
+  }
+});
+
+test('?theme= overrides the map theme without saving it', () => {
+  location.search = '?theme=night';
+  const c = boot(SMALL);
+  location.search = '';
+  assert.ok(c.renderVals().themeVars.includes('--bg: #101216'));
+  assert.equal(c.metaOf().theme, 'paper');
+});
+
+test('the colour mode settings render in both modes', () => {
+  for (const colorMode of ['scale', 'split']) {
+    const c = boot(SMALL);
+    c.setState({ colorMode, settingsOpen: true, settingsTab: 'encoding' });
+    assert.deepEqual(unresolved(c.renderVals(), c), [], colorMode);
+  }
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
