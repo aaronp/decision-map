@@ -16,7 +16,7 @@ const window = {};
 const location = { search: '', hash: '', href: 'http://x/', origin: 'http://x', pathname: '/' };
 // Every top-level name the checks use; a name not defined yet comes back undefined so its tests fail, not the load.
 const NAMES = ['Component', 'parseMap', 'serializeMap', 'DEFAULT_META', 'newMapText', 'colorFor', 'THEMES', 'encodeShare', 'decodeShare',
-  'sharePayload', 'nextName', 'composeGraph', 'refCycle', 'titlePath', 'compareMaps', 'questionRows', 'sizeOf'];
+  'sharePayload', 'nextName', 'composeGraph', 'refCycle', 'titlePath', 'compareMaps', 'questionRows', 'sizeOf', 'depthCells', 'borderResize'];
 const app = new Function('DCLogic', 'location', 'window', m[1] + '\n;return Object.fromEntries(' + JSON.stringify(NAMES) +
   '.map((n) => { try { return [n, eval(n)]; } catch (e) { return [n, undefined]; } }));')(DCLogic, location, window);
 const { Component, parseMap, serializeMap, DEFAULT_META, newMapText } = app;
@@ -516,6 +516,103 @@ test('the share link of a ref is decoded, not fetched', async () => {
   const c = boot(SMALL);
   const link = 'https://elsewhere.org/app/#m=' + await app.encodeShare('# Shared\n');
   assert.equal(await c.fetchMapText(link), '# Shared\n');
+});
+
+// ---------------------------------------------------------------- questionnaire: the bar
+const Q3 = '# R\n- A {x:0.1 y:0.9}\n  - A1 {x:0.5 y:0.2}\n  - A2 {x:0.5 y:0.8}\n- B {x:0.3 y:0.1}\n- C {x:0.6 y:0.5}\n';
+const qBoot = (text = Q3) => { const c = boot(text); c.setState({ layout: 'questionnaire' }); return c; };
+const idOf = (c, title) => c.state.nodes.find((n) => n.title === title).id;
+const cols = (c) => c.renderVals().chart.cols;
+
+test('columns sorted by colour value with widths as shares', () => {
+  const c = qBoot();
+  const rows = app.questionRows(c.graph(), c.state.nodes[0].id, c.metaOf());
+  assert.deepEqual(rows.map((r) => r.node.text), ['B', 'C', 'A']);
+  assert.deepEqual(rows.map((r) => +r.share.toFixed(3)), [0.3, 0.6, 0.1]);
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'C', 'A']);
+  assert.equal(cols(c)[0].bg, app.colorFor(0.1, c.metaOf()));
+});
+
+test('unset and zero sizes give shares with no NaN', () => {
+  const c = qBoot('# R\n- A {x:0}\n- B {x:0}\n');
+  assert.deepEqual(app.questionRows(c.graph(), c.state.nodes[0].id, c.metaOf()).map((r) => r.share), [0.5, 0.5]);
+  const d = qBoot('# R\n- A\n- B {x:1}\n');
+  assert.equal(app.sizeOf(d.graph(), idOf(d, 'A'), d.metaOf()), 0.5);
+  assert.deepEqual(app.questionRows(d.graph(), d.state.nodes[0].id, d.metaOf()).map((r) => +r.share.toFixed(3)), [0.333, 0.667]);
+});
+
+test('depth cells line up under their parent column', () => {
+  const c = qBoot();
+  const cells = c.renderVals().chart.depth.cells;
+  assert.deepEqual(cells.map((d) => d.title.split(' (')[0]), ['A1', 'A2']);
+  assert.match(cells[0].left, /\* 0\.9 \+ 16px\)$/);
+  assert.match(cells[1].left, /\* 0\.95 \+ 16px\)$/);
+});
+
+test('clicking a column or a cell opens it', () => {
+  const c = qBoot();
+  cols(c).find((x) => x.text === 'A').click();
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  c.setState({ currentId: c.state.nodes[0].id });
+  c.renderVals().chart.depth.cells[0].open();
+  assert.equal(c.state.currentId, idOf(c, 'A1'));
+});
+
+test('breadcrumbs list every level above', () => {
+  const c = qBoot();
+  c.setState({ currentId: idOf(c, 'A1') });
+  const v = c.renderVals();
+  assert.deepEqual(v.crumbs.map((x) => x.label), ['R', 'A']);
+  v.crumbs[0].go();
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+});
+
+test('the health bar shows the derived colour value', () => {
+  const c = qBoot();
+  c.setState({ currentId: idOf(c, 'A') });
+  assert.equal(c.renderVals().health.value, '0.90');
+  c.patchNode(idOf(c, 'A'), { y: null });
+  assert.equal(c.renderVals().health.value, '0.50');
+});
+
+test('a pinned bar stays put while a column opens the details', () => {
+  const c = qBoot();
+  c.renderVals().pin.toggle();
+  cols(c).find((x) => x.text === 'A').click();
+  assert.equal(c.state.currentId, idOf(c, 'A'));
+  assert.deepEqual(cols(c).map((x) => x.text), ['B', 'C', 'A']);
+  assert.equal(cols(c).find((x) => x.text === 'A').isSelected, true);
+});
+
+test('the chart modes switch, and Width only is the short bar', () => {
+  const c = qBoot();
+  for (const m of c.renderVals().chart.views) { m.pick(); assert.equal(c.state.chartView, m.id); }
+  c.setState({ chartView: 'width' });
+  assert.equal(c.renderVals().chart.height, '120px');
+});
+
+test('questionnaire renders with no unresolved bindings: full, empty, ref and read-only', async () => {
+  for (const [text, at] of [[Q3, null], ['# Alone\n', null], [REFMAP, 'Child']]) {
+    const c = qBoot(text);
+    if (at) c.setState({ currentId: idOf(c, at) });
+    for (const chartView of ['width', 'tall', 'area']) {
+      c.setState({ chartView });
+      assert.deepEqual(unresolved(c.renderVals(), c), [], text + chartView);
+    }
+  }
+  const r = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  r.setState({ layout: 'questionnaire' });
+  await r.loadRef(childId(r), 'https://a.org/theirs.md');
+  r.setState({ currentId: r.graph().find((n) => n.title === 'Theirs').id });
+  assert.deepEqual(unresolved(r.renderVals(), r), []);
+  assert.equal(r.renderVals().add.canOpen, false);
+});
+
+test('an unloaded ref column loads on click', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  c.setState({ layout: 'questionnaire', currentId: childId(c) });
+  await cols(c)[0].click();
+  assert.equal(c.fetches.length, 1);
 });
 
 Promise.all(pending).then(() => {

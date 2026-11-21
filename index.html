@@ -15,7 +15,7 @@
 <style>
 body{margin:0;background:var(--bg);font-family:'Inter',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
 a{color:#2A4BD7}a:hover{color:#1C3399}
-button,input{font:inherit;color:inherit}
+button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offset:2px}
 .ghost:hover{background:var(--rule)}
@@ -23,6 +23,14 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
 .map-pill:hover{background:var(--bg)}
 .dim:hover{border-color:#CFCFC8}
 .dim:focus{outline:none;border-color:#2A4BD7;box-shadow:0 0 0 3px rgba(42,75,215,.15)}
+.am-divider:hover:not([disabled]){background:linear-gradient(to right,transparent 3px,var(--ink) 3px,var(--ink) 5px,transparent 5px)!important}
+[role=button]:focus-visible{outline:2px solid #2A4BD7!important;outline-offset:2px!important}
+.am-cell:hover{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.am-plus:hover{border-color:var(--ink)!important;background:var(--card)!important;color:var(--ink)!important}
+.am-col[data-born="true"]{animation:am-born .6s ease-out}
+@keyframes am-born{from{opacity:0;box-shadow:inset 0 0 0 3px var(--ink)}}
+@media (prefers-reduced-motion:reduce){.am-col[data-born="true"]{animation:none}}
+.am-col[data-can="true"]:hover::after{content:'↕';position:absolute;top:6px;right:8px;z-index:2;font-size:14px;color:var(--ink);pointer-events:none}
 </style>
 </helmet>
 <div style="height: 100vh; min-height: 640px; display: flex; flex-direction: column; background: var(--bg); {{themeVars}}">
@@ -43,6 +51,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <option value="radial">Radial</option>
           <option value="tree">Tree</option>
           <option value="directory">Directory</option>
+          <option value="questionnaire">Questionnaire</option>
         </select>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A4D55" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: 11px; pointer-events: none"><path d="m6 9 6 6 6-6"></path></svg>
       </span>
@@ -216,6 +225,103 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           </sc-for>
         </div>
       </nav>
+    </sc-if>
+    <sc-if value="{{isQuestion}}" hint-placeholder-val="{{ false }}">
+      <main aria-label="Questionnaire" style="flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 18px 28px 40px; display: flex; flex-direction: column; gap: 16px">
+        <nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 2px; min-height: 30px; font-size: 13px; color: var(--ink2)">
+          <sc-for list="{{crumbs}}" as="c" hint-placeholder-count="2">
+            <button class="ghost" title="{{c.label}}" onClick="{{c.go}}" style="max-width: 28ch; border: 0; border-radius: 6px; padding: 4px 6px; background: transparent; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.label}}</button>
+            <span aria-hidden="true">›</span>
+          </sc-for>
+          <span aria-current="page" style="padding: 4px 6px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{focusTitle}}</span>
+        </nav>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <textarea aria-label="Title" rows="1" value="{{focusTitle}}" onChange="{{onFocusTitle}}" readOnly="{{focusReadOnly}}" placeholder="What are you deciding?" style="width: 100%; box-sizing: border-box; field-sizing: content; resize: none; border: 0; outline: none; background: transparent; padding: 0; font-size: 26px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.25; color: var(--ink)"></textarea>
+          <textarea aria-label="Description" rows="2" value="{{focusNote}}" onChange="{{onFocusNote}}" readOnly="{{focusReadOnly}}" placeholder="Add a description (optional)" style="width: 100%; max-width: 80ch; box-sizing: border-box; field-sizing: content; resize: none; border: 0; outline: none; background: transparent; padding: 0; font-size: 15px; line-height: 1.5; color: var(--ink2)"></textarea>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px">
+          <div role="img" aria-label="{{health.aria}}" style="position: relative; flex: 1 1 240px; max-width: 520px; height: 12px; border-radius: 6px; background: var(--rule); overflow: hidden">
+            <span style="position: absolute; top: 0; bottom: 0; left: {{health.left}}%; width: {{health.width}}%; background: {{health.fill}}"></span>
+            <span style="position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: var(--ink2)"></span>
+          </div>
+          <span style="font-size: 13px; color: var(--ink2)">{{health.label}} <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; color: var(--ink); margin-left: 4px">{{health.value}}</span></span>
+          <sc-if value="{{health.canRecalc}}" hint-placeholder-val="{{ false }}"><button class="ghost" onClick="{{health.recalc}}" title="{{health.recalcTitle}}" style="height: 30px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 12px">Recalculate</button></sc-if>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
+          <div role="group" aria-label="Chart" style="display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px">
+            <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
+              <button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="border: 0; border-radius: 6px; padding: 0 10px; height: 28px; font-size: 12px; {{t.style}}">{{t.label}}</button>
+            </sc-for>
+          </div>
+          <button onClick="{{pin.toggle}}" aria-pressed="{{pin.pressed}}" title="{{pin.label}}" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 500; {{pin.style}}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 17v5M9 3h6l-1 6 4 4H6l4-4z"></path></svg>{{pin.text}}
+          </button>
+        </div>
+        <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; gap: 8px; min-width: 0">
+          <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
+            <button type="button" title="{{add.leftTitle}}" aria-label="{{add.leftTitle}}" onClick="{{add.left}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--rule); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
+          </sc-if>
+        <div data-chart="1" style="position: relative; flex: 1; min-width: 0; display: flex; align-items: {{chart.align}}; height: {{chart.height}}; min-height: {{chart.minHeight}}; box-sizing: border-box; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow: {{chart.overflow}}; user-select: none; -webkit-user-select: none">
+          <sc-if value="{{chart.isArea}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--ink2)"></div>
+          </sc-if>
+          <sc-for list="{{chart.cols}}" as="c" hint-placeholder-count="6">
+            <div role="button" tabIndex="0" aria-label="{{c.aria}}" aria-pressed="{{c.pressed}}" title="{{c.text}}" class="am-col" data-can="{{c.canDrag}}" data-born="{{c.born}}" onContextMenu="{{c.menu}}" onClick="{{c.click}}" onPointerDown="{{c.down}}" onPointerMove="{{c.move}}" onPointerUp="{{c.up}}" onPointerCancel="{{c.up}}" onKeyDown="{{c.key}}" onBlur="{{c.blur}}" style="position: relative; flex: {{c.grow}} 1 0px; min-width: 6px; height: {{c.height}}; box-sizing: border-box; overflow: hidden; cursor: {{c.cursor}}; touch-action: pan-y; opacity: {{c.op}}; background: {{c.bg}}; color: {{c.ink}}; font-size: 13px; line-height: 1.3">
+              <sc-if value="{{c.isSelected}}" hint-placeholder-val="{{ false }}">
+                <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 3px solid var(--ink)"></div>
+              </sc-if>
+              <sc-if value="{{c.isChosen}}" hint-placeholder-val="{{ false }}">
+                <div aria-hidden="true" style="position: absolute; inset: 0; z-index: 1; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></div>
+              </sc-if>
+              <sc-if value="{{c.isArea}}" hint-placeholder-val="{{ false }}">
+                <div style="height: 100%; display: grid; grid-template-rows: 1fr 1fr">
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end">
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span></div></sc-if>
+                  </div>
+                  <div style="min-height: 0; overflow: hidden; display: flex; flex-direction: column">
+                    <sc-if value="{{c.down2}}" hint-placeholder-val="{{ false }}"><div style="flex: none; height: {{c.barPct}}%; background: {{c.fill}}"></div></sc-if>
+                    <sc-if value="{{c.up2}}" hint-placeholder-val="{{ false }}"><div style="height: 100%; overflow: hidden; padding: 6px; box-sizing: border-box"><span>{{c.text}}</span> <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap">{{c.pct}}% · {{c.signed}}</span></div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{c.isFilled}}" hint-placeholder-val="{{ true }}">
+                <div style="height: 100%; box-sizing: border-box; padding: {{chart.fillPad}}; display: flex; flex-direction: {{chart.fillDir}}; align-items: {{chart.fillAlign}}; justify-content: space-between; gap: 4px; overflow: hidden">
+                  <span style="overflow: hidden; min-height: 0; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.text}}</span>
+                  <span style="font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; background: color-mix(in srgb, var(--card) 80%, transparent); border-radius: 4px; padding: 1px 4px; align-self: flex-start; max-width: 100%; box-sizing: border-box">{{c.pct}}% · {{c.signed}}</span>
+                </div>
+              </sc-if>
+            </div>
+            <sc-if value="{{c.hasDivider}}" hint-placeholder-val="{{ true }}">
+              <button type="button" class="am-divider" disabled="{{c.dividerDisabled}}" aria-label="{{c.dividerLabel}}" title="{{c.dividerTitle}}" onPointerDown="{{c.dividerDown}}" onPointerMove="{{c.dividerMove}}" onPointerUp="{{c.dividerUp}}" onPointerCancel="{{c.dividerUp}}" onKeyDown="{{c.dividerKey}}" style="flex: none; width: 8px; align-self: stretch; padding: 0; border: 0; background: transparent; cursor: {{c.dividerCursor}}; touch-action: pan-y"></button>
+            </sc-if>
+          </sc-for>
+          <sc-if value="{{chart.thermo.has}}" hint-placeholder-val="{{ false }}">
+            <div aria-hidden="true" style="position: absolute; z-index: 2; top: {{chart.thermoTop}}; left: {{chart.thermo.left}}%; height: {{chart.thermoHeight}}; width: 30px; margin-left: -15px; box-sizing: border-box; border-radius: 15px; border: 3px solid var(--card); box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35); background: linear-gradient(to top, var(--con), var(--bg), var(--pro)); pointer-events: none">
+              <div style="position: absolute; left: -5px; right: -5px; top: {{chart.thermo.top}}%; height: 5px; margin-top: -2.5px; border-radius: 3px; background: var(--ink)"></div>
+              <span style="position: absolute; {{chart.thermo.side}}: 32px; top: {{chart.thermo.top}}%; margin-top: -12px; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--card); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap">{{chart.thermo.label}}</span>
+            </div>
+          </sc-if>
+        </div>
+        <sc-if value="{{add.canOpen}}" hint-placeholder-val="{{ true }}">
+            <button type="button" title="{{add.rightTitle}}" aria-label="{{add.rightTitle}}" onClick="{{add.right}}" class="am-plus" style="flex: none; width: 48px; border: 1.5px dashed var(--rule); border-radius: 12px; background: transparent; color: var(--ink2); font: inherit; font-size: 26px; font-weight: 300; cursor: pointer">+</button>
+          </sc-if>
+        </div>
+        <sc-if value="{{chart.depth.has}}" hint-placeholder-val="{{ false }}">
+          <div aria-label="Levels below" style="position: relative; margin: 0 {{chart.depth.gutter}}px; height: {{chart.depth.height}}px">
+            <sc-for list="{{chart.depth.cells}}" as="d" hint-placeholder-count="4">
+              <button type="button" class="am-cell" aria-label="{{d.title}}" title="{{d.title}}" aria-pressed="{{d.pressed}}" onContextMenu="{{d.menu}}" onPointerDown="{{d.down}}" onClick="{{d.open}}" onKeyDown="{{d.key}}" style="position: absolute; left: {{d.left}}; width: {{d.width}}; min-width: 2px; top: {{d.top}}px; height: {{d.height}}px; box-sizing: border-box; border: 0; border-radius: 2px; padding: 0 6px; background: {{d.bg}}; color: var(--ink); opacity: {{d.op}}; font: inherit; font-size: 12px; line-height: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer">{{d.text}}<sc-if value="{{d.isChosen}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); border-radius: 2px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></span></sc-if></button>
+            </sc-for>
+          </div>
+          </sc-if>
+        <sc-if value="{{chart.hasCols}}" hint-placeholder-val="{{ true }}">
+          <p style="margin: 0; font-size: 12px; color: var(--ink2)">{{chart.hint}}</p>
+        </sc-if>
+        <sc-if value="{{chart.empty}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-size: 14px; color: var(--ink2)">{{chart.emptyText}}</p>
+        </sc-if>
+      </main>
     </sc-if>
     <sc-if value="{{isMap}}" hint-placeholder-val="{{ true }}">
   <div ref="{{setCanvas}}" onPointerDown="{{onPanStart}}" onPointerMove="{{onPanMove}}" onPointerUp="{{onPanEnd}}" onPointerCancel="{{onPanEnd}}" style="position: relative; flex: 1 1 auto; overflow: hidden; touch-action: none; cursor: {{canvasCursor}}; background-image: radial-gradient(#E1E1DB 1px, transparent 1px); background-size: 24px 24px">
@@ -745,7 +851,8 @@ function download(name, text) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
-const LAYOUT_IDS = ['radial', 'tree', 'directory'];
+const LAYOUT_IDS = ['radial', 'tree', 'directory', 'questionnaire'];
+const FOCUS_LAYOUTS = ['questionnaire'];
 /* State keys that undo covers: the nodes and every setting saved in front matter. */
 const HISTORY_KEYS = ['nodes', 'dims', 'colorDim', 'colorMode', 'colorLeft', 'colorRight', 'reverse', 'theme', 'tagStyles'];
 function historyEntry(s) { return Object.fromEntries(HISTORY_KEYS.map((k) => [k, s[k]])); }
@@ -996,6 +1103,66 @@ function composeGraph(nodes, refLoads) {
   attach(out.slice());
   return out;
 }
+/* ---------------------------------------------------------------- Questionnaire and Pie
+   The bar and pie geometry works on a tree of { slug, text, children, importance, impact } with impact from −1 to 1.
+   focusTree builds that from the graph: importance is the size value and impact is the colour value scaled to −1…1.
+   ponytail: effective() walks the subtree per node, so this is O(n²); memoise per render if maps get large. */
+function sizeOf(graph, id, meta) { const v = effective(graph, id, otherDim(meta.colorDim)).v; return v === null ? 0.5 : v; }
+function colorValueOf(graph, id, meta) { const v = effective(graph, id, meta.colorDim).v; return v === null ? 0.5 : v; }
+function focusTree(graph, id, meta) {
+  const make = (n) => {
+    const v = colorValueOf(graph, n.id, meta);
+    const closed = n.kind === 'refRoot' && n.loadStatus !== 'loaded';
+    return { slug: n.id, text: n.title, n, readOnly: n.readOnly, importance: sizeOf(graph, n.id, meta), impact: v * 2 - 1, v, children: closed ? [] : childrenOf(graph, n.id).map(make) };
+  };
+  return make(byId(graph, id));
+}
+// Per slug: { importance, impact, v, share }, share being the importance's share among siblings (equal when they're all 0).
+function treeValues(root) {
+  const out = new Map([[root.slug, { importance: root.importance, impact: root.impact, v: root.v, share: 1 }]]);
+  const visit = (n) => {
+    const total = n.children.reduce((t, c) => t + c.importance, 0);
+    n.children.forEach((c) => {
+      out.set(c.slug, { importance: c.importance, impact: c.impact, v: c.v, share: total === 0 ? 1 / n.children.length : c.importance / total });
+      visit(c);
+    });
+  };
+  visit(root);
+  return out;
+}
+function factRows(node, values, order = null) {
+  const rows = node.children.map((c) => {
+    const v = values.get(c.slug);
+    return { node: c, importance: v.importance, impact: v.impact, v: v.v, share: v.share };
+  });
+  const byImpact = (list) => list.map((r, i) => [r, i]).sort((a, b) => a[0].impact - b[0].impact || a[1] - b[1]).map(([r]) => r);
+  if (order === null) return byImpact(rows);
+  const listed = order.map((slug) => rows.find((r) => r.node.slug === slug)).filter(Boolean);
+  return [...listed, ...byImpact(rows.filter((r) => !listed.includes(r)))];
+}
+function questionRows(graph, id, meta, order = null) {
+  const tree = focusTree(graph, id, meta);
+  return factRows(tree, treeValues(tree), order);
+}
+// Every level below the bar's rows, as fractions of the total column width. row 0 is directly under the bar.
+function depthCells(rows, values) {
+  const out = [];
+  const walk = (node, left, width, row, topIndex) => {
+    let x = left;
+    for (const r of factRows(node, values)) {
+      const w = r.share * width;
+      out.push({ node: r.node, impact: r.impact, v: r.v, row, x, w, topIndex });
+      walk(r.node, x, w, row + 1, topIndex);
+      x += w;
+    }
+  };
+  let x = 0;
+  rows.forEach((r, topIndex) => {
+    walk(r.node, x, r.share, 0, topIndex);
+    x += r.share;
+  });
+  return out;
+}
 /* True when url is already open at or above nodeId: the map a node came from, or the page's own ?src= map for own nodes. */
 function refCycle(graph, nodeId, url, rootSource = null) {
   let n = byId(graph, nodeId);
@@ -1222,6 +1389,8 @@ class Component extends DCLogic {
     openPanel: false,
     saved: [],
     openUrl: '',
+    chartView: 'width',
+    pinned: null,
     layout: (() => { const v = new URLSearchParams(location.search).get('view'); return LAYOUT_IDS.includes(v) ? v : 'radial'; })(),
     themeQ: (() => { const t = new URLSearchParams(location.search).get('theme'); return THEMES.some((x) => x.id === t) ? t : null; })(),
     ...startState()
@@ -1666,6 +1835,96 @@ class Component extends DCLogic {
     }
   }
 
+  /* The Questionnaire page: the open node's title, its health, and its children as a bar with every level below. */
+  focusVals(nodes, cur, meta, m) {
+    const s = this.state;
+    const pinnedOk = s.pinned !== null && nodes.some((n) => n.id === s.pinned);
+    const rootId = pinnedOk ? s.pinned : cur.id;
+    const tree = focusTree(nodes, rootId, meta);
+    const values = treeValues(tree);
+    const rows = factRows(tree, values, s.frozenOrder ?? null);
+    const editable = false;
+    const isArea = s.chartView === 'area';
+    const biggest = Math.max(...rows.map((r) => r.importance), 0);
+    const val = (v) => v.toFixed(2);
+    const colorName = dimName(s.dims, s.colorDim);
+    const sizeName = dimName(s.dims, otherDim(s.colorDim));
+    const noop = () => {};
+    const cols = rows.map((r, i) => {
+      const c = r.node;
+      return {
+        isSelected: pinnedOk && c.slug === cur.id,
+        slug: c.slug, text: c.text || 'New idea', grow: r.share.toFixed(5), pct: String(Math.round(r.share * 100)), signed: val(r.v),
+        aria: c.text + ': ' + Math.round(r.share * 100) + '% of ' + sizeName + ', ' + colorName + ' ' + val(r.v) + '. Press Enter to open.',
+        isChosen: false, pressed: 'false', canDrag: 'false',
+        op: fadeFor(m, c.slug), isArea, isFilled: !isArea, up2: r.impact >= 0, down2: r.impact < 0, barPct: Math.max(Math.abs(r.impact) * 100, 1.5).toFixed(1),
+        fill: colorFor(r.v, meta), bg: isArea ? 'transparent' : colorFor(r.v, meta), ink: textOn(colorFor(r.v, meta)),
+        height: s.chartView === 'tall' ? (28 + 72 * (biggest === 0 ? 1 : r.importance / biggest)) + '%' : '100%',
+        born: 'false', cursor: 'pointer',
+        click: () => this.openColumn(c.n),
+        menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
+        down: noop, move: noop, up: noop, blur: noop,
+        key: (e) => { if (e.key === 'Enter') this.openColumn(c.n); },
+        hasDivider: i < rows.length - 1, dividerDisabled: true, dividerCursor: 'default',
+        dividerLabel: 'Resize ' + sizeName + ' between “' + c.text + '” and the next column', dividerTitle: 'Drag to change ' + sizeName,
+        dividerDown: noop, dividerMove: noop, dividerUp: noop, dividerKey: noop
+      };
+    });
+    const DEPTH_ROW = 30;
+    const dividerPx = 8 * Math.max(rows.length - 1, 0);
+    const cells = depthCells(rows, values).map((d) => ({
+      left: 'calc((100% - ' + dividerPx + 'px) * ' + (+d.x.toFixed(5)) + ' + ' + (8 * d.topIndex) + 'px)',
+      width: 'calc((100% - ' + dividerPx + 'px) * ' + (+d.w.toFixed(5)) + ' - 1px)',
+      top: d.row * DEPTH_ROW, height: DEPTH_ROW - 2, bg: colorFor(d.v, meta),
+      title: d.node.text + ' (' + val(d.v) + ')', text: d.w > 0.05 ? d.node.text : '',
+      op: fadeFor(m, d.node.slug), isChosen: false, pressed: 'false',
+      menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
+      down: noop, key: noop,
+      open: () => this.openColumn(d.node.n)
+    }));
+    const depthRows = cells.reduce((n, d) => Math.max(n, d.top / DEPTH_ROW + 1), 0);
+    const hv = colorValueOf(nodes, cur.id, meta);
+    const own = cur[s.colorDim];
+    const seg = (on) => (on ? 'background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(23,24,28,0.08)' : 'background: transparent; color: var(--ink2)');
+    return {
+      crumbs: pathToRoot(nodes, cur.id).slice(1).reverse().map((id) => ({ label: byId(nodes, id).title || 'New idea', go: () => this.setState({ currentId: id }) })),
+      focusTitle: cur.title, focusNote: cur.note, focusReadOnly: cur.readOnly,
+      onFocusTitle: (e) => this.patchNode(cur.id, { title: e.target.value.replace(/\n/g, ' ') }, 'title:' + cur.id),
+      onFocusNote: (e) => this.patchNode(cur.id, { note: e.target.value }, 'note:' + cur.id),
+      health: {
+        label: colorName + (own === null && childrenOf(nodes, cur.id).length ? ', from its children' : ''), value: val(hv),
+        left: (Math.min(hv, 0.5) * 100).toFixed(1), width: (Math.abs(hv - 0.5) * 100).toFixed(1), fill: colorFor(hv, meta),
+        aria: colorName + ' ' + val(hv) + ' on a scale from 0 to 1',
+        canRecalc: false, recalcTitle: '', recalc: noop
+      },
+      pin: {
+        pressed: String(pinnedOk), text: pinnedOk ? 'Pinned' : 'Pin', label: pinnedOk ? 'Unpin: the bar follows the open node again' : 'Pin the bar here, so clicking a column only shows its details',
+        style: pinnedOk ? 'border-color: #2A4BD7; background: #F4F6FE; color: #1C3399' : 'border-color: var(--rule); background: var(--card); color: var(--ink)',
+        toggle: () => this.setState({ pinned: pinnedOk ? null : cur.id })
+      },
+      add: { canOpen: editable, left: noop, right: noop, leftTitle: '', rightTitle: '' },
+      chart: {
+        hasCols: rows.length > 0, empty: rows.length === 0,
+        emptyText: cur.readOnly ? 'Nothing below this point.' : 'No points yet. Add children from the panel.',
+        cols, isArea, align: s.chartView === 'tall' ? 'flex-end' : 'stretch',
+        height: s.chartView === 'width' ? '120px' : 'min(46vh, 420px)', minHeight: s.chartView === 'width' ? '0' : '240px',
+        overflow: s.chartView === 'width' ? 'visible' : 'hidden',
+        thermoTop: '12px', thermoHeight: 'calc(100% - 24px)', thermo: { has: false, left: '0', top: '50', label: '', side: 'left' },
+        fillDir: 'column', fillPad: '8px', fillAlign: 'stretch',
+        depth: { has: cells.length > 0, gutter: editable ? 56 : 0, height: depthRows * DEPTH_ROW, cells },
+        views: [['width', 'Width only'], ['tall', 'Wide and tall'], ['area', 'Area is the score']].map(([id, label]) => ({
+          id, label, pressed: String(s.chartView === id), style: seg(s.chartView === id), pick: () => this.setState({ chartView: id })
+        })),
+        hint: 'Width is ' + sizeName + ' · colour is ' + colorName + ' · click a column to open it'
+      }
+    };
+  }
+  /* A column or cell opens its node; an unloaded ref opens by loading. A pinned bar stays where it is. */
+  openColumn(n) {
+    if (n.kind === 'refRoot' && n.loadStatus !== 'loaded' && n.loadStatus !== 'loading') return this.loadRef(n.parent, n.source);
+    this.setState({ currentId: n.id });
+    return null;
+  }
   renderVals() {
     const s = this.state;
     const meta = this.metaOf();
@@ -1675,19 +1934,21 @@ class Component extends DCLogic {
     const root = rootOf(s.nodes);
     const cur = byId(nodes, s.currentId);
     const isDir = s.layout === 'directory';
-    const base = isDir ? {} : this.positions();
+    const isFocus = FOCUS_LAYOUTS.includes(s.layout);
+    const noCanvas = isDir || isFocus;
+    const base = noCanvas ? {} : this.positions();
     const box = this.visible();
     const lensK = LENS_STEPS[s.lensIdx];
-    const pos = isDir ? {} : (s.fisheye ? fisheyePositions(base, cur.id, box.w / 2 - 70, box.h / 2 - 20, lensK) : base);
-    const pan = isDir ? s.pan : (s.follow ? this.followPan(base) : s.pan);
+    const pos = noCanvas ? {} : (s.fisheye ? fisheyePositions(base, cur.id, box.w / 2 - 70, box.h / 2 - 20, lensK) : base);
+    const pan = noCanvas ? s.pan : (s.follow ? this.followPan(base) : s.pan);
     const colorKey = s.colorOn ? s.colorDim : null;
     const sizeKey = s.sizeOn ? otherDim(s.colorDim) : null;
     const curPath = pathToRoot(nodes, cur.id);
 
     const m = computeMatches(nodes, root.id, { q: s.q, tags: s.filterTags, mode: s.filterMode });
-    const vis = isDir ? nodes : this.visibleGraph();
-    if (!isDir && !vis.some((n) => n.id === cur.id)) throw new Error('bug: the current node is hidden inside a collapsed branch');
-    const edges = isDir ? [] : vis.filter((n) => n.parent !== null).map((n) => {
+    const vis = noCanvas ? nodes : this.visibleGraph();
+    if (!noCanvas && !vis.some((n) => n.id === cur.id)) throw new Error('bug: the current node is hidden inside a collapsed branch');
+    const edges = noCanvas ? [] : vis.filter((n) => n.parent !== null).map((n) => {
       const a = pos[n.parent];
       const b = pos[n.id];
       const dx = b.x - a.x;
@@ -1699,7 +1960,7 @@ class Component extends DCLogic {
       return { style: 'left: ' + a.x.toFixed(1) + 'px; top: ' + a.y.toFixed(1) + 'px; width: ' + len.toFixed(1) + 'px; transform: rotate(' + ang.toFixed(2) + 'deg); border-top: ' + line + '; opacity: ' + fadeFor(m, n.id) };
     });
 
-    const viewNodes = isDir ? [] : vis.map((n) => {
+    const viewNodes = noCanvas ? [] : vis.map((n) => {
       const p = pos[n.id];
       const isRoot = n.parent === null;
       const isCurrent = n.id === cur.id;
@@ -1982,14 +2243,18 @@ class Component extends DCLogic {
       layout: s.layout,
       onLayout: (e) => {
         const v = e.target.value;
-        if (!(v === 'directory' || v in LAYOUTS)) throw new Error('bug: unknown view ' + v);
-        this.setState(v === 'directory' ? { layout: v } : { layout: v, pan: { x: 0, y: 0 }, mapCollapsed: this.revealed(s.currentId, s.mapCollapsed) }, () => { if (v !== 'directory') this.fit(); });
+        if (!LAYOUT_IDS.includes(v)) throw new Error('bug: unknown view ' + v);
+        this.setState(!(v in LAYOUTS) ? { layout: v } : { layout: v, pan: { x: 0, y: 0 }, mapCollapsed: this.revealed(s.currentId, s.mapCollapsed) }, () => { if (v in LAYOUTS) this.fit(); });
       },
-      isMap: !isDir,
+      isMap: !noCanvas,
       isDirectory: isDir,
-      panelVisible: isDir || s.panelOpen,
-      panelPill: !isDir && !s.panelOpen,
-      panelBox: isDir
+      isQuestion: s.layout === 'questionnaire',
+      ...(isFocus ? this.focusVals(nodes, cur, meta, m) : {}),
+      panelVisible: noCanvas || s.panelOpen,
+      panelPill: !noCanvas && !s.panelOpen,
+      panelBox: isFocus
+        ? 'position: relative; flex: 0 0 400px; max-width: 42%; min-width: 300px; border-left: 1px solid var(--rule); padding: 20px 22px; gap: 16px'
+        : isDir
         ? 'position: relative; flex: 1 1 auto; min-width: 0; padding: 28px 40px 32px; gap: 18px'
         : 'position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(860px, calc(100% - 32px)); max-height: calc(100% - 96px); border: 1px solid var(--rule); border-radius: 16px; box-shadow: 0 10px 30px rgba(23,24,28,0.08); padding: 14px 16px 12px; gap: 14px',
       panelTitleStyle: isDir ? 'font-size: 26px; font-weight: 650' : 'font-size: 15px; font-weight: 600',
