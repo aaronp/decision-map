@@ -356,6 +356,85 @@ test('notices and load errors render', () => {
   assert.equal(v.hasLoadError, true);
 });
 
+// ---------------------------------------------------------------- saved maps and startup
+function fakeStore(saved = []) {
+  const db = new Map(saved.map((r) => [r.name, r]));
+  return {
+    db,
+    list: async () => [...db.values()].sort((a, b) => b.updated - a.updated),
+    put: async (name, text) => { db.set(name, { name, text, updated: Date.now() }); },
+    del: async (name) => { db.delete(name); },
+    rename: async (from, to) => { if (db.has(to)) throw new Error('taken'); db.set(to, { ...db.get(from), name: to }); db.delete(from); }
+  };
+}
+
+test('nextName', () => {
+  assert.equal(app.nextName('Plan', ['Plan', 'Plan 2']), 'Plan 3');
+  assert.equal(app.nextName('Plan', []), 'Plan');
+});
+
+test('Save as stores the map and marks it saved', async () => {
+  const c = boot(SMALL);
+  c.store = fakeStore();
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  await c.saveAs('Plan');
+  assert.equal(c.state.savedName, 'Plan');
+  assert.equal(c.state.dirty, false);
+  assert.equal(c.store.db.get('Plan').text, serializeMap({ meta: c.metaOf(), nodes: c.state.nodes }));
+});
+
+test('autosave writes a named map after an edit', async () => {
+  const c = boot(SMALL);
+  c.store = fakeStore();
+  await c.saveAs('Plan');
+  c.patchNode(c.state.nodes[1].id, { title: 'Later' });
+  assert.equal(c.state.dirty, true);
+  await c.autosave();
+  assert.equal(c.state.dirty, false);
+  assert.match(c.store.db.get('Plan').text, /- Later/);
+});
+
+test('startup opens the newest saved map, else a new map', async () => {
+  const c = boot();
+  c.store = fakeStore([{ name: 'Old', text: '# Old\n', updated: 1 }, { name: 'New', text: '# Newest\n', updated: 2 }]);
+  await c.start();
+  assert.equal(c.state.nodes[0].title, 'Newest');
+  assert.equal(c.state.savedName, 'New');
+  const d = boot();
+  d.store = fakeStore();
+  await d.start();
+  assert.equal(d.state.nodes[0].title, 'What are you deciding?');
+});
+
+test('startup prefers a share link over ?src= and saved maps', async () => {
+  const c = boot();
+  c.store = fakeStore([{ name: 'Saved', text: '# Saved\n', updated: 1 }]);
+  c.fetchMapText = async () => '# From src\n';
+  location.hash = '#m=' + await app.encodeShare('# Shared\n');
+  location.search = '?src=https://a.org/m.md';
+  await c.start();
+  assert.equal(c.state.nodes[0].title, 'Shared');
+  location.hash = '';
+  await c.start();
+  assert.equal(c.state.nodes[0].title, 'From src');
+  location.search = '';
+});
+
+test('?view= picks the starting view', () => {
+  location.search = '?view=tree';
+  const c = boot(SMALL);
+  location.search = '';
+  assert.equal(c.state.layout, 'tree');
+});
+
+test('the Open panel renders with saved maps', () => {
+  const c = boot(SMALL);
+  c.setState({ openPanel: true, saved: [{ name: 'Plan', text: '# P\n', updated: 1 }] });
+  const v = c.renderVals();
+  assert.deepEqual(unresolved(v, c), []);
+  assert.equal(v.savedRows.length, 1);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);

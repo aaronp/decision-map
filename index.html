@@ -85,6 +85,12 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       </button>
     </div>
 
+    <div style="display: flex; align-items: center; gap: 4px">
+      <button class="ghost" onClick="{{onNew}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">New</button>
+      <button class="ghost" onClick="{{toggleOpen}}" aria-expanded="{{openPanel}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">Open…</button>
+      <button class="ghost" onClick="{{onSaveAs}}" title="Keep this map in this browser, under a name" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">Save as…</button>
+      <button class="ghost" onClick="{{onDownload}}" title="Download the map as a .md file" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">Download</button>
+    </div>
     <button class="ghost" onClick="{{onShare}}" title="Copy a link that holds this whole map" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 500">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>Share
     </button>
@@ -103,6 +109,38 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       <span style="font-weight: 600">Couldn't open that map.</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{loadError}}</span>
       <div style="flex: 1 1 0"></div>
       <button class="ghost" onClick="{{closeLoadError}}" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: #A3271B">Dismiss</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{openPanel}}" hint-placeholder-val="{{ false }}">
+    <div role="region" aria-label="Open a map" onDrop="{{onDrop}}" onDragOver="{{onDragOver}}" style="flex: 0 0 auto; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px 28px; padding: 16px 20px; background: var(--bg); border-bottom: 1px solid var(--rule); position: relative; z-index: 4">
+      <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0">
+        <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Saved in this browser</span>
+        <sc-if value="{{noSaved}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: var(--ink2)">Nothing saved yet. Save as… keeps a map here under a name.</span></sc-if>
+        <div style="display: flex; flex-direction: column; max-height: 220px; overflow-y: auto">
+          <sc-for list="{{savedRows}}" as="r" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 6px; min-height: 36px; border-bottom: 1px solid var(--rule)">
+              <button class="ghost" onClick="{{r.open}}" style="flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 10px; height: 34px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; text-align: left">
+                <span style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.name}}</span>
+                <span style="font-size: 11px; color: var(--ink2); white-space: nowrap">{{r.when}}</span>
+              </button>
+              <button class="ghost" onClick="{{r.rename}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: var(--ink2)">Rename</button>
+              <button class="ghost" onClick="{{r.remove}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: #A3271B">Delete</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; min-width: 0">
+        <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">From a file, URL or share link</span>
+        <label style="display: flex; align-items: center; justify-content: center; height: 64px; border: 1.5px dashed var(--rule); border-radius: 10px; font-size: 13px; color: var(--ink2); cursor: pointer">
+          Drop a .md file here, or choose one
+          <input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" onChange="{{onFiles}}" style="position: absolute; width: 1px; height: 1px; opacity: 0">
+        </label>
+        <div style="display: flex; gap: 6px">
+          <input class="dim" type="url" placeholder="https://…/map.md or a share link" value="{{openUrl}}" onChange="{{onOpenUrl}}" onKeyDown="{{onOpenUrlKey}}" aria-label="Map URL or share link" style="flex: 1 1 auto; min-width: 0; height: 34px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 13px">
+          <button onClick="{{goOpenUrl}}" style="height: 34px; padding: 0 14px; border: 0; border-radius: 8px; background: #2A4BD7; color: #FFFFFF; font-size: 13px; font-weight: 600">Open</button>
+        </div>
+      </div>
+      <button class="ghost" onClick="{{toggleOpen}}" aria-label="Close" style="position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent">✕</button>
     </div>
   </sc-if>
   <sc-if value="{{hasNotice}}" hint-placeholder-val="{{ false }}">
@@ -674,6 +712,48 @@ function sharePayload(url) {
   const m = /#m=([A-Za-z0-9_-]+)$/.exec(url.trim());
   return m ? m[1] : null;
 }
+/* Saved maps: one IndexedDB store of { name, text, updated }, keyed by name. Kept only in this browser. */
+const AUTOSAVE_MS = 1500;
+function mapStore(mode, fn) {
+  return new Promise((ok, fail) => {
+    const req = indexedDB.open('tree-maps', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('maps', { keyPath: 'name' });
+    req.onerror = () => fail(req.error);
+    req.onsuccess = () => {
+      const tx = req.result.transaction('maps', mode);
+      const r = fn(tx.objectStore('maps'));
+      tx.oncomplete = () => { req.result.close(); ok(r.result); };
+      tx.onerror = () => fail(tx.error);
+      tx.onabort = () => fail(tx.error ?? new Error('storage refused'));
+    };
+  });
+}
+const IDB_STORE = {
+  list: () => mapStore('readonly', (st) => st.getAll()).then((v) => v.sort((a, b) => b.updated - a.updated)),
+  put: (name, text) => mapStore('readwrite', (st) => st.put({ name, text, updated: Date.now() })),
+  del: (name) => mapStore('readwrite', (st) => st.delete(name)),
+  async rename(from, to) {
+    const all = await IDB_STORE.list();
+    if (all.some((r) => r.name === to)) throw new Error('A saved map is already called "' + to + '"');
+    const r = all.find((x) => x.name === from);
+    if (!r) throw new Error('bug: renaming a map that is not saved: ' + from);
+    await mapStore('readwrite', (st) => { st.delete(from); return st.put({ ...r, name: to }); });
+  }
+};
+function nextName(base, taken) {
+  if (!taken.includes(base)) return base;
+  let k = 2;
+  while (taken.includes(base + ' ' + k)) k += 1;
+  return base + ' ' + k;
+}
+function download(name, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/markdown' }));
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+const LAYOUT_IDS = ['radial', 'tree', 'directory'];
 /* State keys that undo covers: the nodes and every setting saved in front matter. */
 const HISTORY_KEYS = ['nodes', 'dims', 'colorDim', 'colorMode', 'colorLeft', 'colorRight', 'reverse', 'theme', 'tagStyles'];
 function historyEntry(s) { return Object.fromEntries(HISTORY_KEYS.map((k) => [k, s[k]])); }
@@ -1128,7 +1208,6 @@ function clamp(lo, hi, v) { return Math.min(hi, Math.max(lo, v)); }
 class Component extends DCLogic {
   state = {
     seq: 1,
-    layout: 'radial',
     colorOn: true,
     sizeOn: true,
     follow: true,
@@ -1164,6 +1243,10 @@ class Component extends DCLogic {
     notice: null,
     mapName: null,
     savedName: null,
+    openPanel: false,
+    saved: [],
+    openUrl: '',
+    layout: (() => { const v = new URLSearchParams(location.search).get('view'); return LAYOUT_IDS.includes(v) ? v : 'radial'; })(),
     themeQ: (() => { const t = new URLSearchParams(location.search).get('theme'); return THEMES.some((x) => x.id === t) ? t : null; })(),
     ...startState()
   };
@@ -1172,13 +1255,96 @@ class Component extends DCLogic {
   travelling = false;
   observer = null;
   keyHandler = (e) => this.onGlobalKey(e);
+  store = IDB_STORE;
+  autosaveTimer = null;
   componentDidMount() {
     window.addEventListener('keydown', this.keyHandler);
-    const payload = sharePayload(location.hash);
-    if (payload !== null) {
-      decodeShare(payload).then((text) => this.openText(text, 'Shared map', { force: true }),
-        () => this.setState({ loadError: 'This share link is damaged and could not be read.' }));
+    if (!window.TREE_START) this.start();
+  }
+  componentDidUpdate() {
+    if (this.state.dirty && this.state.savedName !== null) {
+      clearTimeout(this.autosaveTimer);
+      this.autosaveTimer = setTimeout(() => this.autosave(), AUTOSAVE_MS);
     }
+    const q = new URLSearchParams(location.search);
+    if (q.get('view') !== this.state.layout) {
+      q.set('view', this.state.layout);
+      history.replaceState(null, '', '?' + q.toString() + location.hash);
+    }
+  }
+  /* Startup: a share link, else ?src=, else the newest saved map, else the new map already shown. */
+  async start() {
+    const payload = sharePayload(location.hash);
+    const src = new URLSearchParams(location.search).get('src');
+    try {
+      if (payload !== null) { this.openText(await decodeShare(payload), 'Shared map', { force: true }); return; }
+      if (src !== null) { this.srcUrl = new URL(src, location.href).href; this.openText(await this.fetchMapText(this.srcUrl), shortUrl(this.srcUrl), { force: true }); return; }
+      const saved = await this.store.list();
+      if (saved.length) this.openText(saved[0].text, saved[0].name, { force: true, savedName: saved[0].name });
+    } catch (err) {
+      this.setState({ loadError: payload !== null ? 'This share link is damaged and could not be read.' : String(err.message || err) });
+    }
+  }
+  srcUrl = null;
+  /* Reads a map from a URL: a share link is decoded here, anything else is fetched. */
+  async fetchMapText(url) {
+    const payload = sharePayload(url);
+    if (payload !== null) return decodeShare(payload);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(url + ': HTTP ' + res.status);
+    return res.text();
+  }
+  currentText() { return serializeMap({ meta: this.metaOf(), nodes: this.state.nodes }); }
+  async saveAs(name) {
+    const text = this.currentText();
+    await this.store.put(name, text);
+    super.setState((s) => ({ savedName: name, mapName: name, dirty: s.dirty && this.currentText() !== text }));
+  }
+  async autosave() {
+    if (this.state.savedName === null) return;
+    const text = this.currentText();
+    try {
+      await this.store.put(this.state.savedName, text);
+      if (this.currentText() === text) super.setState({ dirty: false });
+    } catch (err) { this.setState({ notice: 'Autosave failed: ' + (err.message || err) }); }
+  }
+  async refreshSaved() { this.setState({ saved: await this.store.list() }); }
+  askName(message, value) { return window.prompt(message, value); }
+  async promptSaveAs() {
+    const taken = (await this.store.list()).map((r) => r.name);
+    const name = (this.askName('Save this map as', nextName(rootOf(this.state.nodes).title, taken)) ?? '').trim();
+    if (name === '') return;
+    if (taken.includes(name) && name !== this.state.savedName && !this.ask('Replace the saved map "' + name + '"?')) return;
+    await this.saveAs(name);
+    this.setState({ notice: 'Saved as "' + name + '"' });
+  }
+  async renameSaved(from) {
+    const to = (this.askName('Rename "' + from + '" to', from) ?? '').trim();
+    if (to === '' || to === from) return;
+    try {
+      await this.store.rename(from, to);
+      if (this.state.savedName === from) super.setState({ savedName: to, mapName: to });
+    } catch (err) { this.setState({ notice: String(err.message || err) }); }
+    await this.refreshSaved();
+  }
+  async deleteSaved(name) {
+    if (!this.ask('Delete the saved map "' + name + '"? This can\'t be undone.')) return;
+    await this.store.del(name);
+    if (this.state.savedName === name) super.setState({ savedName: null, dirty: true });
+    await this.refreshSaved();
+  }
+  openFileList(files) {
+    const f = files[0];
+    if (!f) return;
+    f.text().then((text) => { if (this.openText(text, f.name)) this.setState({ openPanel: false }); });
+  }
+  async openUrl(raw) {
+    const url = raw.trim();
+    if (url === '') return;
+    try {
+      const text = await this.fetchMapText(new URL(url, location.href).href);
+      if (this.openText(text, sharePayload(url) !== null ? 'Shared map' : shortUrl(url))) this.setState({ openPanel: false, openUrl: '' });
+    } catch (err) { this.setState({ loadError: String(err.message || err) }); }
   }
   didInitialFit = false;
 
@@ -1807,6 +1973,25 @@ class Component extends DCLogic {
       hasLoadError: s.loadError !== null,
       loadError: s.loadError ?? '',
       closeLoadError: () => this.setState({ loadError: null }),
+      toggleOpen: () => { this.setState({ openPanel: !s.openPanel }); if (!s.openPanel) this.refreshSaved(); },
+      openPanel: s.openPanel,
+      savedRows: s.saved.map((r) => ({
+        name: r.name, when: new Date(r.updated).toLocaleString(), current: r.name === s.savedName,
+        open: () => { if (this.openText(r.text, r.name, { savedName: r.name })) this.setState({ openPanel: false }); },
+        rename: () => this.renameSaved(r.name),
+        remove: () => this.deleteSaved(r.name)
+      })),
+      noSaved: s.saved.length === 0,
+      onFiles: (e) => this.openFileList(e.target.files),
+      onDrop: (e) => { e.preventDefault(); this.openFileList(e.dataTransfer.files); },
+      onDragOver: (e) => e.preventDefault(),
+      openUrl: s.openUrl,
+      onOpenUrl: (e) => this.setState({ openUrl: e.target.value }),
+      onOpenUrlKey: (e) => { if (e.key === 'Enter') this.openUrl(s.openUrl); },
+      goOpenUrl: () => this.openUrl(s.openUrl),
+      onNew: () => this.openText(newMapText(), null),
+      onSaveAs: () => { this.promptSaveAs().catch((err) => this.setState({ notice: 'Save failed: ' + (err.message || err) })); },
+      onDownload: () => download((rootOf(s.nodes).title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'map') + '.md', this.currentText()),
       onUndo: () => this.undo(),
       onRedo: () => this.redo(),
       noUndo: s.history.past.length === 0,
