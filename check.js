@@ -287,6 +287,75 @@ test('the colour mode settings render in both modes', () => {
   }
 });
 
+// ---------------------------------------------------------------- share links
+test('share round trip, including non-ASCII text', async () => {
+  const text = '# Ünïcødé 🌳 日本語\n- Ça va? #core {x:0.5}\n';
+  const payload = await app.encodeShare(text);
+  assert.match(payload, /^[A-Za-z0-9_-]+$/);
+  assert.equal(await app.decodeShare(payload), text);
+});
+
+test('sharePayload', () => {
+  assert.equal(app.sharePayload('https://a.org/x#m=abc'), 'abc');
+  assert.equal(app.sharePayload('https://a.org/x.md'), null);
+  assert.equal(app.sharePayload('not a url'), null);
+});
+
+test('a broken share link keeps the current map', () => {
+  const c = boot(SMALL);
+  const before = c.state.nodes;
+  assert.equal(c.openText('# R\n      - bad', 'x', { force: true }), false);
+  assert.equal(c.state.nodes, before);
+  assert.ok(c.state.loadError.startsWith('Line 2:'), c.state.loadError);
+});
+
+test('opening a map replaces the map, its settings and the history', () => {
+  const c = boot(SMALL);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  c.ask = () => true;
+  assert.equal(c.openText(FULL, 'full'), true);
+  assert.equal(c.state.nodes[0].title, 'Should we adopt X?');
+  assert.equal(c.state.theme, 'night');
+  assert.equal(c.state.history.past.length, 0);
+  assert.equal(c.state.dirty, false);
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+});
+
+test('unsaved, unnamed changes are only dropped after asking', () => {
+  const c = boot(SMALL);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  let asked = 0;
+  c.ask = () => { asked++; return false; };
+  assert.equal(c.openText(FULL, 'full'), false);
+  assert.equal(asked, 1);
+  assert.equal(c.state.nodes[1].title, 'X');
+  c.setState({ savedName: 'Mine' });
+  assert.equal(c.openText(FULL, 'full'), true);
+  assert.equal(asked, 1);
+});
+
+test('the share link warns when long', async () => {
+  const c = boot(SMALL);
+  let copied = null;
+  c.copy = async (t) => { copied = t; };
+  await c.share();
+  assert.ok(copied.startsWith('http://x/#m='));
+  assert.equal(c.state.notice, 'Link copied');
+  const big = '# R\n' + Array.from({ length: 2000 }, (_, i) => '- ' + Math.random().toString(36).repeat(3) + i).join('\n') + '\n';
+  c.openText(big, 'big', { force: true });
+  await c.share();
+  assert.match(c.state.notice, /^Link copied, but it's \d+ characters/);
+});
+
+test('notices and load errors render', () => {
+  const c = boot(SMALL);
+  c.setState({ notice: 'Link copied', loadError: 'Line 2: bad' });
+  const v = c.renderVals();
+  assert.deepEqual(unresolved(v, c), []);
+  assert.equal(v.hasNotice, true);
+  assert.equal(v.hasLoadError, true);
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);

@@ -32,7 +32,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       <svg width="28" height="28" viewBox="0 0 30 30" fill="none" stroke="#17181C" stroke-width="1.6" aria-hidden="true"><circle cx="15" cy="15" r="4.5"></circle><circle cx="15" cy="4" r="2.5"></circle><circle cx="25" cy="21" r="2.5"></circle><circle cx="5" cy="21" r="2.5"></circle><path d="M15 10.5V6.5M19 17.5l3.8 2.2M11 17.5l-3.8 2.2"></path></svg>
       <div style="display: flex; flex-direction: column">
         <span style="font-weight: 600; font-size: 14px">{{rootTitle}}</span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--ink2)">guidelines.md · {{nodeCount}} nodes</span>
+        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--ink2)">{{fileLabel}} · {{nodeCount}} nodes</span>
       </div>
     </div>
 
@@ -85,6 +85,9 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       </button>
     </div>
 
+    <button class="ghost" onClick="{{onShare}}" title="Copy a link that holds this whole map" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 500">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>Share
+    </button>
     <div style="display: flex; align-items: center; gap: 2px">
       <button class="ghost" onClick="{{onUndo}}" disabled="{{noUndo}}" aria-label="Undo" title="Undo (⌘Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: var(--ink2); opacity: {{undoOpacity}}">↶</button>
       <button class="ghost" onClick="{{onRedo}}" disabled="{{noRedo}}" aria-label="Redo" title="Redo (⌘⇧Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: var(--ink2); opacity: {{redoOpacity}}">↷</button>
@@ -94,6 +97,20 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Settings
     </button>
   </header>
+
+  <sc-if value="{{hasLoadError}}" hint-placeholder-val="{{ false }}">
+    <div role="alert" style="flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 8px 20px; background: #FBEDEB; border-bottom: 1px solid #F0C9C4; color: #A3271B; font-size: 13px">
+      <span style="font-weight: 600">Couldn't open that map.</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{loadError}}</span>
+      <div style="flex: 1 1 0"></div>
+      <button class="ghost" onClick="{{closeLoadError}}" style="height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: #A3271B">Dismiss</button>
+    </div>
+  </sc-if>
+  <sc-if value="{{hasNotice}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 10px; background: #17181C; color: #FFFFFF; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,0.2)">
+      {{notice}}
+      <button onClick="{{closeNotice}}" aria-label="Dismiss" style="width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; color: #FFFFFF">✕</button>
+    </div>
+  </sc-if>
 
   <sc-if value="{{filterOpen}}" hint-placeholder-val="{{ false }}">
     <div role="region" aria-label="Tag filter" style="flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 20px; background: var(--bg); border-bottom: 1px solid var(--rule); position: relative; z-index: 4">
@@ -124,7 +141,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
     <sc-if value="{{isDirectory}}" hint-placeholder-val="{{ false }}">
       <nav aria-label="Directory" style="flex: 0 0 400px; max-width: 48%; min-width: 260px; display: flex; flex-direction: column; min-height: 0; background: var(--bg); border-right: 1px solid var(--rule)">
         <div style="display: flex; align-items: center; gap: 6px; padding: 12px 10px 10px 16px; border-bottom: 1px solid var(--rule)">
-          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink2)">guidelines.md</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--ink2)">{{fileLabel}}</span>
           <div style="flex: 1 1 0"></div>
           <button class="ghost" onClick="{{expandAll}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: var(--ink2)">Expand all</button>
           <button class="ghost" onClick="{{collapseAll}}" style="height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font-size: 12px; color: var(--ink2)">Collapse</button>
@@ -638,6 +655,25 @@ function schemeById(id) {
 function newMapText() {
   return '# What are you deciding?\n';
 }
+/* Share links: the map's markdown, deflated and base64url-encoded after #m=. Refs stay URLs inside it. */
+const SHARE_WARN = 8000;
+async function encodeShare(text) {
+  const stream = new Blob([new TextEncoder().encode(text)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  let bin = '';
+  bytes.forEach((b) => { bin += String.fromCharCode(b); });
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function decodeShare(payload) {
+  const bin = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+  const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  return new TextDecoder().decode(await new Response(stream).arrayBuffer());
+}
+function sharePayload(url) {
+  const m = /#m=([A-Za-z0-9_-]+)$/.exec(url.trim());
+  return m ? m[1] : null;
+}
 /* State keys that undo covers: the nodes and every setting saved in front matter. */
 const HISTORY_KEYS = ['nodes', 'dims', 'colorDim', 'colorMode', 'colorLeft', 'colorRight', 'reverse', 'theme', 'tagStyles'];
 function historyEntry(s) { return Object.fromEntries(HISTORY_KEYS.map((k) => [k, s[k]])); }
@@ -1124,6 +1160,10 @@ class Component extends DCLogic {
     vh: 820,
     history: { past: [], future: [], step: null },
     dirty: false,
+    loadError: null,
+    notice: null,
+    mapName: null,
+    savedName: null,
     themeQ: (() => { const t = new URLSearchParams(location.search).get('theme'); return THEMES.some((x) => x.id === t) ? t : null; })(),
     ...startState()
   };
@@ -1132,7 +1172,14 @@ class Component extends DCLogic {
   travelling = false;
   observer = null;
   keyHandler = (e) => this.onGlobalKey(e);
-  componentDidMount() { window.addEventListener('keydown', this.keyHandler); }
+  componentDidMount() {
+    window.addEventListener('keydown', this.keyHandler);
+    const payload = sharePayload(location.hash);
+    if (payload !== null) {
+      decodeShare(payload).then((text) => this.openText(text, 'Shared map', { force: true }),
+        () => this.setState({ loadError: 'This share link is damaged and could not be read.' }));
+    }
+  }
   didInitialFit = false;
 
   setCanvas = (el) => {
@@ -1155,6 +1202,32 @@ class Component extends DCLogic {
     return options.map((o) => ({ label: o.label, pressed: o.value === current, style: segStyle(o.value === current), pick: () => pick(o.value) }));
   }
   graph() { return composeGraph(this.state.nodes, this.state.refLoads); }
+  ask(message) { return window.confirm(message); }
+  async copy(text) { await navigator.clipboard.writeText(text); }
+  /* The one way a map is opened: from a file, URL, share link or saved map. A parse error leaves the current map alone. */
+  openText(text, name, { force = false, savedName = null } = {}) {
+    let parsed;
+    try { parsed = parseMap(text); } catch (err) {
+      if (!(err instanceof MapParseError)) throw err;
+      this.setState({ loadError: err.message });
+      return false;
+    }
+    if (!force && this.state.dirty && this.state.savedName === null && !this.ask('Discard changes?')) return false;
+    super.setState({
+      ...applyMeta(parsed.meta), nodes: parsed.nodes, currentId: parsed.root.id, dirOpen: { [parsed.root.id]: true },
+      selectedTag: Object.keys(parsed.meta.tagStyles)[0] ?? null, mapCollapsed: {}, refLoads: {}, filterTags: [], lastChild: {},
+      history: { past: [], future: [], step: null }, dirty: false, loadError: null, mapName: name, savedName
+    });
+    return true;
+  }
+  async shareLink() {
+    return location.origin + location.pathname + '#m=' + await encodeShare(serializeMap({ meta: this.metaOf(), nodes: this.state.nodes }));
+  }
+  async share() {
+    const link = await this.shareLink();
+    await this.copy(link);
+    this.setState({ notice: link.length > SHARE_WARN ? "Link copied, but it's " + link.length + ' characters, and some apps cut long links short' : 'Link copied' });
+  }
   metaOf() {
     const s = this.state;
     return { dims: s.dims, colorDim: s.colorDim, colorMode: s.colorMode, colorLeft: s.colorLeft, colorRight: s.colorRight,
@@ -1726,6 +1799,14 @@ class Component extends DCLogic {
       rootTitle: root.title,
       nodeCount: String(s.nodes.length),
       dims: s.dims,
+      fileLabel: (s.savedName ?? s.mapName ?? 'Unsaved map') + (s.dirty ? '*' : ''),
+      onShare: () => { this.share().catch(() => this.setState({ notice: 'Couldn\'t copy the link. Your browser blocked the clipboard.' })); },
+      hasNotice: s.notice !== null,
+      notice: s.notice ?? '',
+      closeNotice: () => this.setState({ notice: null }),
+      hasLoadError: s.loadError !== null,
+      loadError: s.loadError ?? '',
+      closeLoadError: () => this.setState({ loadError: null }),
       onUndo: () => this.undo(),
       onRedo: () => this.redo(),
       noUndo: s.history.past.length === 0,
