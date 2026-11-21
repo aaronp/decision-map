@@ -18,6 +18,7 @@ a{color:#2A4BD7}a:hover{color:#1C3399}
 button,input,textarea,select{font:inherit;color:inherit}
 button{cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offset:2px}
+details[open]>summary{border-color:#2A4BD7!important}
 .ghost:hover{background:var(--rule)}
 .node-btn:hover{filter:brightness(0.97)}
 .map-pill:hover{background:var(--bg)}
@@ -105,12 +106,15 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       </button>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 4px">
-      <button class="ghost" onClick="{{onNew}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">New</button>
-      <button class="ghost" onClick="{{toggleOpen}}" aria-expanded="{{openPanel}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">Open…</button>
-      <button class="ghost" onClick="{{onSaveAs}}" title="Keep this map in this browser, under a name" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">Save as…</button>
-      <button class="ghost" onClick="{{onDownload}}" title="Download the map as a .md file" style="height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font-size: 13px; font-weight: 500">Download</button>
-    </div>
+    <details style="position: relative">
+      <summary style="list-style: none; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 500; cursor: pointer">File<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></summary>
+      <div role="menu" style="position: absolute; right: 0; top: 40px; z-index: 40; display: flex; flex-direction: column; min-width: 180px; padding: 6px; background: var(--card); border: 1px solid var(--rule); border-radius: 10px; box-shadow: 0 10px 30px rgba(23,24,28,0.12)">
+        <button role="menuitem" class="ghost" onClick="{{onNew}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">New</button>
+        <button role="menuitem" class="ghost" onClick="{{toggleOpen}}" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Open…</button>
+        <button role="menuitem" class="ghost" onClick="{{onSaveAs}}" title="Keep this map in this browser, under a name" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Save as…</button>
+        <button role="menuitem" class="ghost" onClick="{{onDownload}}" title="Download the map as a .md file" style="height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px">Download</button>
+      </div>
+    </details>
     <button class="ghost" onClick="{{onShare}}" title="Copy a link that holds this whole map" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 13px; font-weight: 500">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>Share
     </button>
@@ -182,7 +186,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       <sc-if value="{{noTags}}" hint-placeholder-val="{{ false }}">
         <span style="font-size: 13px; color: var(--ink2)">No tags yet. Add them to nodes in the panel.</span>
       </sc-if>
-      <div role="group" aria-label="Tag match mode" style="display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px; margin-left: 6px">
+      <div role="group" aria-label="Tag match mode" style="display: flex; gap: 2px; padding: 2px; background: var(--rule); border-radius: 8px; margin-left: 6px">
         <sc-for list="{{filterModeOpts}}" as="o" hint-placeholder-count="2">
           <button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="border: 0; border-radius: 6px; padding: 0 10px; height: 26px; font-size: 12px; {{o.style}}">{{o.label}}</button>
         </sc-for>
@@ -266,7 +270,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <p style="margin: 0; font-size: 14px; color: var(--ink2)">Choose a map B to compare with this one. Nodes are matched by their titles from the root down.</p>
         </sc-if>
         <sc-if value="{{cmp.hasB}}" hint-placeholder-val="{{ true }}">
-          <div role="group" aria-label="Compare views" style="align-self: flex-start; display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px">
+          <div role="group" aria-label="Compare views" style="align-self: flex-start; display: flex; gap: 2px; padding: 2px; background: var(--rule); border-radius: 8px">
             <sc-for list="{{cmp.tabs}}" as="t" hint-placeholder-count="3">
               <button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="border: 0; border-radius: 6px; padding: 0 12px; height: 30px; font-size: 13px; {{t.style}}">{{t.label}}</button>
             </sc-for>
@@ -337,7 +341,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         </div>
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
           <sc-if value="{{isQuestion}}" hint-placeholder-val="{{ true }}">
-          <div role="group" aria-label="Chart" style="display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px">
+          <div role="group" aria-label="Chart" style="display: flex; gap: 2px; padding: 2px; background: var(--rule); border-radius: 8px">
             <sc-for list="{{chart.views}}" as="t" hint-placeholder-count="3">
               <button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="border: 0; border-radius: 6px; padding: 0 10px; height: 28px; font-size: 12px; {{t.style}}">{{t.label}}</button>
             </sc-for>
@@ -410,7 +414,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         <sc-if value="{{chart.depth.has}}" hint-placeholder-val="{{ false }}">
           <div aria-label="Levels below" style="position: relative; margin: 0 {{chart.depth.gutter}}px; height: {{chart.depth.height}}px">
             <sc-for list="{{chart.depth.cells}}" as="d" hint-placeholder-count="4">
-              <button type="button" class="am-cell" aria-label="{{d.title}}" title="{{d.title}}" aria-pressed="{{d.pressed}}" onContextMenu="{{d.menu}}" onPointerDown="{{d.down}}" onClick="{{d.open}}" onKeyDown="{{d.key}}" style="position: absolute; left: {{d.left}}; width: {{d.width}}; min-width: 2px; top: {{d.top}}px; height: {{d.height}}px; box-sizing: border-box; border: 0; border-radius: 2px; padding: 0 6px; background: {{d.bg}}; color: var(--ink); opacity: {{d.op}}; font: inherit; font-size: 12px; line-height: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer">{{d.text}}<sc-if value="{{d.isChosen}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); border-radius: 2px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></span></sc-if></button>
+              <button type="button" class="am-cell" aria-label="{{d.title}}" title="{{d.title}}" aria-pressed="{{d.pressed}}" onContextMenu="{{d.menu}}" onPointerDown="{{d.down}}" onClick="{{d.open}}" onKeyDown="{{d.key}}" style="position: absolute; left: {{d.left}}; width: {{d.width}}; min-width: 2px; top: {{d.top}}px; height: {{d.height}}px; box-sizing: border-box; border: 0; border-radius: 2px; padding: 0 6px; background: {{d.bg}}; color: {{d.fg}}; opacity: {{d.op}}; font: inherit; font-size: 12px; line-height: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer">{{d.text}}<sc-if value="{{d.isChosen}}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; box-sizing: border-box; border: 2px dashed var(--ink2); border-radius: 2px; background: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--ink) 16%, transparent) 6px 8px)"></span></sc-if></button>
             </sc-for>
           </div>
           </sc-if>
@@ -541,7 +545,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       </button>
     </sc-if>
     <sc-if value="{{legendShown}}" hint-placeholder-val="{{ true }}">
-      <div style="position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 10px; padding: 12px 40px 12px 14px; background: rgba(255,255,255,0.94); border: 1px solid var(--rule); border-radius: 12px; max-width: 240px">
+      <div style="position: absolute; left: 16px; top: 16px; display: flex; flex-direction: column; gap: 10px; padding: 12px 40px 12px 14px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; max-width: 240px">
         <button class="ghost" onClick="{{toggleLegend}}" aria-label="Close legend" style="position: absolute; right: 4px; top: 4px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--ink2)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
         </button>
@@ -620,7 +624,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
         <section style="display: flex; flex-direction: column; gap: 14px; padding: 22px 24px">
           <h3 style="margin: 0; font-size: 15px; font-weight: 600">Color &amp; size</h3>
           <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink2)">Choose which dimension drives each, or switch either off. ⇄ swaps them.</p>
-    <div role="group" aria-label="Visual mappings" style="display: flex; align-items: center; gap: 2px; padding: 3px; background: #EDEDE8; border-radius: 10px; align-self: flex-start; flex-wrap: wrap">
+    <div role="group" aria-label="Visual mappings" style="display: flex; align-items: center; gap: 2px; padding: 3px; background: var(--rule); border-radius: 10px; align-self: flex-start; flex-wrap: wrap">
       <button class="map-pill" role="switch" aria-checked="{{colorOn}}" onClick="{{toggleColor}}" style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px 0 8px; border: 0; border-radius: 7px; background: var(--card)">
         <span aria-hidden="true" style="position: relative; width: 28px; height: 16px; border-radius: 8px; transition: background .15s ease; {{colorTrack}}"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--card); box-shadow: 0 1px 2px rgba(23,24,28,0.25); transition: transform .15s ease; {{colorKnob}}"></span></span>
         <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Color</span>
@@ -641,7 +645,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <div style="display: flex; flex-direction: column; gap: 10px">
             <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Colour</span>
             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
-              <div role="group" aria-label="Colour mode" style="display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px">
+              <div role="group" aria-label="Colour mode" style="display: flex; gap: 2px; padding: 2px; background: var(--rule); border-radius: 8px">
                 <sc-for list="{{modeOpts}}" as="o" hint-placeholder-count="2">
                   <button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="border: 0; border-radius: 6px; padding: 0 10px; height: 28px; font-size: 12px; {{o.style}}">{{o.label}}</button>
                 </sc-for>
@@ -768,7 +772,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
                     <input type="color" value="{{sel.borderHex}}" onChange="{{sel.onBorderCustom}}" aria-label="Custom border colour" style="position: absolute; inset: 0; opacity: 0; cursor: pointer">
                   </label>
                 </div>
-                <div role="group" aria-label="Border style" style="align-self: flex-start; display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px; margin-top: 2px">
+                <div role="group" aria-label="Border style" style="align-self: flex-start; display: flex; gap: 2px; padding: 2px; background: var(--rule); border-radius: 8px; margin-top: 2px">
                   <sc-for list="{{sel.styleOpts}}" as="o" hint-placeholder-count="2">
                     <button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="border: 0; border-radius: 6px; padding: 0 10px; height: 26px; font-size: 12px; {{o.style}}">{{o.label}}</button>
                   </sc-for>
@@ -900,7 +904,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
                 </sc-for>
                 <div style="display: flex; gap: 6px">
                   <input class="dim" type="url" placeholder="https://…/map.md" value="{{refDraft}}" onChange="{{onRefDraft}}" onKeyDown="{{onRefKey}}" aria-label="Reference URL" style="flex: 1 1 auto; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 12px">
-                  <button onClick="{{addRefCur}}" disabled="{{refDraftEmpty}}" style="height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--ink); color: #FFFFFF; font-size: 12px; font-weight: 500">Add</button>
+                  <button onClick="{{addRefCur}}" disabled="{{refDraftEmpty}}" style="height: 30px; padding: 0 12px; border: 0; border-radius: 6px; background: var(--ink); color: var(--card); font-size: 12px; font-weight: 500">Add</button>
                 </div>
                 <sc-if value="{{hasRefError}}" hint-placeholder-val="{{ false }}">
                   <span style="font-size: 12px; color: #A3271B">{{refError}}</span>
@@ -1728,13 +1732,13 @@ const RING_ON = '; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #2A4BD7';
 function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
 function segStyle(active) {
   return active
-    ? 'background: #FFFFFF; color: #17181C; font-weight: 500; box-shadow: 0 1px 2px rgba(23,24,28,0.12)'
-    : 'background: transparent; color: #4A4D55';
+    ? 'background: var(--card); color: var(--ink); font-weight: 500; box-shadow: 0 1px 2px rgba(23,24,28,0.12)'
+    : 'background: transparent; color: var(--ink2)';
 }
 function pillStyle(active) {
   return active
-    ? 'background: #17181C; color: #FFFFFF; border-color: #17181C'
-    : 'background: #FFFFFF; color: #3F4148; border-color: #DADAD3';
+    ? 'background: var(--ink); color: var(--card); border-color: var(--ink)'
+    : 'background: var(--card); color: var(--ink2); border-color: var(--rule)';
 }
 function otherDim(key) {
   if (key === 'x') return 'y';
@@ -2658,7 +2662,7 @@ class Component extends DCLogic {
     const cells = depthCells(rows, values).map((d) => ({
       left: 'calc((100% - ' + dividerPx + 'px) * ' + (+d.x.toFixed(5)) + ' + ' + (8 * d.topIndex) + 'px)',
       width: 'calc((100% - ' + dividerPx + 'px) * ' + (+d.w.toFixed(5)) + ' - 1px)',
-      top: d.row * DEPTH_ROW, height: DEPTH_ROW - 2, bg: colorFor(d.v, meta),
+      top: d.row * DEPTH_ROW, height: DEPTH_ROW - 2, bg: colorFor(d.v, meta), fg: textOn(colorFor(d.v, meta)),
       title: d.node.text + ' (' + val(d.v) + ')', text: d.w > 0.05 ? d.node.text : '',
       op: fadeFor(m, d.node.slug), isChosen: s.chosen.includes(d.node.slug), pressed: String(s.chosen.includes(d.node.slug)),
       menu: (e) => { if (e.ctrlKey) e.preventDefault(); },
@@ -2826,7 +2830,7 @@ class Component extends DCLogic {
         expanded: !collapsed,
         hiddenLabel: unloaded ? '↧' : String(Math.min(99, descendants(nodes, n.id).length)),
         toggleAria: unloaded ? 'Load ' + n.source : (collapsed ? 'Expand ' : 'Collapse ') + (n.title || 'New idea') + (collapsed ? ' (' + descendants(nodes, n.id).length + ' hidden)' : ''),
-        toggleStyle: hiddenMatch ? 'background: #E0A800; color: var(--ink); border: 1.5px solid #E0A800' : (collapsed ? 'background: var(--ink); color: #FFFFFF; border: 1.5px solid var(--ink)' : 'background: var(--card); color: var(--ink2); border: 1.5px solid #9A9CA2'),
+        toggleStyle: hiddenMatch ? 'background: #E0A800; color: var(--ink); border: 1.5px solid #E0A800' : (collapsed ? 'background: var(--ink); color: var(--card); border: 1.5px solid var(--ink)' : 'background: var(--card); color: var(--ink2); border: 1.5px solid #9A9CA2'),
         toggle: () => (unloaded ? this.loadRef(n.parent, n.source) : this.toggleMapNode(n.id)),
         select: () => this.setState({ currentId: n.id }),
         addVis: n.readOnly ? 'visibility: hidden' : 'visibility: visible',
@@ -2962,7 +2966,7 @@ class Component extends DCLogic {
         const kids = childrenOf(nodes, n.id);
         const open = kids.length > 0 && isOpen(n.id);
         const selected = n.id === cur.id;
-        let iconFill = '#EDEDE8';
+        let iconFill = 'var(--rule)';
         if (colorKey !== null) { const e = effective(nodes, n.id, colorKey); if (e.v !== null) iconFill = colorFor(e.v, meta); }
         const look = tagLook(n.tags, looks);
         const vx = effective(nodes, n.id, 'x').v;
@@ -3175,7 +3179,7 @@ class Component extends DCLogic {
       prevMatch: () => this.goMatch(-1),
       filterOpen: s.filterOpen,
       toggleFilter: () => this.setState({ filterOpen: !s.filterOpen }),
-      filterBtnStyle: s.filterOpen ? 'background: var(--ink); color: #FFFFFF; border-color: var(--ink)' : (s.filterTags.length ? 'background: #E9EDFB; color: #1C3399; border-color: #9DB0EA' : 'background: var(--card); color: var(--ink2); border-color: var(--rule)'),
+      filterBtnStyle: s.filterOpen ? 'background: var(--ink); color: var(--card); border-color: var(--ink)' : (s.filterTags.length ? 'background: #E9EDFB; color: #1C3399; border-color: #9DB0EA' : 'background: var(--card); color: var(--ink2); border-color: var(--rule)'),
       hasTagFilter: s.filterTags.length > 0,
       filterCount: String(s.filterTags.length),
       filterChips: Object.keys(s.tagStyles).sort().map((t) => {

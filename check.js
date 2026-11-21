@@ -960,6 +960,15 @@ test('compare never loads refs', () => {
   assert.equal(c.fetches.length, 0);
 });
 
+// ---------------------------------------------------------------- examples
+test('examples parse and round-trip', () => {
+  for (const f of ['examples/votes-at-16/map.md', 'examples/votes-at-16/obi.md', 'examples/event-store/map.md']) {
+    const text = fs.readFileSync(f, 'utf8');
+    const m = parseMap(text);
+    assert.equal(serializeMap(m), text, f);
+  }
+});
+
 (async () => {
   for (const { name, fn } of queue) {
     try { await fn(); passed++; } catch (e) { failed++; console.error(`FAIL ${name}\n  ${e.message}`); }

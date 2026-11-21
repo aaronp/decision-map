@@ -21,7 +21,7 @@ deploy to github-pages"? Add your branch under Settings → Environments →
 github-pages → Deployment branches and tags.
 
 Your site redirects to the mapper with `?src=` pointing at your `map.md`.
-Any query params you add are passed on, e.g. `?view=pie`, `?focus=pay-tax`,
+Any query params you add are passed on, e.g. `?view=pie`,
 `?theme=night` or `?theirs=obi.md`.
 
 No Pages? Link straight to the raw file:
