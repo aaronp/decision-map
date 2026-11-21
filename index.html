@@ -624,14 +624,6 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
                 <sc-if value="{{hasRefError}}" hint-placeholder-val="{{ false }}">
                   <span style="font-size: 12px; color: #A3271B">{{refError}}</span>
                 </sc-if>
-                <sc-if value="{{hasSampleRefs}}" hint-placeholder-val="{{ true }}">
-                  <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
-                    <span style="font-size: 11.5px; color: var(--ink2)">Sample maps:</span>
-                    <sc-for list="{{sampleRefs}}" as="m" hint-placeholder-count="2">
-                      <button class="ghost" onClick="{{m.add}}" style="height: 26px; padding: 0 8px; border: 1px dashed #CFCFC8; border-radius: 999px; background: transparent; font-family: 'JetBrains Mono', monospace; font-size: 11px">+ {{m.short}}</button>
-                    </sc-for>
-                  </div>
-                </sc-if>
               </div>
             </sc-if>
           </div>
@@ -768,35 +760,6 @@ function startState() {
   return { ...applyMeta(meta), nodes, currentId: root.id, dirOpen: { [root.id]: true }, selectedTag: Object.keys(meta.tagStyles)[0] ?? null };
 }
 
-/* Stand-in for the network: the prototype resolves only these addresses. In the real app
-   loading is an IO edge (fetch) that hands text to the pure parseMap below. */
-const REF_LIBRARY = {
-  'https://maps.example.org/colour-theory.md': [
-    '# Colour theory',
-    'Choosing colours that separate branches and stay legible.',
-    '',
-    '- Hue {x:0.8 y:0.7}',
-    '  - Warm vs cool #visual',
-    '  - Complementary pairs {x:0.6 y:0.8}',
-    '- Contrast #core {x:0.9 y:0.9}',
-    '  - Text on fill {x:0.9 y:0.8}',
-    '- Palette size {x:0.5 y:0.5}'
-  ].join('\n'),
-  'https://maps.example.org/typography.md': [
-    '# Typography',
-    '- Case {x:0.7 y:0.4}',
-    '  - Sentence case {x:0.8 y:0.5}',
-    '  - Caps for the root only',
-    '- Weight by depth {x:0.6 y:0.6}',
-    '- Short labels #core {x:0.9 y:0.9}'
-  ].join('\n'),
-  'https://maps.example.org/broken.md': [
-    '# Broken on purpose',
-    '- Fine node',
-    '      - Indented three levels at once'
-  ].join('\n')
-};
-const SAMPLE_REFS = Object.keys(REF_LIBRARY);
 
 class MapParseError extends Error {
   constructor(line, message) { super('Line ' + line + ': ' + message); this.line = line; }
@@ -1008,26 +971,39 @@ function shortUrl(url) {
 }
 /* Own nodes plus, for every reference, a read-only "ref root" child and (once loaded) the
    referenced map's tree grafted beneath it. Ids are namespaced so they never collide. */
+/* Own nodes plus every ref, as read-only children. A loaded ref's own refs are refs again, loaded only when asked. */
 function composeGraph(nodes, refLoads) {
   const out = nodes.map((n) => ({ ...n, readOnly: false, kind: 'own', source: null, loadStatus: null }));
-  nodes.forEach((n) => n.refs.forEach((url) => {
+  const attach = (list) => list.forEach((n) => n.refs.forEach((url) => {
     const key = refKey(n.id, url);
     const load = key in refLoads ? refLoads[key] : null;
     const rid = 'ref:' + key;
     const tree = load !== null && load.status === 'loaded' ? load.tree : null;
-    out.push({
+    const added = [{
       id: rid, parent: n.id,
       title: tree ? tree.root.title : shortUrl(url),
       x: tree ? tree.root.x : null, y: tree ? tree.root.y : null,
-      tags: tree ? tree.root.tags : [], note: tree ? tree.root.note : '', refs: [],
+      tags: tree ? tree.root.tags : [], note: tree ? tree.root.note : '', refs: tree ? tree.root.refs : [],
       readOnly: true, kind: 'refRoot', source: url, loadStatus: load === null ? 'idle' : load.status
-    });
-    if (tree) tree.nodes.filter((m) => m !== tree.root).forEach((m) => out.push({
+    }];
+    if (tree) tree.nodes.filter((m) => m !== tree.root).forEach((m) => added.push({
       ...m, id: rid + '/' + m.id, parent: m.parent === tree.root.id ? rid : rid + '/' + m.parent,
-      refs: [], readOnly: true, kind: 'refNode', source: url, loadStatus: null
+      readOnly: true, kind: 'refNode', source: url, loadStatus: null
     }));
+    out.push(...added);
+    if (tree) attach(added);
   }));
+  attach(out.slice());
   return out;
+}
+/* True when url is already open at or above nodeId: the map a node came from, or the page's own ?src= map for own nodes. */
+function refCycle(graph, nodeId, url, rootSource = null) {
+  let n = byId(graph, nodeId);
+  for (;;) {
+    if ((n.source ?? rootSource) === url) return true;
+    if (n.parent === null) return false;
+    n = byId(graph, n.parent);
+  }
 }
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 3;
@@ -1554,23 +1530,24 @@ class Component extends DCLogic {
     const c = this.state.currentId;
     return c.startsWith(rid + '/') ? rid : c;
   }
-  loadRef(nodeId, url) {
+  /* Only ever called from a click on a ref (expand, Load or Retry): nothing else may fetch a map. */
+  async loadRef(nodeId, url) {
     const key = refKey(nodeId, url);
     const rid = 'ref:' + key;
-    this.setState({ refLoads: { ...this.state.refLoads, [key]: { status: 'loading' } }, currentId: this.currentOutside(rid) });
-    setTimeout(() => {
-      if (!this.state.nodes.some((n) => n.id === nodeId && n.refs.includes(url))) return;
-      let next;
-      if (!(url in REF_LIBRARY)) {
-        next = { status: 'error', error: 'No map found at this address. This prototype only resolves the sample maps.' };
-      } else {
-        try { next = { status: 'loaded', tree: parseMap(REF_LIBRARY[url]) }; }
-        catch (err) { if (!(err instanceof MapParseError)) throw err; next = { status: 'error', error: err.message }; }
-      }
-      const tagStyles = { ...this.state.tagStyles };
-      if (next.status === 'loaded') next.tree.nodes.forEach((m) => m.tags.forEach((t) => { if (!(t in tagStyles)) tagStyles[t] = NEW_TAG_STYLE; }));
-      this.setState({ refLoads: { ...this.state.refLoads, [key]: next }, tagStyles });
-    }, 450);
+    const put = (next) => super.setState((s) => ({ refLoads: { ...s.refLoads, [key]: next } }));
+    if (refCycle(this.graph(), nodeId, url, this.srcUrl)) { put({ status: 'error', error: 'This map is already open above here' }); return; }
+    super.setState((s) => ({ refLoads: { ...s.refLoads, [key]: { status: 'loading' } }, currentId: this.currentOutside(rid) }));
+    let next;
+    try { next = { status: 'loaded', tree: parseMap(await this.fetchMapText(url)) }; }
+    catch (err) { next = { status: 'error', error: String(err.message || err) }; }
+    if (!this.graph().some((n) => n.id === nodeId && n.refs.includes(url))) return;
+    put(next);
+  }
+  /* Tag looks for drawing: the map's own styles over those of any loaded refs. Ref styles are never saved. */
+  lookStyles() {
+    const out = {};
+    Object.values(this.state.refLoads).forEach((l) => { if (l.status === 'loaded') Object.assign(out, l.tree.meta.tagStyles); });
+    return { ...out, ...this.state.tagStyles };
   }
   unloadRef(nodeId, url) {
     const key = refKey(nodeId, url);
@@ -1692,6 +1669,7 @@ class Component extends DCLogic {
   renderVals() {
     const s = this.state;
     const meta = this.metaOf();
+    const looks = this.lookStyles();
     const theme = themeById(s.themeQ ?? s.theme);
     const nodes = this.graph();
     const root = rootOf(s.nodes);
@@ -1725,8 +1703,9 @@ class Component extends DCLogic {
       const p = pos[n.id];
       const isRoot = n.parent === null;
       const isCurrent = n.id === cur.id;
-      const kidCount = childrenOf(nodes, n.id).length;
-      const collapsed = kidCount > 0 && s.mapCollapsed[n.id] === true;
+      const unloaded = n.kind === 'refRoot' && (n.loadStatus === 'idle' || n.loadStatus === 'error');
+      const kidCount = unloaded ? 1 : childrenOf(nodes, n.id).length;
+      const collapsed = unloaded || (kidCount > 0 && s.mapCollapsed[n.id] === true);
       let scale = 1;
       if (sizeKey !== null && !isRoot) {
         const e = effective(nodes, n.id, sizeKey);
@@ -1749,7 +1728,7 @@ class Component extends DCLogic {
       } else {
         body = base0 + '; background: var(--card); color: var(--ink); border: ' + (p.depth === 1 ? '1.5px solid #17181C' : '1px solid #DADAD3');
       }
-      const look = tagLook(n.tags, s.tagStyles);
+      const look = tagLook(n.tags, looks);
       body = body + look.css;
       opacity = opacity * look.opacity * fadeFor(m, n.id);
       if (m.on && m.set.has(n.id) && !isCurrent) body = body + '; box-shadow: 0 0 0 3px #FFFFFF, 0 0 0 5px #E0A800';
@@ -1776,10 +1755,10 @@ class Component extends DCLogic {
         hasKids: kidCount > 0,
         collapsed,
         expanded: !collapsed,
-        hiddenLabel: String(Math.min(99, descendants(nodes, n.id).length)),
-        toggleAria: (collapsed ? 'Expand ' : 'Collapse ') + (n.title || 'New idea') + (collapsed ? ' (' + descendants(nodes, n.id).length + ' hidden)' : ''),
+        hiddenLabel: unloaded ? '↧' : String(Math.min(99, descendants(nodes, n.id).length)),
+        toggleAria: unloaded ? 'Load ' + n.source : (collapsed ? 'Expand ' : 'Collapse ') + (n.title || 'New idea') + (collapsed ? ' (' + descendants(nodes, n.id).length + ' hidden)' : ''),
         toggleStyle: hiddenMatch ? 'background: #E0A800; color: var(--ink); border: 1.5px solid #E0A800' : (collapsed ? 'background: var(--ink); color: #FFFFFF; border: 1.5px solid var(--ink)' : 'background: var(--card); color: var(--ink2); border: 1.5px solid #9A9CA2'),
-        toggle: () => this.toggleMapNode(n.id),
+        toggle: () => (unloaded ? this.loadRef(n.parent, n.source) : this.toggleMapNode(n.id)),
         select: () => this.setState({ currentId: n.id }),
         addVis: n.readOnly ? 'visibility: hidden' : 'visibility: visible',
         addChild: () => this.addChild(n.id),
@@ -1901,7 +1880,7 @@ class Component extends DCLogic {
     const curTags = cur.tags.map((t) => ({
       label: '#' + t,
       aria: 'Remove tag ' + t + ' from this node',
-      chip: chipStyle(tagStyleOf(s.tagStyles, t)),
+      chip: chipStyle(tagStyleOf(looks, t)),
       removable: editable,
       remove: () => this.patchNode(cur.id, { tags: cur.tags.filter((x) => x !== t) })
     }));
@@ -1916,7 +1895,7 @@ class Component extends DCLogic {
         const selected = n.id === cur.id;
         let iconFill = '#EDEDE8';
         if (colorKey !== null) { const e = effective(nodes, n.id, colorKey); if (e.v !== null) iconFill = colorFor(e.v, meta); }
-        const look = tagLook(n.tags, s.tagStyles);
+        const look = tagLook(n.tags, looks);
         const vx = effective(nodes, n.id, 'x').v;
         const vy = effective(nodes, n.id, 'y').v;
         const statusSuffix = n.loadStatus === 'loading' ? ' · loading…' : (n.loadStatus === 'error' ? ' · failed' : '');
@@ -1937,7 +1916,7 @@ class Component extends DCLogic {
           iconStyle: 'fill: ' + (n.kind === 'refRoot' ? 'none' : iconFill) + '; stroke: ' + (n.readOnly ? '#2A4BD7' : '#4A4D55'),
           label: (n.kind === 'refRoot' ? '↗ ' : '') + (n.title || 'New idea') + statusSuffix,
           tagDots: n.tags.map((t) => {
-            const st = tagStyleOf(s.tagStyles, t);
+            const st = tagStyleOf(looks, t);
             return { name: '#' + t, style: 'background: ' + (st.fill === null ? '#FFFFFF' : st.fill) + '; border: 1.5px ' + st.borderStyle + ' ' + (st.border === null ? '#CFCFC8' : st.border) };
           }),
           hasTags: n.tags.length > 0,
@@ -2097,8 +2076,6 @@ class Component extends DCLogic {
       refDraftEmpty: s.refDraft.trim().length === 0,
       refError: s.refError,
       hasRefError: s.refError.length > 0,
-      sampleRefs: editable ? SAMPLE_REFS.filter((u) => !cur.refs.includes(u)).map((u) => ({ short: shortUrl(u), add: () => this.addRef(cur.id, u) })) : [],
-      hasSampleRefs: editable && SAMPLE_REFS.some((u) => !cur.refs.includes(u)),
       removeLabel: curDesc > 0 ? 'Remove branch (' + (curDesc + 1) + ')' : 'Remove',
       addChildCur: () => this.addChild(cur.id),
       removeCur: () => this.remove(cur.id),

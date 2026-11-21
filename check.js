@@ -435,6 +435,89 @@ test('the Open panel renders with saved maps', () => {
   assert.equal(v.savedRows.length, 1);
 });
 
+// ---------------------------------------------------------------- refs
+const REFMAP = '# Mine\n- Child\n  @ https://a.org/theirs.md\n';
+function refBoot(texts) {
+  const c = boot(REFMAP);
+  c.fetches = [];
+  c.fetchMapText = async (url) => { c.fetches.push(url); if (!(url in texts)) throw new Error(url + ': HTTP 404'); return texts[url]; };
+  return c;
+}
+const childId = (c) => c.state.nodes[1].id;
+
+test('a ref loads only when asked', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs #theirs\n- T1\n' });
+  for (const layout of ['radial', 'tree', 'directory']) { c.setState({ layout }); c.renderVals(); }
+  c.setState({ q: 'T1', searchOpen: true }); c.renderVals();
+  c.currentText();
+  assert.equal(c.fetches.length, 0);
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, 1);
+  assert.deepEqual(c.graph().map((n) => n.title), ['Mine', 'Child', 'Theirs', 'T1']);
+});
+
+test('refs inside a loaded ref are refs too, and load only when asked', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n  @ https://b.org/deeper.md\n', 'https://b.org/deeper.md': '# Deeper\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  const t1 = c.graph().find((n) => n.title === 'T1');
+  assert.deepEqual(t1.refs, ['https://b.org/deeper.md']);
+  const inner = c.graph().find((n) => n.kind === 'refRoot' && n.source === 'https://b.org/deeper.md');
+  assert.equal(inner.loadStatus, 'idle');
+  assert.equal(c.fetches.length, 1);
+  await c.loadRef(t1.id, 'https://b.org/deeper.md');
+  assert.ok(c.graph().some((n) => n.title === 'Deeper'));
+});
+
+test('a cycle never fetches', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n  @ https://a.org/theirs.md\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  const t1 = c.graph().find((n) => n.title === 'T1');
+  await c.loadRef(t1.id, 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, 1);
+  const r = c.graph().find((n) => n.parent === t1.id && n.kind === 'refRoot');
+  assert.equal(r.loadStatus, 'error');
+  assert.equal(c.state.refLoads[t1.id + ' https://a.org/theirs.md'].error, 'This map is already open above here');
+});
+
+test('a ref to the open map itself never fetches', async () => {
+  const c = refBoot({});
+  c.srcUrl = 'https://a.org/theirs.md';
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.equal(c.fetches.length, 0);
+  assert.equal(c.state.refLoads[childId(c) + ' https://a.org/theirs.md'].status, 'error');
+});
+
+test('a broken ref shows the line error', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# R\n      - bad' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.ok(c.state.refLoads[childId(c) + ' https://a.org/theirs.md'].error.startsWith('Line 2:'));
+});
+
+test('ref tag styles stay out of the file, and loading a ref is not an edit', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '---\ntag.theirs: fill #F6DADA; border none solid; opacity 1\n---\n# Theirs #theirs\n- T1 #other\n' });
+  await c.loadRef(childId(c), 'https://a.org/theirs.md');
+  assert.doesNotMatch(c.currentText(), /tag\.theirs|tag\.other/);
+  assert.equal(c.state.dirty, false);
+  assert.equal(c.state.history.past.length, 0);
+  for (const layout of ['radial', 'tree', 'directory']) { c.setState({ layout, currentId: c.graph().find((n) => n.title === 'T1').id }); assert.deepEqual(unresolved(c.renderVals(), c), [], layout); }
+});
+
+test('expanding an unloaded ref on the map loads it', async () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n- T1\n' });
+  const node = c.renderVals().nodes.find((n) => n.title.includes('theirs'));
+  assert.equal(node.hasKids, true);
+  assert.equal(node.collapsed, true);
+  await node.toggle();
+  assert.equal(c.fetches.length, 1);
+  assert.ok(c.graph().some((n) => n.title === 'T1'));
+});
+
+test('the share link of a ref is decoded, not fetched', async () => {
+  const c = boot(SMALL);
+  const link = 'https://elsewhere.org/app/#m=' + await app.encodeShare('# Shared\n');
+  assert.equal(await c.fetchMapText(link), '# Shared\n');
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
