@@ -964,7 +964,7 @@ test('compare never loads refs', () => {
 
 // ---------------------------------------------------------------- examples
 test('examples parse and round-trip', () => {
-  for (const f of ['examples/votes-at-16/map.md', 'examples/votes-at-16/obi.md', 'examples/event-store/map.md']) {
+  for (const f of ['examples/votes-at-16/map.md', 'examples/votes-at-16/obi.md', 'examples/event-store/map.md', 'examples/demo/sam.md', 'examples/demo/priya.md']) {
     const text = fs.readFileSync(f, 'utf8');
     const m = parseMap(text);
     assert.equal(serializeMap(m), text, f);
@@ -1067,6 +1067,15 @@ test('every view renders with the drawer in either place', () => {
       if (layout !== 'directory') assert.equal(v.panelBox.includes('flex: 0 0 400px'), drawer === 'right', drawer + ' ' + layout);
     }
   }
+});
+
+test('the demo pair shows every kind of difference Compare has', () => {
+  const read = (f) => graphOf(fs.readFileSync(f, 'utf8'));
+  const meta = parseMap(fs.readFileSync('examples/demo/sam.md', 'utf8')).meta;
+  const rows = app.compareMaps(read('examples/demo/sam.md'), read('examples/demo/priya.md'), meta);
+  const kinds = new Set(rows.map((r) => (r.only ? 'only ' + r.only : r.flipped ? 'flipped' : r.changed ? 'changed' : 'same')));
+  assert.deepEqual([...kinds].sort(), ['changed', 'flipped', 'only a', 'only b', 'same']);
+  assert.ok(rows.some((r) => r.only === 'a' && r.path.split(' / ').length === 3), 'a nested node only in A');
 });
 
 (async () => {

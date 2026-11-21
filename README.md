@@ -109,7 +109,7 @@ Paper, Slate, Night and High contrast, under Settings → Theme. The theme is sa
 
 A URL must allow cross-origin requests (GitHub Pages and raw.githubusercontent.com do).
 
-Try `?src=examples/votes-at-16/map.md&theirs=examples/votes-at-16/obi.md`.
+Try `?src=examples/votes-at-16/map.md&theirs=examples/votes-at-16/obi.md`. For a pair made to show off Compare (changed scores, values that flip, and branches on one side only), try `?src=examples/demo/sam.md&theirs=examples/demo/priya.md&view=compare`.
 
 ## Run it
 
@@ -125,4 +125,5 @@ Pushing to `main` or `master` publishes the page to GitHub Pages (`.github/workf
 ## Examples
 
 - `examples/votes-at-16` is a slim data repo: two maps and an `index.html` that redirects to the published app with `?src=` pointing at it. `make clone REPO=you/your-repo` there copies it into a new repo.
+- `examples/demo` holds two people's answers to one question, Sam's and Priya's, for trying Compare.
 - `examples/event-store/map.md` is a decision laid out as a tree: goals, criteria under them, and options scored under each criterion.
