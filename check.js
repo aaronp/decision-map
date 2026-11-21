@@ -185,6 +185,68 @@ test('a loaded ref adds its nodes once, under the ref root', () => {
   assert.deepEqual(g.map((n) => n.title), ['R', 'Theirs', 'T1']);
 });
 
+// ---------------------------------------------------------------- undo and redo
+const key = (props) => ({ key: 'z', metaKey: true, ctrlKey: false, shiftKey: false, target: {}, preventDefault() {}, ...props });
+
+test('undo and redo cover nodes and meta', () => {
+  const c = boot(SMALL);
+  const start = c.state.nodes;
+  const a = c.state.nodes[1].id;
+  c.patchNode(a, { title: 'Renamed' });
+  c.setState({ dims: { ...c.state.dims, x: 'Cost' } });
+  c.addChild(a);
+  assert.equal(c.state.nodes.length, 5);
+  c.undo(); c.undo(); c.undo();
+  assert.equal(c.state.nodes, start);
+  assert.equal(c.state.dims.x, 'Importance');
+  c.redo(); c.redo(); c.redo();
+  assert.equal(c.state.nodes.length, 5);
+  assert.equal(c.state.nodes[1].title, 'Renamed');
+  assert.equal(c.state.dims.x, 'Cost');
+});
+
+test('a drag is one step', () => {
+  const c = boot(SMALL);
+  const a = c.state.nodes[1].id;
+  for (const x of [0.1, 0.2, 0.3]) c.edit((s) => ({ nodes: s.nodes.map((n) => (n.id === a ? { ...n, x } : n)) }), 'drag');
+  c.endStep();
+  assert.equal(c.state.nodes[1].x, 0.3);
+  c.undo();
+  assert.equal(c.state.nodes[1].x, 0.5);
+  assert.equal(c.state.history.past.length, 0);
+});
+
+test('typing merges into one step, and the next kind of edit is its own step', () => {
+  const c = boot(SMALL);
+  const a = c.state.nodes[1].id;
+  c.patchNode(a, { title: 'B' }, 'title:' + a);
+  c.patchNode(a, { title: 'Bo' }, 'title:' + a);
+  c.addChild(a);
+  c.undo();
+  assert.equal(c.state.nodes.length, 4);
+  assert.equal(c.state.nodes[1].title, 'Bo');
+  c.undo();
+  assert.equal(c.state.nodes[1].title, 'A');
+});
+
+test('an edit marks the map changed', () => {
+  const c = boot(SMALL);
+  assert.equal(c.state.dirty, false);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  assert.equal(c.state.dirty, true);
+});
+
+test('⌘Z and ⌘⇧Z, but not in a text field', () => {
+  const c = boot(SMALL);
+  c.patchNode(c.state.nodes[1].id, { title: 'X' });
+  c.onGlobalKey(key({ target: { tagName: 'INPUT', type: 'text' } }));
+  assert.equal(c.state.nodes[1].title, 'X');
+  c.onGlobalKey(key());
+  assert.equal(c.state.nodes[1].title, 'A');
+  c.onGlobalKey(key({ shiftKey: true }));
+  assert.equal(c.state.nodes[1].title, 'X');
+});
+
 Promise.all(pending).then(() => {
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);

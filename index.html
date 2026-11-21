@@ -85,6 +85,11 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
       </button>
     </div>
 
+    <div style="display: flex; align-items: center; gap: 2px">
+      <button class="ghost" onClick="{{onUndo}}" disabled="{{noUndo}}" aria-label="Undo" title="Undo (⌘Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: #3F4148; opacity: {{undoOpacity}}">↶</button>
+      <button class="ghost" onClick="{{onRedo}}" disabled="{{noRedo}}" aria-label="Redo" title="Redo (⌘⇧Z)" style="width: 34px; height: 34px; border: 0; border-radius: 50%; background: transparent; font-size: 17px; color: #3F4148; opacity: {{redoOpacity}}">↷</button>
+    </div>
+
     <button onClick="{{toggleSettings}}" aria-expanded="{{settingsOpen}}" style="display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 14px 0 12px; border: 1px solid; border-radius: 999px; font-size: 13px; font-weight: 500; {{settingsBtnStyle}}">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Settings
     </button>
@@ -600,6 +605,9 @@ function schemeById(id) {
 function newMapText() {
   return '# What are you deciding?\n';
 }
+/* State keys that undo covers: the nodes and every setting saved in front matter. */
+const HISTORY_KEYS = ['nodes', 'dims', 'colorDim', 'colorMode', 'colorLeft', 'colorRight', 'reverse', 'theme', 'tagStyles'];
+function historyEntry(s) { return Object.fromEntries(HISTORY_KEYS.map((k) => [k, s[k]])); }
 /* The map settings kept in state, as written to front matter. */
 function applyMeta(meta) {
   return { dims: meta.dims, colorDim: meta.colorDim, colorMode: meta.colorMode, colorLeft: meta.colorLeft, colorRight: meta.colorRight,
@@ -1067,10 +1075,16 @@ class Component extends DCLogic {
     lastChild: {},
     vw: 1200,
     vh: 820,
+    history: { past: [], future: [], step: null },
+    dirty: false,
     ...startState()
   };
   drag = null;
+  step = null;
+  travelling = false;
   observer = null;
+  keyHandler = (e) => this.onGlobalKey(e);
+  componentDidMount() { window.addEventListener('keydown', this.keyHandler); }
   didInitialFit = false;
 
   setCanvas = (el) => {
@@ -1087,7 +1101,7 @@ class Component extends DCLogic {
     });
     this.observer.observe(el);
   };
-  componentWillUnmount() { if (this.observer) this.observer.disconnect(); }
+  componentWillUnmount() { if (this.observer) this.observer.disconnect(); window.removeEventListener('keydown', this.keyHandler); }
 
   segs(options, current, pick) {
     return options.map((o) => ({ label: o.label, pressed: o.value === current, style: segStyle(o.value === current), pick: () => pick(o.value) }));
@@ -1177,9 +1191,58 @@ class Component extends DCLogic {
     const ratio = zoom / s.zoom;
     this.setState({ zoom, pan: { x: s.pan.x * ratio, y: s.pan.y * ratio } });
   }
-  patchNode(id, patch) {
+  patchNode(id, patch, step = null) {
     byId(this.state.nodes, id);
-    this.setState({ nodes: this.state.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) });
+    this.edit((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)) }), step);
+  }
+
+  /* Every change to the map or its settings goes through setState, which records the state before it for undo.
+     Changes with the same step key (one drag, one run of typing) make one undo entry; endStep() closes it. */
+  setState(update, done) {
+    const step = this.step;
+    const travelling = this.travelling;
+    super.setState((s) => {
+      const p = typeof update === 'function' ? update(s) : update;
+      if (!p || travelling || !HISTORY_KEYS.some((k) => k in p && p[k] !== s[k])) return p;
+      const h = s.history;
+      const history = step !== null && h.step === step ? h : { past: [...h.past, historyEntry(s)].slice(-200), future: [], step };
+      return { ...p, history, dirty: true };
+    }, done);
+  }
+  edit(fn, step = null) {
+    this.step = step;
+    this.setState(fn);
+    this.step = null;
+  }
+  endStep() {
+    this.step = null;
+    if (this.state.history.step !== null) super.setState((s) => ({ history: { ...s.history, step: null } }));
+  }
+  undo() { this.travel('past'); }
+  redo() { this.travel('future'); }
+  travel(from) {
+    this.step = null;
+    const h = this.state.history;
+    if (h[from].length === 0) return;
+    const at = from === 'past' ? h.past[h.past.length - 1] : h.future[0];
+    const here = historyEntry(this.state);
+    const history = from === 'past'
+      ? { past: h.past.slice(0, -1), future: [here, ...h.future], step: null }
+      : { past: [...h.past, here], future: h.future.slice(1), step: null };
+    const known = new Set(at.nodes.map((n) => n.id));
+    this.travelling = true;
+    this.setState((s) => ({ ...at, history, dirty: true, currentId: known.has(s.currentId) ? s.currentId : rootOf(at.nodes).id }));
+    this.travelling = false;
+  }
+  // ⌘Z / Ctrl+Z undoes and with Shift redoes, except in a text field, where the browser's own undo applies.
+  onGlobalKey(e) {
+    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
+    const t = e.target || {};
+    const tag = String(t.tagName || '').toUpperCase();
+    const textField = tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable === true || (tag === 'INPUT' && !['range', 'checkbox', 'radio', 'button', 'submit', 'color'].includes(String(t.type || 'text').toLowerCase()));
+    if (textField) return;
+    e.preventDefault();
+    if (e.shiftKey) this.redo(); else this.undo();
   }
   addChild(parentId) {
     byId(this.state.nodes, parentId);
@@ -1431,7 +1494,7 @@ class Component extends DCLogic {
         select: () => this.setState({ currentId: n.id }),
         addVis: n.readOnly ? 'visibility: hidden' : 'visibility: visible',
         addChild: () => this.addChild(n.id),
-        onTitle: (e) => this.patchNode(n.id, { title: e.target.value }),
+        onTitle: (e) => this.patchNode(n.id, { title: e.target.value }, 'title:' + n.id),
         onFocus: (e) => e.target.select(),
         onKey: (e) => this.handleKey(e, n)
       };
@@ -1464,7 +1527,7 @@ class Component extends DCLogic {
         clear: () => this.patchNode(cur.id, { [key]: null }),
         barW: eff.v === null ? '0%' : Math.round(eff.v * 100) + '%',
         barFill: eff.derived ? 'repeating-linear-gradient(135deg, #2A4BD7 0 3px, #E3E8FB 3px 6px)' : '#2A4BD7',
-        onRange: (e) => this.patchNode(cur.id, { [key]: Number(e.target.value) }),
+        onRange: (e) => this.patchNode(cur.id, { [key]: Number(e.target.value) }, 'range:' + key + cur.id),
       };
     });
     const refStatus = {
@@ -1613,6 +1676,12 @@ class Component extends DCLogic {
       rootTitle: root.title,
       nodeCount: String(s.nodes.length),
       dims: s.dims,
+      onUndo: () => this.undo(),
+      onRedo: () => this.redo(),
+      noUndo: s.history.past.length === 0,
+      noRedo: s.history.future.length === 0,
+      undoOpacity: s.history.past.length === 0 ? 0.35 : 1,
+      redoOpacity: s.history.future.length === 0 ? 0.35 : 1,
       onDimX: (e) => this.setState({ dims: { ...s.dims, x: e.target.value } }),
       onDimY: (e) => this.setState({ dims: { ...s.dims, y: e.target.value } }),
       layout: s.layout,
@@ -1630,7 +1699,7 @@ class Component extends DCLogic {
         : 'position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(860px, calc(100% - 32px)); max-height: calc(100% - 96px); border: 1px solid #E4E4DF; border-radius: 16px; box-shadow: 0 10px 30px rgba(23,24,28,0.08); padding: 14px 16px 12px; gap: 14px',
       panelTitleStyle: isDir ? 'font-size: 26px; font-weight: 650' : 'font-size: 15px; font-weight: 600',
       curTitle: cur.title,
-      onCurTitle: (e) => this.patchNode(cur.id, { title: e.target.value }),
+      onCurTitle: (e) => this.patchNode(cur.id, { title: e.target.value }, 'title:' + cur.id),
       dirRows,
       onDirKey: (e) => this.handleDirKey(e, dirRows),
       expandAll: () => { const open = {}; nodes.forEach((n) => { if (childrenOf(nodes, n.id).length) open[n.id] = true; }); this.setState({ dirOpen: open }); },
@@ -1703,7 +1772,7 @@ class Component extends DCLogic {
       curNote: cur.note,
       curHasNote: cur.readOnly && cur.note.length > 0,
       curNoNote: cur.readOnly && cur.note.length === 0,
-      onNote: (e) => this.patchNode(cur.id, { note: e.target.value }),
+      onNote: (e) => this.patchNode(cur.id, { note: e.target.value }, 'note:' + cur.id),
       curRefs,
       refDraft: s.refDraft,
       onRefDraft: (e) => this.setState({ refDraft: e.target.value, refError: '' }),
