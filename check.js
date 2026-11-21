@@ -23,15 +23,9 @@ const { Component, parseMap, serializeMap, DEFAULT_META, newMapText } = app;
 
 let failed = 0;
 let passed = 0;
-const pending = [];
-function test(name, fn) {
-  const fail = (e) => { failed++; console.error(`FAIL ${name}\n  ${e.message}`); };
-  try {
-    const r = fn();
-    if (r && typeof r.then === 'function') pending.push(r.then(() => { passed++; }, fail));
-    else passed++;
-  } catch (e) { fail(e); }
-}
+// Tests run one at a time, in order, so async ones can't see each other's changes to location or window.
+const queue = [];
+function test(name, fn) { queue.push({ name, fn }); }
 
 function boot(text) {
   window.TREE_START = text === undefined ? undefined : { text };
@@ -882,7 +876,94 @@ test('ref slices are read-only', async () => {
   assert.equal(sliceOf(c, 'T1').isChosen, false);
 });
 
-Promise.all(pending).then(() => {
+// ---------------------------------------------------------------- compare
+const graphOf = (text) => app.composeGraph(parseMap(text).nodes, {});
+const CA = '# Root\n- Alpha {x:0.5 y:0.2}\n  - Leaf {x:0.5 y:0.5}\n- Beta {x:0.5 y:0.6}\n- Gone {x:0.1 y:0.5}\n';
+const CB = '# Root\n- alpha {x:0.5 y:0.9}\n  - Leaf {x:0.5 y:0.45}\n- Beta {x:0.2 y:0.6}\n- New one {y:0.3}\n';
+
+test('titlePath: lower-cased title chain, same-named siblings kept apart', () => {
+  const g = graphOf('# R\n- Dup\n- dup \n  - X\n');
+  assert.deepEqual(g.map((n) => app.titlePath(g, n.id)), ['r', 'r / dup', 'r / dup #2', 'r / dup #2 / x']);
+});
+
+test('compare matches by title path, and lists nodes only on one side', () => {
+  const rows = app.compareMaps(graphOf(CA), graphOf(CB), DEFAULT_META);
+  const by = Object.fromEntries(rows.map((r) => [r.path, r]));
+  assert.equal(by['root / alpha'].only, null);
+  near(by['root / alpha'].dy, 0.7);
+  assert.equal(by['root / gone'].only, 'a');
+  assert.equal(by['root / new one'].only, 'b');
+  assert.equal(by['root / alpha / leaf'].changed, true);
+});
+
+test('compare rows: biggest difference first, then one-sided, then unchanged', () => {
+  const rows = app.compareMaps(graphOf(CA), graphOf(CB), DEFAULT_META);
+  assert.deepEqual(rows.map((r) => r.path), ['root / alpha', 'root / beta', 'root / alpha / leaf', 'root / gone', 'root / new one', 'root']);
+});
+
+test('flipped only in left/right mode, when the colour value crosses 0.5', () => {
+  const split = app.compareMaps(graphOf(CA), graphOf(CB), { ...DEFAULT_META, colorMode: 'split' });
+  assert.equal(split.find((r) => r.path === 'root / alpha').flipped, true);
+  assert.equal(split.find((r) => r.path === 'root / alpha / leaf').flipped, false);
+  const scale = app.compareMaps(graphOf(CA), graphOf(CB), DEFAULT_META);
+  assert.equal(scale.find((r) => r.path === 'root / alpha').flipped, false);
+});
+
+const cBoot = () => { const c = boot(CA); c.setState({ layout: 'compare' }); return c; };
+
+test('compare renders with no unresolved bindings, with and without B, on every tab', () => {
+  const c = cBoot();
+  assert.deepEqual(unresolved(c.renderVals(), c), []);
+  assert.equal(c.renderVals().cmp.hasB, false);
+  assert.equal(c.setB(CB, 'b.md'), true);
+  for (const t of c.renderVals().cmp.tabs) {
+    t.pick();
+    assert.deepEqual(unresolved(c.renderVals(), c), [], t.label);
+  }
+  assert.ok(c.renderVals().cmp.sankey.links.length > 0);
+});
+
+test('a broken B shows its error and keeps the old B', () => {
+  const c = cBoot();
+  c.setB(CB, 'b.md');
+  assert.equal(c.setB('# R\n      - bad', 'bad.md'), false);
+  assert.equal(c.state.mapB.name, 'b.md');
+  assert.ok(c.renderVals().cmp.error.startsWith('Line 2:'));
+});
+
+test('B can be the current map as it is now, or a saved map', async () => {
+  const c = cBoot();
+  c.renderVals().cmp.useCurrent();
+  assert.equal(c.state.mapB.name, 'Current map (copy)');
+  c.store = fakeStore([{ name: 'Saved', text: CB, updated: 1 }]);
+  await c.refreshSaved();
+  c.renderVals().cmp.savedB[0].pick();
+  assert.equal(c.state.mapB.name, 'Saved');
+});
+
+test('?theirs= loads B and opens Compare', async () => {
+  location.search = '?theirs=https://a.org/b.md';
+  const c = boot(CA);
+  c.store = fakeStore();
+  c.fetchMapText = async () => CB;
+  await c.start();
+  location.search = '';
+  assert.equal(c.state.layout, 'compare');
+  assert.equal(c.state.mapB.name, 'b.md');
+});
+
+test('compare never loads refs', () => {
+  const c = refBoot({ 'https://a.org/theirs.md': '# Theirs\n' });
+  c.setState({ layout: 'compare' });
+  c.setB(REFMAP, 'same.md');
+  for (const t of c.renderVals().cmp.tabs) { t.pick(); c.renderVals(); }
+  assert.equal(c.fetches.length, 0);
+});
+
+(async () => {
+  for (const { name, fn } of queue) {
+    try { await fn(); passed++; } catch (e) { failed++; console.error(`FAIL ${name}\n  ${e.message}`); }
+  }
   console.log(`${passed} passed, ${failed} failed`);
   if (failed) process.exit(1);
-});
+})();

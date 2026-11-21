@@ -62,6 +62,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           <option value="directory">Directory</option>
           <option value="questionnaire">Questionnaire</option>
           <option value="pie">Pie</option>
+          <option value="compare">Compare</option>
         </select>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A4D55" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position: absolute; right: 11px; pointer-events: none"><path d="m6 9 6 6 6-6"></path></svg>
       </span>
@@ -235,6 +236,83 @@ button:focus-visible,input:focus-visible{outline:2px solid #2A4BD7;outline-offse
           </sc-for>
         </div>
       </nav>
+    </sc-if>
+    <sc-if value="{{isCompare}}" hint-placeholder-val="{{ false }}">
+      <main aria-label="Compare" style="flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 18px 28px 40px; display: flex; flex-direction: column; gap: 16px">
+        <section style="display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; background: var(--card); border: 1px solid var(--rule); border-radius: 14px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; font-size: 14px">
+            <span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: #2A4BD7"></span><b>A</b> {{cmp.nameA}}</span>
+            <sc-if value="{{cmp.hasB}}" hint-placeholder-val="{{ true }}">
+              <span style="display: inline-flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box; border: 2.5px solid #B4500A"></span><b>B</b> {{cmp.nameB}}</span>
+              <span style="font-size: 12px; color: var(--ink2)">{{cmp.summary}}</span>
+            </sc-if>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+            <span style="font-size: 12px; font-weight: 600; color: var(--ink2)">Compare with</span>
+            <button class="ghost" onClick="{{cmp.useCurrent}}" title="A copy of this map as it is now, so you can change A and see the difference" style="height: 30px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 12px">This map, as it is now</button>
+            <label class="ghost" style="position: relative; display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 12px; cursor: pointer">A file…<input type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" onChange="{{cmp.onFiles}}" style="position: absolute; width: 1px; height: 1px; opacity: 0"></label>
+            <button class="ghost" onClick="{{cmp.loadSaved}}" style="height: 30px; padding: 0 12px; border: 1px solid var(--rule); border-radius: 999px; background: var(--card); font-size: 12px">Saved maps…</button>
+            <sc-for list="{{cmp.savedB}}" as="o" hint-placeholder-count="2">
+              <button onClick="{{o.pick}}" style="height: 30px; padding: 0 12px; border: 1px dashed var(--rule); border-radius: 999px; background: transparent; font-size: 12px">{{o.name}}</button>
+            </sc-for>
+            <input class="dim" type="url" placeholder="https://…/map.md or a share link" value="{{cmp.url}}" onChange="{{cmp.onUrl}}" onKeyDown="{{cmp.onUrlKey}}" aria-label="Map B URL or share link" style="flex: 1 1 220px; min-width: 0; height: 30px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--card); font-size: 12px">
+            <button onClick="{{cmp.goUrl}}" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: #2A4BD7; color: #FFFFFF; font-size: 12px; font-weight: 600">Open as B</button>
+          </div>
+          <sc-if value="{{cmp.hasError}}" hint-placeholder-val="{{ false }}">
+            <span role="alert" style="font-size: 12px; color: #A3271B; font-family: 'JetBrains Mono', monospace">{{cmp.error}}</span>
+          </sc-if>
+        </section>
+        <sc-if value="{{cmp.noB}}" hint-placeholder-val="{{ false }}">
+          <p style="margin: 0; font-size: 14px; color: var(--ink2)">Choose a map B to compare with this one. Nodes are matched by their titles from the root down.</p>
+        </sc-if>
+        <sc-if value="{{cmp.hasB}}" hint-placeholder-val="{{ true }}">
+          <div role="group" aria-label="Compare views" style="align-self: flex-start; display: flex; gap: 2px; padding: 2px; background: #EDEDE8; border-radius: 8px">
+            <sc-for list="{{cmp.tabs}}" as="t" hint-placeholder-count="3">
+              <button onClick="{{t.pick}}" aria-pressed="{{t.pressed}}" style="border: 0; border-radius: 6px; padding: 0 12px; height: 30px; font-size: 13px; {{t.style}}">{{t.label}}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{cmp.isTable}}" hint-placeholder-val="{{ true }}">
+            <div role="table" aria-label="Differences, biggest first" style="display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; overflow: hidden">
+              <div role="row" style="display: grid; grid-template-columns: minmax(0, 1fr) 96px 130px 130px; gap: 10px; padding: 8px 14px; font-size: 11.5px; font-weight: 600; color: var(--ink2); border-bottom: 1px solid var(--rule)">
+                <span>Node</span><span></span><span>{{cmp.dimX}} A → B</span><span>{{cmp.dimY}} A → B</span>
+              </div>
+              <sc-for list="{{cmp.rows}}" as="r" hint-placeholder-count="5">
+                <button role="row" class="ghost" onClick="{{r.open}}" title="{{r.path}}" style="display: grid; grid-template-columns: minmax(0, 1fr) 96px 130px 130px; gap: 10px; align-items: center; padding: 8px 14px; border: 0; border-bottom: 1px solid var(--rule); background: transparent; text-align: left; font-size: 13px; opacity: {{r.dim}}">
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
+                  <span style="justify-self: start; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; {{r.badgeStyle}}">{{r.badge}}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{r.xa}} → {{r.xb}} <b style="font-weight: 600">{{r.dx}}</b></span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{r.ya}} → {{r.yb}} <b style="font-weight: 600">{{r.dy}}</b></span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{cmp.isStructure}}" hint-placeholder-val="{{ false }}">
+            <div aria-label="Both maps as one tree" style="display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 6px">
+              <sc-for list="{{cmp.structure}}" as="r" hint-placeholder-count="6">
+                <button class="ghost" onClick="{{r.open}}" title="{{r.path}}" style="display: flex; align-items: center; gap: 10px; min-height: 32px; padding: 0 8px 0 {{r.indent}}; border: 0; border-radius: 6px; background: transparent; text-align: left; font-size: 13px; opacity: {{r.dim}}">
+                  <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</span>
+                  <span style="flex: 0 0 auto; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; {{r.badgeStyle}}">{{r.badge}}</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{cmp.isSankey}}" hint-placeholder-val="{{ false }}">
+            <section aria-label="Sankey" style="display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: var(--card); border: 1px solid var(--rule); border-radius: 12px">
+              <span style="font-size: 12px; color: var(--ink2)">Each side splits by size share; the finest points meet in the middle when their titles match. Orange: changed. Dashed: on one side only.</span>
+              <div style="overflow-x: auto">
+                <svg viewBox="{{cmp.sankey.viewBox}}" role="img" aria-label="Sankey of A against B" style="width: 100%; min-width: 760px; height: auto; display: block">
+                  <sc-for list="{{cmp.sankey.links}}" as="l" hint-placeholder-count="6">
+                    <path d="{{l.d}}" style="fill: {{l.fill}}; fill-opacity: {{l.op}}; stroke: {{l.stroke}}; stroke-dasharray: {{l.dash}}"><title>{{l.title}}</title></path>
+                  </sc-for>
+                  <sc-for list="{{cmp.sankey.bars}}" as="b" hint-placeholder-count="6">
+                    <rect x="{{b.x}}" y="{{b.y}}" width="{{b.w}}" height="{{b.h}}" rx="2" style="fill: {{b.fill}}; stroke: var(--ink); stroke-width: 0.5"><title>{{b.title}}</title></rect>
+                  </sc-for>
+                </svg>
+              </div>
+            </section>
+          </sc-if>
+        </sc-if>
+      </main>
     </sc-if>
     <sc-if value="{{isFocusPage}}" hint-placeholder-val="{{ false }}">
       <main aria-label="{{focusPageLabel}}" style="flex: 1 1 auto; min-width: 0; overflow-y: auto; padding: 18px 28px 40px; display: flex; flex-direction: column; gap: 16px">
@@ -948,7 +1026,7 @@ function download(name, text) {
   a.click();
   URL.revokeObjectURL(a.href);
 }
-const LAYOUT_IDS = ['radial', 'tree', 'directory', 'questionnaire', 'pie'];
+const LAYOUT_IDS = ['radial', 'tree', 'directory', 'questionnaire', 'pie', 'compare'];
 const FOCUS_LAYOUTS = ['questionnaire', 'pie'];
 /* State keys that undo covers: the nodes and every setting saved in front matter. */
 const HISTORY_KEYS = ['nodes', 'dims', 'colorDim', 'colorMode', 'colorLeft', 'colorRight', 'reverse', 'theme', 'tagStyles'];
@@ -1324,6 +1402,166 @@ function angleDelta(prev, now) {
   if (d < -Math.PI) d += 2 * Math.PI;
   return d;
 }
+/* ---------------------------------------------------------------- Compare
+   Nodes match by their title path: trimmed, lower-cased titles from the root, " / " between. Same-named siblings
+   get " #2", " #3" in file order. B's root is matched to A's root whatever its title. */
+function titlePaths(graph) {
+  const out = new Map();
+  const walk = (n, path) => {
+    out.set(n.id, path);
+    const seen = new Map();
+    childrenOf(graph, n.id).forEach((k) => {
+      const base = path + ' / ' + k.title.trim().toLowerCase();
+      const count = (seen.get(base) ?? 0) + 1;
+      seen.set(base, count);
+      walk(k, count === 1 ? base : base + ' #' + count);
+    });
+  };
+  const root = rootOf(graph);
+  walk(root, root.title.trim().toLowerCase());
+  return out;
+}
+function titlePath(graph, id) { return titlePaths(graph).get(id); }
+function pathsAgainst(a, b) {
+  const pa = titlePaths(a);
+  const pb = titlePaths(b);
+  const ra = pa.get(rootOf(a).id);
+  const rb = pb.get(rootOf(b).id);
+  pb.forEach((p, id) => pb.set(id, ra + p.slice(rb.length)));
+  return { pa, pb };
+}
+/* One row per path: own x and y on each side, the change, and whether it is only on one side. Biggest change first,
+   then nodes on one side only, then unchanged. Values compared are the node's own, not ones filled in from children. */
+function compareMaps(a, b, meta) {
+  const { pa, pb } = pathsAgainst(a, b);
+  const byA = new Map([...pa].map(([id, p]) => [p, byId(a, id)]));
+  const byB = new Map([...pb].map(([id, p]) => [p, byId(b, id)]));
+  const paths = [...byA.keys(), ...[...byB.keys()].filter((p) => !byA.has(p))];
+  const delta = (x, y) => (x === null || y === null ? null : Math.round((y - x) * 1000) / 1000);
+  const rows = paths.map((path) => {
+    const na = byA.get(path) ?? null;
+    const nb = byB.get(path) ?? null;
+    const only = na === null ? 'b' : nb === null ? 'a' : null;
+    const dx = only ? null : delta(na.x, nb.x);
+    const dy = only ? null : delta(na.y, nb.y);
+    const changed = only === null && (na.x !== nb.x || na.y !== nb.y);
+    const ca = na === null ? null : na[meta.colorDim];
+    const cb = nb === null ? null : nb[meta.colorDim];
+    return {
+      path, a: na, b: nb, dx, dy, only, changed, size: Math.max(Math.abs(dx ?? 0), Math.abs(dy ?? 0)),
+      flipped: meta.colorMode === 'split' && ca !== null && cb !== null && (ca - 0.5) * (cb - 0.5) < 0
+    };
+  });
+  const rank = (r) => (r.changed ? 0 : r.only ? 1 : 2);
+  return rows.map((r, i) => [r, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || y[0].size - x[0].size || x[1] - y[1]).map(([r]) => r);
+}
+/* The Sankey: each side is its tree flowing outward from its root (A on the left, B mirrored on the right), a node's band
+   being its share of the whole map. The finest entries meet in the middle by path; one-sided ones dead-end there.
+   Where a node is broken down on one side only, a "#self" tip carries the undivided value. */
+function sankeyLayout(ta, tb) {
+  const K = 520; const G = 6; const STEP = 150; const BW = 12; const MID = 240; const PAD = 10;
+  const f = (n) => n.toFixed(1);
+  const index = (root) => { const m = new Map(); const w = (n) => { m.set(n.slug, n); n.children.forEach(w); }; w(root); return m; };
+  const shares = (root) => {
+    const vals = treeValues(root);
+    const v = new Map();
+    const walk = (n, val) => {
+      v.set(n.slug, val);
+      const tot = n.children.reduce((acc, c) => acc + Math.max(vals.get(c.slug).share, 0.01), 0);
+      n.children.forEach((c) => walk(c, val * Math.max(vals.get(c.slug).share, 0.01) / tot));
+    };
+    walk(root, 1);
+    return v;
+  };
+  const ia = index(ta); const ib = index(tb);
+  const vA = shares(ta); const vB = shares(tb);
+  // The merged structure: A's order, B-only nodes after their siblings under their B parent.
+  const all = [];
+  const visit = (slug, depth) => {
+    const na = ia.get(slug); const nb = ib.get(slug);
+    const m = { key: slug, slug, depth, self: false, kids: [], val: { A: vA.get(slug) ?? 0, B: vB.get(slug) ?? 0 }, na, nb };
+    all.push(m);
+    const kids = [...(na ? na.children.map((c) => c.slug) : []), ...(nb ? nb.children.filter((c) => !ia.has(c.slug)).map((c) => c.slug) : [])];
+    m.kids = kids.map((k) => visit(k, depth + 1));
+    return m;
+  };
+  const root = visit(ta.slug, 0);
+  all.slice().forEach((m) => {
+    if (m.kids.length === 0) return;
+    const sA = m.na && m.na.children.length === 0 ? m.val.A : 0;
+    const sB = m.nb && m.nb.children.length === 0 ? m.val.B : 0;
+    if (sA === 0 && sB === 0) return;
+    const self = { key: m.slug + '#self', slug: m.slug, depth: m.depth + 1, self: true, kids: [], val: { A: sA, B: sB }, na: m.na, nb: m.nb };
+    m.kids.push(self);
+    all.push(self);
+  });
+  const tips = [];
+  const dfs = (m) => { if (m.kids.length === 0) tips.push(m); else m.kids.forEach(dfs); };
+  dfs(root);
+  const D = all.reduce((acc, m) => Math.max(acc, m.depth), 0);
+  const W = 2 * D * STEP + 2 * BW + MID;
+  const xA = (d) => d * STEP;
+  const xB = (d) => W - d * STEP - BW;
+  const place = (side) => {
+    const span = new Map();
+    let y = PAD;
+    tips.forEach((t) => { const h = t.val[side] * K; span.set(t.key, [y, y + h]); y += h + G; });
+    const sp = (m) => {
+      if (m.kids.length === 0) return span.get(m.key);
+      const ss = m.kids.map(sp);
+      const r = [ss[0][0], ss[ss.length - 1][1]];
+      span.set(m.key, r);
+      return r;
+    };
+    sp(root);
+    const pos = new Map();
+    all.forEach((m) => { const [t0, t1] = span.get(m.key); const h = m.val[side] * K; pos.set(m.key, { top: (t0 + t1) / 2 - h / 2, h }); });
+    return { pos, bottom: y - G + PAD };
+  };
+  const pA = place('A'); const pB = place('B');
+  const H = Math.max(pA.bottom, pB.bottom);
+  const band = (x0, y0a, y0b, x1, y1a, y1b) => {
+    const xm = (x0 + x1) / 2;
+    return 'M ' + f(x0) + ' ' + f(y0a) + ' C ' + f(xm) + ' ' + f(y0a) + ' ' + f(xm) + ' ' + f(y1a) + ' ' + f(x1) + ' ' + f(y1a) + ' L ' + f(x1) + ' ' + f(y1b) + ' C ' + f(xm) + ' ' + f(y1b) + ' ' + f(xm) + ' ' + f(y0b) + ' ' + f(x0) + ' ' + f(y0b) + ' Z';
+  };
+  const deadEnd = (x0, y0, y1, dir) => {
+    const ym = (y0 + y1) / 2; const x1 = x0 + dir * 90; const xc = x0 + dir * 50;
+    return 'M ' + f(x0) + ' ' + f(y0) + ' C ' + f(xc) + ' ' + f(y0) + ' ' + f(xc) + ' ' + f(ym) + ' ' + f(x1) + ' ' + f(ym) + ' C ' + f(xc) + ' ' + f(ym) + ' ' + f(xc) + ' ' + f(y1) + ' ' + f(x0) + ' ' + f(y1) + ' Z';
+  };
+  const bars = []; const links = [];
+  [['A', pA], ['B', pB]].forEach(([side, p]) => {
+    all.forEach((m) => {
+      if (m.val[side] === 0) return;
+      const pm = p.pos.get(m.key);
+      const node = side === 'A' ? m.na : m.nb;
+      if (!m.self) bars.push({ side, slug: m.slug, node, x: side === 'A' ? xA(m.depth) : xB(m.depth), y: pm.top, h: pm.h, w: BW });
+      let cur = pm.top;
+      m.kids.forEach((c) => {
+        const hc = c.val[side] * K;
+        if (hc === 0) return;
+        const pc = p.pos.get(c.key);
+        const d = side === 'A'
+          ? band(xA(m.depth) + BW, cur, cur + hc, xA(c.depth) + (c.self ? BW : 0), pc.top, pc.top + hc)
+          : band(xB(m.depth), cur, cur + hc, xB(c.depth) + (c.self ? 0 : BW), pc.top, pc.top + hc);
+        links.push({ kind: 'tree', side, slug: c.slug, node: side === 'A' ? c.na : c.nb, d });
+        cur += hc;
+      });
+    });
+  });
+  tips.forEach((t) => {
+    const pa = pA.pos.get(t.key); const pb = pB.pos.get(t.key);
+    const x0 = xA(t.depth) + BW; const x1 = xB(t.depth);
+    if (pa.h > 0 && pb.h > 0) links.push({ kind: 'match', side: null, slug: t.slug, node: t.na, d: band(x0, pa.top, pa.top + pa.h, x1, pb.top, pb.top + pb.h) });
+    else if (pa.h > 0) links.push({ kind: 'dead', side: 'A', slug: t.slug, node: t.na, d: deadEnd(x0, pa.top, pa.top + pa.h, 1) });
+    else if (pb.h > 0) links.push({ kind: 'dead', side: 'B', slug: t.slug, node: t.nb, d: deadEnd(x1, pb.top, pb.top + pb.h, -1) });
+  });
+  return { W, H, bars, links };
+}
+/* A graph as the bar/pie tree, keyed by title path, for the Sankey. */
+function pathTree(graph, paths, meta) {
+  const relabel = (n) => ({ ...n, slug: paths.get(n.n.id), children: n.children.map(relabel) });
+  return relabel(focusTree(graph, rootOf(graph).id, meta));
+}
 /* True when url is already open at or above nodeId: the map a node came from, or the page's own ?src= map for own nodes. */
 function refCycle(graph, nodeId, url, rootSource = null) {
   let n = byId(graph, nodeId);
@@ -1556,6 +1794,10 @@ class Component extends DCLogic {
     frozenOrder: null,
     thermoId: null,
     pieEdit: false,
+    mapB: null,
+    cmpTab: 'table',
+    cmpError: null,
+    cmpUrl: '',
     hover: null,
     adding: null,
     bornId: null,
@@ -1598,6 +1840,18 @@ class Component extends DCLogic {
       if (saved.length) this.openText(saved[0].text, saved[0].name, { force: true, savedName: saved[0].name });
     } catch (err) {
       this.setState({ loadError: payload !== null ? 'This share link is damaged and could not be read.' : String(err.message || err) });
+    } finally {
+      await this.startTheirs();
+    }
+  }
+  async startTheirs() {
+    const theirs = new URLSearchParams(location.search).get('theirs');
+    if (theirs === null) return;
+    try {
+      const url = new URL(theirs, location.href).href;
+      if (this.setB(await this.fetchMapText(url), shortUrl(url))) this.setState({ layout: 'compare' });
+    } catch (err) {
+      this.setState({ layout: 'compare', cmpError: String(err.message || err) });
     }
   }
   srcUrl = null;
@@ -2262,6 +2516,93 @@ class Component extends DCLogic {
             : 'Hover a slice: + adds beside it, ⇔ drags to resize · Ctrl or ⌘-click to choose what a resize changes'
     };
   }
+  /* Map B for Compare. A parse error keeps the B already there. B's refs are never loaded. */
+  setB(text, name) {
+    try {
+      const { meta, nodes } = parseMap(text);
+      this.setState({ mapB: { nodes, meta, name }, cmpError: null });
+      return true;
+    } catch (err) {
+      if (!(err instanceof MapParseError)) throw err;
+      this.setState({ cmpError: err.message });
+      return false;
+    }
+  }
+  async setBFromUrl(raw) {
+    const url = raw.trim();
+    if (url === '') return;
+    try { this.setB(await this.fetchMapText(new URL(url, location.href).href), sharePayload(url) !== null ? 'Shared map' : shortUrl(url)); }
+    catch (err) { this.setState({ cmpError: String(err.message || err) }); }
+  }
+  compareVals(nodes, meta) {
+    const s = this.state;
+    const colorName = dimName(s.dims, s.colorDim);
+    const tabs = [['table', 'Table'], ['structure', 'Structure'], ['sankey', 'Sankey']].map(([id, label]) => ({
+      id, label, pressed: String(s.cmpTab === id), pick: () => this.setState({ cmpTab: id }),
+      style: s.cmpTab === id ? 'background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(23,24,28,0.08)' : 'background: transparent; color: var(--ink2)'
+    }));
+    const base = {
+      hasB: s.mapB !== null, noB: s.mapB === null, nameA: s.savedName ?? s.mapName ?? 'This map', nameB: s.mapB === null ? '' : s.mapB.name,
+      error: s.cmpError ?? '', hasError: s.cmpError !== null, tabs,
+      isTable: s.cmpTab === 'table', isStructure: s.cmpTab === 'structure', isSankey: s.cmpTab === 'sankey',
+      url: s.cmpUrl, onUrl: (e) => this.setState({ cmpUrl: e.target.value }),
+      onUrlKey: (e) => { if (e.key === 'Enter') this.setBFromUrl(s.cmpUrl); }, goUrl: () => this.setBFromUrl(s.cmpUrl),
+      onFiles: (e) => { const f = e.target.files[0]; if (f) f.text().then((t) => this.setB(t, f.name)); },
+      useCurrent: () => this.setB(this.currentText(), 'Current map (copy)'),
+      savedB: s.saved.map((r) => ({ name: r.name, pick: () => this.setB(r.text, r.name) })),
+      loadSaved: () => this.refreshSaved(),
+      dimX: dimName(s.dims, 'x'), dimY: dimName(s.dims, 'y'), colorName,
+      rows: [], structure: [], sankey: { W: 0, H: 0, bars: [], links: [], viewBox: '0 0 0 0' }, summary: ''
+    };
+    if (s.mapB === null) return base;
+    const a = nodes.filter((n) => n.kind === 'own' || n.kind === 'refRoot');
+    const b = composeGraph(s.mapB.nodes, {});
+    const rows = compareMaps(a, b, meta);
+    const num = (v) => (v === null ? '—' : v.toFixed(2));
+    const sign = (v) => (v === null ? '' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(2));
+    const badge = (r) => (r.only === 'a' ? 'Only in A' : r.only === 'b' ? 'Only in B' : r.flipped ? 'Flipped' : r.changed ? 'Changed' : 'Same');
+    const badgeStyle = (r) => (r.only ? 'background: #F0F0EC; color: #4A4D55; border: 1px dashed #9A9CA2'
+      : r.flipped ? 'background: #FDE8C8; color: #6E1A12' : r.changed ? 'background: #E3E8FB; color: #1C3399' : 'background: transparent; color: var(--ink2)');
+    const view = (r) => {
+      const n = r.a ?? r.b;
+      return {
+        title: n.title || 'New idea', path: r.path, badge: badge(r), badgeStyle: badgeStyle(r),
+        xa: num(r.a ? r.a.x : null), xb: num(r.b ? r.b.x : null), ya: num(r.a ? r.a.y : null), yb: num(r.b ? r.b.y : null),
+        dx: sign(r.dx), dy: sign(r.dy), dim: r.changed || r.only ? 1 : 0.55,
+        open: () => { if (r.a) this.setState({ currentId: r.a.id }); }
+      };
+    };
+    const { pa, pb } = pathsAgainst(a, b);
+    const depthOf = (p) => p.split(' / ').length - 1;
+    const byPath = new Map(rows.map((r) => [r.path, r]));
+    const order = [];
+    const walk = (g, paths, id) => { order.push(paths.get(id)); childrenOf(g, id).forEach((k) => walk(g, paths, k.id)); };
+    walk(a, pa, rootOf(a).id);
+    walk(b, pb, rootOf(b).id);
+    const treeOrder = [...new Set(order)];
+    const sk = sankeyLayout(pathTree(a, pa, meta), pathTree(b, pb, meta));
+    const metaB = s.mapB.meta;
+    const changedCount = rows.filter((r) => r.changed).length;
+    return {
+      ...base,
+      rows: rows.map(view),
+      structure: treeOrder.map((p) => ({ ...view(byPath.get(p)), indent: (depthOf(p) * 22) + 'px' })),
+      summary: changedCount + ' changed · ' + rows.filter((r) => r.only === 'a').length + ' only in A · ' + rows.filter((r) => r.only === 'b').length + ' only in B',
+      sankey: {
+        W: sk.W, H: sk.H, viewBox: '0 0 ' + sk.W.toFixed(0) + ' ' + Math.max(1, sk.H).toFixed(0), height: Math.max(120, sk.H).toFixed(0) + 'px',
+        bars: sk.bars.map((x) => ({ x: x.x.toFixed(1), y: x.y.toFixed(1), w: x.w, h: Math.max(1, x.h).toFixed(1), fill: x.node ? colorFor(colorValueOf(x.side === 'A' ? a : b, x.node.n.id, x.side === 'A' ? meta : metaB), meta) : NEUTRAL, title: x.node ? x.node.text : '' })),
+        links: sk.links.map((l) => {
+          const r = byPath.get(l.slug);
+          const moved = r && (r.flipped || r.changed);
+          return {
+            d: l.d, title: l.node ? l.node.text : '',
+            fill: l.kind === 'dead' ? '#F0F0EC' : moved ? '#F3A65A' : (l.node ? colorFor(l.node.v, meta) : NEUTRAL),
+            stroke: l.kind === 'dead' ? '#9A9CA2' : 'none', dash: l.kind === 'dead' ? '4 3' : 'none', op: l.kind === 'match' ? 0.55 : 0.4
+          };
+        })
+      }
+    };
+  }
   /* The Questionnaire page: the open node's title, its health, and its children as a bar with every level below. */
   focusVals(nodes, cur, meta, m) {
     const s = this.state;
@@ -2401,7 +2742,8 @@ class Component extends DCLogic {
     const cur = byId(nodes, s.currentId);
     const isDir = s.layout === 'directory';
     const isFocus = FOCUS_LAYOUTS.includes(s.layout);
-    const noCanvas = isDir || isFocus;
+    const isCompare = s.layout === 'compare';
+    const noCanvas = isDir || isFocus || isCompare;
     const base = noCanvas ? {} : this.positions();
     const box = this.visible();
     const lensK = LENS_STEPS[s.lensIdx];
@@ -2717,9 +3059,11 @@ class Component extends DCLogic {
       isQuestion: s.layout === 'questionnaire',
       isPie: s.layout === 'pie',
       isFocusPage: isFocus,
+      isCompare,
+      cmp: isCompare ? this.compareVals(nodes, meta) : {},
       focusPageLabel: s.layout === 'pie' ? 'Pie' : 'Questionnaire',
       ...(isFocus ? this.focusVals(nodes, cur, meta, m) : {}),
-      panelVisible: noCanvas || s.panelOpen,
+      panelVisible: !isCompare && (noCanvas || s.panelOpen),
       panelPill: !noCanvas && !s.panelOpen,
       panelBox: isFocus
         ? 'position: relative; flex: 0 0 400px; max-width: 42%; min-width: 300px; border-left: 1px solid var(--rule); padding: 20px 22px; gap: 16px'
