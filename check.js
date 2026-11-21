@@ -1149,6 +1149,24 @@ test('Ctrl+arrow works with the caret anywhere in the title, and does nothing wh
   assert.ok(f.prevented, 'still keeps the caret from moving');
 });
 
+test('arrows reach the selected node when nothing has focus, as right after a map loads', () => {
+  const c = boot('# R\n- A\n- B\n');
+  c.setState({ layout: 'radial' });
+  const body = { tagName: 'BODY' };
+  const press = (key, extra = {}) => { const e = { key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, target: body, preventDefault() { this.prevented = true; }, ...extra }; c.onGlobalKey(e); return e; };
+  assert.ok(press('ArrowRight').prevented);
+  assert.equal(c.state.currentId, idOf(c, 'A')); // plain → from the root goes into its first child
+  press('ArrowLeft');
+  assert.equal(c.state.currentId, c.state.nodes[0].id);
+  press('ArrowLeft', { ctrlKey: true });
+  assert.equal(c.state.currentId, idOf(c, 'B')); // Ctrl+← goes to the node on the left
+  const slider = press('ArrowRight', { target: { tagName: 'INPUT', type: 'range' } });
+  assert.equal(slider.prevented, undefined); // a focused slider keeps its arrows
+  assert.equal(c.state.currentId, idOf(c, 'B'));
+  c.setState({ layout: 'directory' });
+  assert.equal(press('ArrowRight').prevented, undefined); // Directory has its own keys
+});
+
 (async () => {
   for (const { name, fn } of queue) {
     try { await fn(); passed++; } catch (e) { failed++; console.error(`FAIL ${name}\n  ${e.message}`); }

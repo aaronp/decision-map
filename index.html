@@ -2150,6 +2150,14 @@ class Component extends DCLogic {
   }
   // ⌘Z / Ctrl+Z undoes and with Shift redoes, except in a text field, where the browser's own undo applies.
   onGlobalKey(e) {
+    // Arrow keys are handled on the selected node's title, but after a map loads (or a click on empty canvas) nothing has
+    // focus. Then they go to the selected node as if its whole title were selected, so they navigate rather than doing nothing.
+    if (e.key in ARROW_DIRS && !e.metaKey && !e.altKey && (e.target || {}).tagName === 'BODY' && this.state.layout in LAYOUTS) {
+      const n = byId(this.graph(), this.state.currentId);
+      this.handleKey({ key: e.key, ctrlKey: e.ctrlKey, metaKey: false, altKey: false, shiftKey: e.shiftKey, preventDefault: () => e.preventDefault(),
+        target: { value: n.title, selectionStart: 0, selectionEnd: n.title.length, blur() {} } }, n);
+      return;
+    }
     if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
     const t = e.target || {};
     const tag = String(t.tagName || '').toUpperCase();
