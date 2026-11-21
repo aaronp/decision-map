@@ -1167,6 +1167,41 @@ test('arrows reach the selected node when nothing has focus, as right after a ma
   assert.equal(press('ArrowRight').prevented, undefined); // Directory has its own keys
 });
 
+// ---------------------------------------------------------------- map layout: no overlaps, no needless distance
+const overlaps = (c) => {
+  const pos = c.positions();
+  const box = c.layoutBoxes();
+  const ids = Object.keys(pos);
+  const out = [];
+  ids.forEach((a, i) => ids.slice(i + 1).forEach((b) => {
+    if (Math.abs(pos[a].x - pos[b].x) < box[a].hw + box[b].hw && Math.abs(pos[a].y - pos[b].y) < box[a].hh + box[b].hh) out.push(a + '/' + b);
+  }));
+  return out;
+};
+const BUSY = '# What are you deciding?\n- A {x:0.2}\n- B {x:1}\n- C\n- D {x:1}\n- Dave\n- New idea\n- Next {x:1}\n- Ide\n- Meh\n- Somewhere with a much longer title than the rest {x:1}\n  - next\n  - Whatever {x:0.9}\n  - x\n';
+
+test('Radial and Tree: no two nodes overlap, with sizes scaled and any node selected', () => {
+  for (const layout of ['radial', 'tree']) {
+    const c = boot(BUSY);
+    c.setState({ layout, colorDim: 'y', sizeOn: true });
+    for (const n of c.state.nodes) {
+      c.setState({ currentId: n.id });
+      assert.deepEqual(overlaps(c).map((x) => x.split('/').map((id) => c.state.nodes.find((m) => m.id === id).title).join(' × ')), [], layout + ' with ' + n.title + ' selected');
+    }
+    c.setState({ sizeMax: 2.4 });
+    assert.deepEqual(overlaps(c), [], layout + ' at the largest size range');
+  }
+});
+
+test('Radial: a few short children sit close to the root, not on a fixed far ring', () => {
+  const c = boot('# Root\n- A\n- B\n- C\n');
+  c.setState({ layout: 'radial' });
+  const pos = c.positions();
+  const far = Math.max(...c.state.nodes.slice(1).map((n) => Math.hypot(pos[n.id].x, pos[n.id].y)));
+  assert.ok(far < 160, 'furthest child is ' + far.toFixed(0) + 'px out');
+  assert.deepEqual(overlaps(c), []);
+});
+
 (async () => {
   for (const { name, fn } of queue) {
     try { await fn(); passed++; } catch (e) { failed++; console.error(`FAIL ${name}\n  ${e.message}`); }

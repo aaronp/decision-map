@@ -1596,9 +1596,6 @@ const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 1.25;
 const LENS_STEPS = [1, 2, 3, 5, 8];
-const RING = 175;
-const TREE_COL = 210;
-const TREE_ROW = 50;
 const MARGIN = 32;
 const PANEL_H = 330;
 const RAMP_LO = [238, 242, 253];
@@ -1657,40 +1654,86 @@ function spatialStep(pos, fromId, key) {
   });
   return best;
 }
-function layoutRadial(nodes) {
+/* Both layouts place nodes by their drawn size (box: id -> { hw, hh }, half width and height), so nothing overlaps and
+   small nodes sit close. Radial: each child sits just past its parent along its own direction, and far enough out to fit
+   sideways in its share of the circle (its slice, by leaf count). Tree: columns as wide as their widest node, and each
+   node gets a band of rows at least its own height, with its children stacked inside. */
+const LAYOUT_GAP = 16;
+function layoutRadial(nodes, box) {
   const pos = {};
-  const place = (id, depth, a0, a1) => {
+  const placed = [];
+  const along = (b, c, s) => Math.abs(b.hw * c) + Math.abs(b.hh * s);
+  const across = (b, c, s) => Math.abs(b.hw * s) + Math.abs(b.hh * c);
+  const place = (id, depth, a0, a1, parent) => {
     const ang = (a0 + a1) / 2;
-    const r = depth * RING;
-    pos[id] = { x: r * Math.cos(ang), y: r * Math.sin(ang), depth };
+    const c = Math.cos(ang);
+    const s = Math.sin(ang);
+    let r = 0;
+    if (parent !== null) {
+      const p = pos[parent];
+      const fromParent = p.x * c + p.y * s + along(box[parent], c, s) + along(box[id], c, s) + LAYOUT_GAP;
+      const toFit = (2 * across(box[id], c, s) + LAYOUT_GAP) / Math.min(a1 - a0, Math.PI);
+      r = Math.max(fromParent, toFit);
+      // A wide label at a slant can still reach into a neighbour's slice, so step out until it clears every node placed so far.
+      // ponytail: O(n²) per step; fine for hand-made maps, use a spatial index if maps reach thousands of nodes.
+      const b = box[id];
+      const clash = () => placed.some((o) => Math.abs(pos[o].x - r * c) < box[o].hw + b.hw + LAYOUT_GAP / 2 && Math.abs(pos[o].y - r * s) < box[o].hh + b.hh + LAYOUT_GAP / 2);
+      while (clash()) r += 8;
+    }
+    pos[id] = { x: r * c, y: r * s, depth };
+    placed.push(id);
     const total = leafCount(nodes, id);
     let a = a0;
     childrenOf(nodes, id).forEach((k) => {
       const span = (a1 - a0) * leafCount(nodes, k.id) / total;
-      place(k.id, depth + 1, a, a + span);
+      place(k.id, depth + 1, a, a + span, id);
       a += span;
     });
   };
-  place(rootOf(nodes).id, 0, -Math.PI / 2, Math.PI * 1.5);
+  place(rootOf(nodes).id, 0, -Math.PI / 2, Math.PI * 1.5, null);
   return pos;
 }
-function layoutTree(nodes) {
+function layoutTree(nodes, box) {
   const pos = {};
-  let row = 0;
-  const place = (id, depth) => {
-    const kids = childrenOf(nodes, id);
-    let y;
-    if (kids.length === 0) { y = row * TREE_ROW; row += 1; }
-    else { const ys = kids.map((k) => place(k.id, depth + 1)); y = (ys[0] + ys[ys.length - 1]) / 2; }
-    pos[id] = { x: depth * TREE_COL, y, depth };
-    return y;
+  const widest = [];
+  const depthOf = {};
+  const band = {};
+  const measure = (id, depth) => {
+    depthOf[id] = depth;
+    widest[depth] = Math.max(widest[depth] ?? 0, box[id].hw);
+    const kids = childrenOf(nodes, id).reduce((t, k) => t + measure(k.id, depth + 1), 0);
+    band[id] = Math.max(2 * box[id].hh + LAYOUT_GAP / 2, kids);
+    return band[id];
   };
-  place(rootOf(nodes).id, 0);
+  measure(rootOf(nodes).id, 0);
+  // Columns are left-aligned: each starts where the widest node of the one before ends.
+  const colLeft = [0];
+  for (let d = 1; d < widest.length; d += 1) colLeft[d] = colLeft[d - 1] + 2 * widest[d - 1] + 3 * LAYOUT_GAP;
+  const place = (id, top) => {
+    const kids = childrenOf(nodes, id);
+    const inner = kids.reduce((t, k) => t + band[k.id], 0);
+    let y = top + (band[id] - inner) / 2;
+    kids.forEach((k) => { place(k.id, y); y += band[k.id]; });
+    pos[id] = { x: colLeft[depthOf[id]] + box[id].hw, y: top + band[id] / 2, depth: depthOf[id] };
+  };
+  const root = rootOf(nodes).id;
+  place(root, 0);
   const ids = Object.keys(pos);
   const maxX = Math.max(...ids.map((i) => pos[i].x));
-  const maxY = Math.max(...ids.map((i) => pos[i].y));
-  ids.forEach((i) => { pos[i] = { x: pos[i].x - maxX / 2, y: pos[i].y - maxY / 2, depth: pos[i].depth }; });
+  ids.forEach((i) => { pos[i] = { x: pos[i].x - maxX / 2, y: pos[i].y - band[root] / 2, depth: pos[i].depth }; });
   return pos;
+}
+/* How big a node is drawn: its size value scales it (the root never), and the selected node is an edit box with a + beside it. */
+function nodeScale(graph, n, sizeKey, sizeMin, sizeMax) {
+  if (sizeKey === null || n.parent === null) return 1;
+  const e = effective(graph, n.id, sizeKey);
+  return e.v === null ? sizeMin : sizeMin + e.v * (sizeMax - sizeMin);
+}
+function nodeBox(n, scale, isCurrent, hasToggle) {
+  const chars = Math.max(n.title.length, 8);
+  const isRoot = n.parent === null;
+  const w = (isRoot ? chars * 9.6 + 44 : chars * 7.6 + 28) + (isCurrent ? 34 : 0) + (hasToggle ? 28 : 0);
+  return { hw: w * scale / 2, hh: (isRoot ? 48 : 34) * scale / 2 };
 }
 const LAYOUTS = { radial: layoutRadial, tree: layoutTree };
 
@@ -2059,7 +2102,18 @@ class Component extends DCLogic {
     if (this.state.layout === 'directory') throw new Error('bug: the directory view has no map positions');
     const fn = LAYOUTS[this.state.layout];
     if (!fn) throw new Error('bug: unknown layout ' + this.state.layout);
-    return fn(this.visibleGraph());
+    return fn(this.visibleGraph(), this.layoutBoxes());
+  }
+  layoutBoxes() {
+    const s = this.state;
+    const all = this.graph();
+    const sizeKey = s.sizeOn ? otherDim(s.colorDim) : null;
+    const out = {};
+    this.visibleGraph().forEach((n) => {
+      const toggle = (n.kind === 'refRoot' && n.loadStatus !== 'loaded') || childrenOf(all, n.id).length > 0;
+      out[n.id] = nodeBox(n, nodeScale(all, n, sizeKey, s.sizeMin, s.sizeMax), n.id === s.currentId, toggle);
+    });
+    return out;
   }
   // The panel floats over the map only at the bottom; on the right it takes its own column, so the canvas is already narrower.
   panelOver() { return this.state.panelOpen && this.state.drawer === 'bottom'; }
@@ -2848,11 +2902,7 @@ class Component extends DCLogic {
       const unloaded = n.kind === 'refRoot' && (n.loadStatus === 'idle' || n.loadStatus === 'error');
       const kidCount = unloaded ? 1 : childrenOf(nodes, n.id).length;
       const collapsed = unloaded || (kidCount > 0 && s.mapCollapsed[n.id] === true);
-      let scale = 1;
-      if (sizeKey !== null && !isRoot) {
-        const e = effective(nodes, n.id, sizeKey);
-        scale = e.v === null ? s.sizeMin : s.sizeMin + e.v * (s.sizeMax - s.sizeMin);
-      }
+      let scale = nodeScale(nodes, n, sizeKey, s.sizeMin, s.sizeMax);
       let opacity = 1;
       if (s.fisheye) {
         scale = scale * clamp(0.34, 1.35, 0.65 * Math.sqrt(p.mag));
